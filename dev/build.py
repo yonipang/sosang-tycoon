@@ -84,6 +84,16 @@ def build(out=None):
         return '\n'.join(out_lines)
 
     html = expand(shell)
+    # 문법 확인 (node가 있으면): 묶은 스크립트가 브라우저에서 바로 멈추지 않게
+    import shutil, subprocess, tempfile
+    if shutil.which('node'):
+        js = html.split('<script>')[1].split('</script>')[0]
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False, encoding='utf-8') as tf:
+            tf.write(js)
+        r = subprocess.run(['node', '--check', tf.name], capture_output=True, text=True)
+        os.unlink(tf.name)
+        if r.returncode:
+            raise BuildError('문법 오류:\n' + '\n'.join(r.stderr.strip().splitlines()[:5]))
     out = out or os.path.join(DEV, 'index.html')
     with open(out, 'w', encoding='utf-8') as fh:
         fh.write(html)

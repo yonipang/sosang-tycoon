@@ -29,6 +29,26 @@ function float(x, y, text, kind) {
   setTimeout(() => el.remove(), 1200);
 }
 
+// 말풍선: 사람 머리 위를 따라다녀요 (지나가는 사람의 한마디 등)
+const speech = [];
+function say(id, text) {
+  const el = document.createElement('div');
+  el.className = 'say';
+  el.textContent = text;
+  $('floats').appendChild(el);
+  speech.push({ id, el, t: 0 });
+}
+export function updateSpeech(dt) {
+  for (let i = speech.length - 1; i >= 0; i--) {
+    const s = speech[i]; s.t += dt;
+    const c = G.run && G.run.customers.find(q => q.id === s.id);
+    if (!c || s.t > 2.2) { s.el.remove(); speech.splice(i, 1); continue; }
+    const p = tileToCss(c.x, c.y + (c.lane || 0) - 1.55);
+    s.el.style.left = p.x + 'px'; s.el.style.top = p.y + 'px';
+    s.el.style.opacity = s.t > 1.9 ? String((2.2 - s.t) / 0.3) : '1';
+  }
+}
+
 // 첫날 길잡이: 처음 겪는 일마다 한 번씩만
 const shown = new Set();
 function hint(key, text) {
@@ -40,6 +60,7 @@ function hint(key, text) {
 export function initFeedback() {
   onEvent('toast', toast);
   onEvent('float', float);
+  onEvent('say', say);
   onEvent('sfx', playSfx);
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
   onEvent('cook', (on, menu, game) => {

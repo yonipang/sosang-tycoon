@@ -181,7 +181,7 @@ export function drawFrame(dt) {
     for (const c of r.customers) {
       const seated = sittingNow(c);
       if (seated) c.dir = SEATS[c.seat].face === 'right' ? 0 : 2;
-      items.push({ y: c.y + (seated ? 0.5 : 0.6), d: () => drawChar(c.char, c.x, c.y, c.dir, seated ? (c.state === 'eating' ? 'sitEat' : 'sit') : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
+      items.push({ y: c.y + (seated ? 0.5 : 0.6) + (c.lane || 0), d: () => drawChar(c.char, c.x, c.y + (c.lane || 0), c.dir, seated ? (c.state === 'eating' ? 'sitEat' : 'sit') : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
     }
     const p = r.player;
     items.push({ y: p.y + 0.6, d: () => drawChar(0, p.x, p.y, p.dir, p.moving ? 'walk' : 'idle', t) });
@@ -189,7 +189,7 @@ export function drawFrame(dt) {
     SEATS.forEach((s, i) => {
       const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
       const tb = TABLES.find(q => q.no === s.table);
-      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 9) });
+      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? 0 : TILE), s.y * TILE - 15) });
     });
   }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());

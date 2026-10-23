@@ -190,6 +190,7 @@ def collect():
     s['sink'] = stack_counter(crop(INT, KIT % 141), 9)       # 개수대 윗판 (퇴식대, 내용 y1~15)
     s['fridge'] = crop(INT, KIT % 158)
     s['table'] = crop(INT, KIT % 289)
+    s['table2'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/12_Kitchen_16x16.png', 144, 304, 32, 16)  # 2인 탁자 (2칸)
     s['chair'] = crop(INT, KIT % 280)
     s['plate'] = crop(INT, KIT % 381)
     s['menuboard'] = crop(INT, ICE % 14)

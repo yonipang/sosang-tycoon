@@ -211,3 +211,8 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 
 /* 새 메뉴 표시 */
 .new { display: inline-block; background: var(--red); color: #fff; padding: 0 6px; margin-left: 4px; }
+
+/* 지나가는 사람의 한마디 */
+.say { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: #fffaf0; color: var(--ink);
+  border: 2px solid var(--ink); padding: 0 6px; line-height: 1.4; pointer-events: none; }
+.say::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -3px; border: 3px solid transparent; border-top-color: var(--ink); }

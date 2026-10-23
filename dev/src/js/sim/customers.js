@@ -1,12 +1,13 @@
+// 가게 앞 보도에는 사람이 지나다녀요(유동인구). 가게 문 앞에서 일부가 들어오기로 정하면 손님이 돼요.
 // 손님: 일행(1~2명)으로 보도에서 들어와 → 빈 탁자(한 일행에 한 탁자) → 메뉴 보기(가격 반응) → 주문 → 기다림 → 먹기
 //       → 일행이 다 먹으면 한 명이 계산 줄에 서서 같이 계산 → 나가기
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, menuOpen } from '../data/menu.js';
-import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, typeMix } from '../data/customers.js';
+import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
-import { rand, rint, weighted } from '../engine/random.js';
+import { rand, rint, weighted, fxRand } from '../engine/random.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
 
@@ -15,6 +16,10 @@ const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
 export const isSeated = c => SEATED.includes(c.state) && c.seat >= 0;
 const partyOf = c => G.run.customers.filter(q => q.party === c.party && q.state !== 'leave');
 const P = c => CUSTOMER_TYPES[c.type].patience;
+// 지나가는 사람(아직 가게 손님이 아닌 사람)
+const PASSING = ['walk', 'glance', 'pass'];
+export const isPasser = c => PASSING.includes(c.state);
+export const shopCustomers = () => G.run.customers.filter(c => !isPasser(c));
 
 // 보도를 따라 x에서 toX까지
 function sidewalk(fromX, toX) {
@@ -23,8 +28,8 @@ function sidewalk(fromX, toX) {
   return p;
 }
 
-// ── 들어오기 ──
-export function spawnCustomer(hour) {
+// ── 지나가는 사람 (유동인구) ──
+export function spawnPasser(hour) {
   const r = G.run;
   const here = new Set(r.customers.map(c => c.char));
   const free = Object.keys(PEOPLE).map(Number).filter(n => !here.has(n));
@@ -47,7 +52,7 @@ export function spawnCustomer(hour) {
     r.customers.push({
       id: r.nextId++, char: ch, type: PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
-      path: sidewalk(sx, DOOR_OUT.x), state: 'arrive', moving: true,
+      path: sidewalk(sx, DOOR_OUT.x), state: 'walk', moving: true, lane: fromLeft ? -0.12 : 0.08,
       seat: -1, menu: null, face: null, faceT: 0, patience: 0, patMax: 1, timer: 0,
       priceSat: 0, quality: -1, foodWaitFrac: 0, payWaited: false, exitX: fromLeft ? W + k : -1 - k,
     });
@@ -211,6 +216,30 @@ export function pay(c) {
   for (const m of group) leave(m, false);
 }
 
+// 가게 앞에서: 들어올지 정하고, 안 들어오면 그냥 지나가요 (가끔 멈춰서 보거나 한마디)
+function atDoor(c) {
+  const r = G.run, members = partyOf(c);
+  r.log.foot += members.length;
+  if (rand() < (r.enterP || 0)) {
+    r.log.entered += members.length;
+    members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
+    return;
+  }
+  const glance = rand() < GLANCE_CHANCE;
+  members.forEach(m => { m.state = glance ? 'glance' : 'pass'; m.timer = 0.6 + rand() * 0.5; });
+  if (glance) c.dir = 1;
+  if (fxRand() < PASSER_SAY_CHANCE) emit('say', c.id, passerLine());
+  members.forEach(m => { if (!glance) m.path = m.path.concat(sidewalk(DOOR_OUT.x, m.exitX)); });
+}
+function passerLine() {
+  const r = G.run, pick = a => a[Math.floor(fxRand() * a.length)];
+  const busy = r.queue.length > 0 || !freeTable();
+  if (busy && fxRand() < 0.7) return pick(PASSER_LINES.busy);
+  if (G.ratingN >= 3 && G.rating < 2.8 && fxRand() < 0.6) return pick(PASSER_LINES.bad);
+  if (G.day <= 3 && fxRand() < 0.5) return pick(PASSER_LINES.new);
+  return pick(fxRand() < 0.5 ? PASSER_LINES.smell : PASSER_LINES.plain);
+}
+
 export function updateCustomers(dt) {
   const r = G.run;
   for (const c of r.customers.slice()) {
@@ -218,6 +247,18 @@ export function updateCustomers(dt) {
     if (c.faceT > 0) c.faceT -= dt;
     const arrived = walk(c, dt);
     switch (c.state) {
+      case 'walk':
+        if (arrived && c.lead) atDoor(c);
+        else if (arrived) c.state = 'pass', c.path = sidewalk(Math.round(c.x), c.exitX); // 앞사람이 이미 지나갔으면
+        break;
+      case 'glance':
+        if (!arrived) break;
+        c.timer -= dt;
+        if (c.timer <= 0) { c.state = 'pass'; c.path = sidewalk(Math.round(c.x), c.exitX); }
+        break;
+      case 'pass':
+        if (arrived) r.customers.splice(r.customers.indexOf(c), 1);
+        break;
       case 'arrive': {
         if (!arrived || !c.lead) break; // 일행 중 앞사람이 정해요
         const members = partyOf(c).filter(m => m.state === 'arrive');

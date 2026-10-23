@@ -9,7 +9,7 @@ import { initView, fitView, drawFrame, drawIdle, viewReady } from './render/view
 import { loadIcons } from './ui/icons.js';
 import { updateHud } from './ui/hud.js';
 import { initScreens, renderTitle } from './ui/screens.js';
-import { initFeedback, watchHints } from './ui/feedback.js';
+import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
 
 function layout() {
@@ -24,6 +24,7 @@ function frame(now) {
   stepSim(dt);
   if (G.phase === 'day' && G.run) { drawFrame(dt); watchHints(); }
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
+  updateSpeech(dt);
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
   requestAnimationFrame(frame);

@@ -100,6 +100,7 @@ export function renderReceipt() {
         <div class="ln total"><span>오늘 남은 돈</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>
         ${R.waste ? `<div class="ln note"><span>못 팔고 버린 재료</span><b>${won(R.waste)}</b></div>` : ''}
         <div class="dash"></div>
+        ${R.foot ? `<div class="ln"><span>가게 앞을 지나간 사람</span><b>${R.foot}명</b></div><div class="ln"><span>그중 들어온 사람</span><b>${R.entered}명 (${Math.round(R.entered / R.foot * 100)}%)</b></div>` : ''}
         <div class="ln"><span>받은 손님</span><b>${R.served}명</b></div>
         <div class="ln"><span>손님 한 명당 매출</span><b>${won(R.avgSpend)}</b></div>
         <div class="ln"><span>놓친 손님</span><b>${R.missedTotal}명</b></div>

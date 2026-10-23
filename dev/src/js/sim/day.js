@@ -2,13 +2,13 @@
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX, PREP_FIRST_DAY, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, ratingSpawnMul, openingMul } from '../data/economy.js';
-import { SPAWN_PER_HOUR } from '../data/customers.js';
+import { SPAWN_PER_HOUR, FOOT_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
-import { spawnCustomer } from './customers.js';
+import { spawnPasser, shopCustomers } from './customers.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m, G.day));
 export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0);
@@ -27,7 +27,7 @@ function newRun() {
     cook: null, spawnAcc: 0,
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
-      missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {},
+      missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
     },
   };
 }
@@ -65,14 +65,14 @@ export function tickDay(dt) {
     emit('toast', '21시, 영업을 마감합니다. 남은 손님만 받습니다', 'info');
     emit('closing');
   }
-  if (!r.closing) {
-    const hour = 9 + Math.floor(r.min / 60);
-    const perSec = (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) / (DAY_SEC / 12);
-    r.spawnAcc += perSec * dt;
-    while (r.spawnAcc >= 1) { r.spawnAcc -= 1; if (rand() < 0.92) spawnCustomer(hour); }
-    if (rand() < perSec * dt * 0.08) spawnCustomer(hour); // 가끔 한 명씩 더
-  }
-  if (r.closing && (r.customers.length === 0 || r.min >= CLOSE_CAP_MIN)) endDay();
+  // 가게 앞 보도에 사람이 지나가요. 그중 일부가 들어와 손님이 돼요 (마감 뒤에는 지나가기만)
+  const hour = 9 + Math.floor(r.min / 60);
+  const foot = FOOT_PER_HOUR[hour] || 8;
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day);
+  r.enterP = Math.min(0.9, visits / foot);
+  r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
+  while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
+  if (r.closing && (shopCustomers().length === 0 || r.min >= CLOSE_CAP_MIN)) endDay();
 }
 
 // ── 마감 정산 ──
@@ -105,7 +105,7 @@ export function endDay() {
     day: G.day, revenue, tips: L.tips, ingredientCost: r.ingredientCost, waste: leftover, net,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
-    dayRating, rating: G.rating, ratingDelta: G.rating - before,
+    dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered,
     reviews: pickReviews(L.events), prices: { ...G.prices }, prepared: r.prepared, faces: L.faces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.prepared }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
