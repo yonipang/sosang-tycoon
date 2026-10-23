@@ -1437,8 +1437,8 @@ function digit(n, x, y) {
 
 // 자기 자리에 도착해 앉아 있는지 (걸어가는 중이면 서 있는 그림)
 const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c.y === SEATS[c.seat].y;
-const SIT_LIFT = 6; // 앉은 그림을 위로 올리는 픽셀 (의자 방석에 맞춰요)
-const SIT_SHIFT = 1; // 탁자 쪽으로 당기는 픽셀
+const SIT_LIFT = 11; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 높이에 오게 (6이면 의자 앞 바닥에 앉은 것처럼 보여요)
+const SIT_SHIFT = 3; // 탁자 쪽으로 당기는 픽셀: 등받이가 등 뒤로 보이게
 function drawCustomerUI(c) {
   const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 13 - (sittingNow(c) ? SIT_LIFT : 0));
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
