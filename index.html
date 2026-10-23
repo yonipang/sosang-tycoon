@@ -213,6 +213,13 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 /* 쉬기 */
 #screen.scr-pause { display: flex; align-items: center; }
 .pause { width: 100%; text-align: center; }
+
+/* 아직 안 여는 메뉴 · 새 메뉴 표시 */
+.mcard.locked { display: flex; align-items: center; gap: 10px; opacity: .6; background: var(--paper-2); box-shadow: none; }
+.mcard.locked .dish { width: 32px; height: 32px; filter: grayscale(1); }
+.mcard.locked b { font-weight: normal; }
+.mcard.locked small { margin-left: auto; font-size: 16px; color: var(--ink-soft); }
+.new { display: inline-block; background: var(--red); color: #fff; padding: 0 6px; margin-left: 4px; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -331,12 +338,16 @@ const MENUS = {
   twigim: { name: '튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2 },
 };
 const MENU_IDS = ['tteok', 'kimbap', 'twigim'];
+// 메뉴가 열리는 날: 첫 사흘은 하루에 하나씩 (메뉴·미니게임을 하나씩 익히게)
+const MENU_UNLOCK = { tteok: 1, kimbap: 2, twigim: 3 };
+const menuOpen = (m, day) => day >= MENU_UNLOCK[m];
 const PRICE_STEP = 500;
 const PRICE_MIN = 1500;
 const PRICE_MAX = 9000;
 const PREP_STEP = 5;
 const PREP_MAX = 80;
-const PREP_FIRST_DAY = { tteok: 10, kimbap: 10, twigim: 8 };
+// 처음 준비량 (그 메뉴가 열리는 날의 준비량으로도 써요)
+const PREP_FIRST_DAY = { tteok: 12, kimbap: 8, twigim: 8 };
 // 조리 미니게임 (결과: 0 보통 · 1 좋음 · 2 완벽)
 //  stir 졸이기(떡볶이): 오가는 바늘을 가운데에서 멈춰요. zone = 가운데에서 떨어진 거리. timeout 초 안에 안 멈추면 보통
 //  roll 말기(김밥): taps번 빨리 눌러요. perfect·good = 다 마는 데 걸린 초. timeout 초가 지나면 보통
@@ -401,8 +412,9 @@ const TIP = { min: 500, max: 1500 };
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 const ratingSpawnMul = r => 0.55 + 0.15 * r;
 const ratingPriceMul = r => 1 + 0.05 * (r - 3);
-// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 45% → 7일차쯤 100%)
-const openingMul = day => Math.min(1, 0.45 + 0.09 * (day - 1));
+// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 30%쯤 → 7일차 100%)
+const OPENING = [0.3, 0.45, 0.6, 0.7, 0.8, 0.9, 1];
+const openingMul = day => OPENING[Math.min(OPENING.length, Math.max(1, day)) - 1];
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 // ── js/data/layout.js ──
 // 1등급 가게 배치 (가로 10칸 × 세로 13칸, 한 칸 16px)
@@ -754,14 +766,14 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOpen(x, G.day))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
-    const alts = MENU_IDS.filter(x => x !== m && r.stock[x] > 0 && !reaction(c, x).leave);
+    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x, G.day) && r.stock[x] > 0 && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
     else { partyLeaves(c, 'soldout', m); return; }
   }
@@ -887,7 +899,9 @@ function updateCustomers(dt) {
 // ── js/sim/day.js ──
 // 하루의 흐름: 새벽 준비(prep) → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 주간 정산(weekly) → 다음 날 준비
 
-const prepCost = () => MENU_IDS.reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0);
+const openMenus = () => MENU_IDS.filter(m => menuOpen(m, G.day));
+const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0);
+const todayStock = () => Object.fromEntries(MENU_IDS.map(m => [m, menuOpen(m, G.day) ? G.prep[m] : 0]));
 const isWeeklyNight = () => G.day % 7 === 0;
 
 function setPhase(p) { G.phase = p; emit('phase', p); }
@@ -895,7 +909,7 @@ function setPhase(p) { G.phase = p; emit('phase', p); }
 function newRun() {
   return {
     min: 0, speed: 1, paused: false, closing: false,
-    stock: { ...G.prep }, prepared: { ...G.prep }, ingredientCost: prepCost(),
+    stock: todayStock(), prepared: todayStock(), ingredientCost: prepCost(),
     customers: [], nextId: 1, tickets: [], hands: [],
     seats: SEATS.map(() => null), queue: [], payLine: [],
     player: { x: PLAYER_START.x, y: PLAYER_START.y, path: [], speed: PLAYER_SPEED, dir: 3, moving: false, target: null, payT: 0, char: 0 },
@@ -1008,7 +1022,10 @@ function nextDay() {
   G.day++;
   // 어제 판 만큼 + 5인분을 다음 날 준비량으로 권해요
   const last = G.history[G.history.length - 1];
-  if (last) for (const m of MENU_IDS) G.prep[m] = Math.min(80, Math.max(5, Math.ceil((last.sold[m] + 5) / 5) * 5));
+  for (const m of MENU_IDS) {
+    if (G.day === MENU_UNLOCK[m]) G.prep[m] = PREP_FIRST_DAY[m]; // 오늘 처음 여는 메뉴
+    else if (last && menuOpen(m, G.day)) G.prep[m] = Math.min(PREP_MAX, Math.max(5, Math.ceil((last.sold[m] + 5) / 5) * 5));
+  }
   setPhase('prep');
 }
 // ── js/sim/player.js ──
@@ -1174,7 +1191,8 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu) startCook(st); else trash();
+    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', `${josa(MENUS[st.menu].name, '은/는')} ${MENU_UNLOCK[st.menu]}일차부터 팝니다`, 'info');
+    else if (st.menu) startCook(st); else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }
@@ -1384,6 +1402,13 @@ function drawFrame(dt) {
   // 뒤쪽 설비(벽에 붙은 것)
   const back = FURNITURE.filter(f => f.y < 3 && !f.over);
   for (const f of back) spr(f.spr, f.x * TILE, f.y * TILE);
+  // 아직 안 여는 메뉴의 조리대는 덮개를 씌운 듯 어둡게
+  for (const id in STATIONS) {
+    const st = STATIONS[id];
+    if (!st.menu || menuOpen(st.menu, G.day)) continue;
+    ctx.fillStyle = 'rgba(30,22,18,.55)';
+    for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+  }
   for (const f of FURNITURE.filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
@@ -1540,7 +1565,7 @@ function updateHud() {
   }).join('');
   setHTML('hands', hands);
   // 남은 재료
-  setHTML('stockMini', MENU_IDS.map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
+  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
   const c = r.cook;
@@ -1609,12 +1634,14 @@ function renderPrep() {
   const daysToWeekly = (7 - (G.day % 7)) % 7;
   const cards = MENU_IDS.map(m => {
     const M = MENUS[m], sold = last ? last.sold[m] : null;
+    if (!menuOpen(m, G.day)) return `<div class="mcard locked">${icon(m, 'dish')}<b>${M.name}</b><small>${MENU_UNLOCK[m]}일차부터 팝니다</small></div>`;
+    const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
     const prepY = last && last.prep ? last.prep[m] : null;
     let note = '';
     if (sold !== null && prepY !== null) note = sold >= prepY ? `<em class="out">어제 ${sold}인분 · 다 팔림</em>` : `<em>어제 ${sold}인분 판매 · ${prepY - sold}인분 남음</em>`;
     const margin = G.prices[m] - M.cost;
     return `<div class="mcard">
-      <div class="mhead">${icon(m, 'dish')}<div><b>${M.name}</b><small>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(margin)}</small>${note}</div></div>
+      <div class="mhead">${icon(m, 'dish')}<div><b>${M.name}${isNew ? ' <span class="new">새 메뉴</span>' : ''}</b><small>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(margin)}</small>${note}</div></div>
       <div class="row"><span>가격</span><div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 내리기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 올리기">+</button></div></div>
       <div class="row"><span>준비량</span><div class="step"><button data-act="prep" data-m="${m}" data-d="-1" aria-label="${M.name} 준비량 줄이기">−</button><b>${G.prep[m]}인분</b><button data-act="prep" data-m="${m}" data-d="1" aria-label="${M.name} 준비량 늘리기">+</button></div></div>
     </div>`;

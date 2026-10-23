@@ -2,7 +2,7 @@
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 import { G } from '../save/state.js';
-import { MENUS, COOK_GAMES, QUALITY_NAME } from '../data/menu.js';
+import { MENUS, COOK_GAMES, QUALITY_NAME, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { HANDS_MAX, PAY_STEP_SEC } from '../data/economy.js';
 import { STATIONS, REGISTER, SEATS, TABLES, PAY_SPOTS, solidForPlayer } from '../data/layout.js';
 import { josa } from '../engine/util.js';
@@ -168,7 +168,8 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu) startCook(st); else trash();
+    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', `${josa(MENUS[st.menu].name, '은/는')} ${MENU_UNLOCK[st.menu]}일차부터 팝니다`, 'info');
+    else if (st.menu) startCook(st); else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }

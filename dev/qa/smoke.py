@@ -21,9 +21,9 @@ with sync_playwright() as pw:
     # 실제 탭으로 조리 미니게임 열어 보기
     # 메뉴마다 다른 조리 미니게임을 실제 탭으로 열어 보기
     for m, (x, y), name in (('tteok', (1, 1), 'stir'), ('kimbap', (2, 1), 'roll'), ('twigim', (4, 1), 'fry')):
-        pg.evaluate("(([m,x,y])=>{const r=__T.G.run; r.cook=null; r.hands=[]; r.tickets.push({cid:-1,menu:m,table:1}); r.player.x=x; r.player.y=3; r.player.path=[]; __T.runCmd('tap',{x:x+.5,y:y+.5}); __T.runFor(0.7); if(m==='kimbap'){__T.runCmd('cookTap');__T.runCmd('cookTap');}})", [m, x, y])
+        pg.evaluate("(([m,x,y])=>{const r=__T.G.run; __T.G.day0=__T.G.day; __T.G.day=3; r.cook=null; r.hands=[]; r.tickets.push({cid:-1,menu:m,table:1}); r.player.x=x; r.player.y=3; r.player.path=[]; __T.runCmd('tap',{x:x+.5,y:y+.5}); __T.runFor(0.7); if(m==='kimbap'){__T.runCmd('cookTap');__T.runCmd('cookTap');}})", [m, x, y])
         pg.wait_for_timeout(120); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, f'4-cook-{name}.png'))
-        pg.evaluate("(()=>{const r=__T.G.run; __T.runCmd('cookTap'); r.cook=null; r.tickets=r.tickets.filter(t=>t.cid!==-1); r.hands=[];})()")
+        pg.evaluate("(()=>{const r=__T.G.run; __T.runCmd('cookTap'); r.cook=null; r.tickets=r.tickets.filter(t=>t.cid!==-1); r.hands=[]; __T.G.day=__T.G.day0;})()")
     phase = pg.evaluate('__bot.play(1000)')
     shot(pg, '5-receipt')
     rec = pg.evaluate('JSON.stringify(__T.G.lastReceipt)')
@@ -42,6 +42,7 @@ with sync_playwright() as pw:
     bot = pg.evaluate('({problems: __bot.problems, games: __bot.games})') if False else bot0
     b.close()
 r = json.loads(rec)
+print('1일차 받은 메뉴:', {m: r['sales'][m]['n'] for m in r['sales']})
 print('1일차:', {k: r[k] for k in ('revenue', 'tips', 'ingredientCost', 'net', 'served', 'missed', 'avgSpend', 'rating')})
 print('리뷰:', [v['text'] for v in r['reviews']])
 print('7일 기록 [일, 매출, 순이익, 손님, 놓침, 별]:', hist)

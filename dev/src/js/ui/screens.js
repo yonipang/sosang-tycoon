@@ -1,6 +1,6 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 주간 정산
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS } from '../data/menu.js';
+import { MENUS, MENU_IDS, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { WEEK_RENT, LOAN_WEEKLY, openingMul } from '../data/economy.js';
 import { $, won, wonShort } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
@@ -50,12 +50,14 @@ export function renderPrep() {
   const daysToWeekly = (7 - (G.day % 7)) % 7;
   const cards = MENU_IDS.map(m => {
     const M = MENUS[m], sold = last ? last.sold[m] : null;
+    if (!menuOpen(m, G.day)) return `<div class="mcard locked">${icon(m, 'dish')}<b>${M.name}</b><small>${MENU_UNLOCK[m]}일차부터 팝니다</small></div>`;
+    const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
     const prepY = last && last.prep ? last.prep[m] : null;
     let note = '';
     if (sold !== null && prepY !== null) note = sold >= prepY ? `<em class="out">어제 ${sold}인분 · 다 팔림</em>` : `<em>어제 ${sold}인분 판매 · ${prepY - sold}인분 남음</em>`;
     const margin = G.prices[m] - M.cost;
     return `<div class="mcard">
-      <div class="mhead">${icon(m, 'dish')}<div><b>${M.name}</b><small>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(margin)}</small>${note}</div></div>
+      <div class="mhead">${icon(m, 'dish')}<div><b>${M.name}${isNew ? ' <span class="new">새 메뉴</span>' : ''}</b><small>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(margin)}</small>${note}</div></div>
       <div class="row"><span>가격</span><div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 내리기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 올리기">+</button></div></div>
       <div class="row"><span>준비량</span><div class="step"><button data-act="prep" data-m="${m}" data-d="-1" aria-label="${M.name} 준비량 줄이기">−</button><b>${G.prep[m]}인분</b><button data-act="prep" data-m="${m}" data-d="1" aria-label="${M.name} 준비량 늘리기">+</button></div></div>
     </div>`;

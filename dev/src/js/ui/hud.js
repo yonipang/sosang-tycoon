@@ -1,6 +1,6 @@
 // 영업 중 화면 위아래 막대: 날짜·시계·잔고·별점 / 주문표 / 손에 든 것·남은 재료·속도
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, COOK_GAMES } from '../data/menu.js';
+import { MENUS, MENU_IDS, COOK_GAMES, menuOpen } from '../data/menu.js';
 import { WEEKDAYS } from '../data/economy.js';
 import { $, clockText, wonShort } from '../engine/util.js';
 import { icon } from './icons.js';
@@ -35,7 +35,7 @@ export function updateHud() {
   }).join('');
   setHTML('hands', hands);
   // 남은 재료
-  setHTML('stockMini', MENU_IDS.map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
+  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
   const c = r.cook;

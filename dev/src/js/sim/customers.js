@@ -2,7 +2,7 @@
 //       → 일행이 다 먹으면 한 명이 계산 줄에 서서 같이 계산 → 나가기
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS } from '../data/menu.js';
+import { MENUS, MENU_IDS, menuOpen } from '../data/menu.js';
 import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
@@ -150,14 +150,14 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOpen(x, G.day))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
-    const alts = MENU_IDS.filter(x => x !== m && r.stock[x] > 0 && !reaction(c, x).leave);
+    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x, G.day) && r.stock[x] > 0 && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
     else { partyLeaves(c, 'soldout', m); return; }
   }

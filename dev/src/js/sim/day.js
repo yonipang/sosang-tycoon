@@ -1,6 +1,6 @@
 // 하루의 흐름: 새벽 준비(prep) → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 주간 정산(weekly) → 다음 날 준비
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
+import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX, PREP_FIRST_DAY, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, ratingSpawnMul, openingMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
@@ -10,7 +10,9 @@ import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { spawnCustomer } from './customers.js';
 
-export const prepCost = () => MENU_IDS.reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0);
+export const openMenus = () => MENU_IDS.filter(m => menuOpen(m, G.day));
+export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0);
+const todayStock = () => Object.fromEntries(MENU_IDS.map(m => [m, menuOpen(m, G.day) ? G.prep[m] : 0]));
 export const isWeeklyNight = () => G.day % 7 === 0;
 
 export function setPhase(p) { G.phase = p; emit('phase', p); }
@@ -18,7 +20,7 @@ export function setPhase(p) { G.phase = p; emit('phase', p); }
 function newRun() {
   return {
     min: 0, speed: 1, paused: false, closing: false,
-    stock: { ...G.prep }, prepared: { ...G.prep }, ingredientCost: prepCost(),
+    stock: todayStock(), prepared: todayStock(), ingredientCost: prepCost(),
     customers: [], nextId: 1, tickets: [], hands: [],
     seats: SEATS.map(() => null), queue: [], payLine: [],
     player: { x: PLAYER_START.x, y: PLAYER_START.y, path: [], speed: PLAYER_SPEED, dir: 3, moving: false, target: null, payT: 0, char: 0 },
@@ -131,6 +133,9 @@ function nextDay() {
   G.day++;
   // 어제 판 만큼 + 5인분을 다음 날 준비량으로 권해요
   const last = G.history[G.history.length - 1];
-  if (last) for (const m of MENU_IDS) G.prep[m] = Math.min(80, Math.max(5, Math.ceil((last.sold[m] + 5) / 5) * 5));
+  for (const m of MENU_IDS) {
+    if (G.day === MENU_UNLOCK[m]) G.prep[m] = PREP_FIRST_DAY[m]; // 오늘 처음 여는 메뉴
+    else if (last && menuOpen(m, G.day)) G.prep[m] = Math.min(PREP_MAX, Math.max(5, Math.ceil((last.sold[m] + 5) / 5) * 5));
+  }
   setPhase('prep');
 }
