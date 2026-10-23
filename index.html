@@ -336,7 +336,7 @@ const PRICE_MIN = 1500;
 const PRICE_MAX = 9000;
 const PREP_STEP = 5;
 const PREP_MAX = 80;
-const PREP_FIRST_DAY = { tteok: 25, kimbap: 20, twigim: 15 };
+const PREP_FIRST_DAY = { tteok: 10, kimbap: 10, twigim: 8 };
 // 조리 미니게임 (결과: 0 보통 · 1 좋음 · 2 완벽)
 //  stir 졸이기(떡볶이): 오가는 바늘을 가운데에서 멈춰요. zone = 가운데에서 떨어진 거리. timeout 초 안에 안 멈추면 보통
 //  roll 말기(김밥): taps번 빨리 눌러요. perfect·good = 다 마는 데 걸린 초. timeout 초가 지나면 보통
@@ -362,8 +362,9 @@ const PEOPLE = {
 };
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
-// 시각(9~20시)마다 들어오려는 손님 수 기대값 — 점심·하교·퇴근에 몰려요
-const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 5, 12: 8, 13: 6, 14: 3, 15: 4, 16: 6, 17: 4, 18: 6, 19: 5, 20: 2 };
+// 시각(9~20시)마다 들어오려는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심·하교·퇴근에 몰려요
+// 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
+const SPAWN_PER_HOUR = { 9: 1, 10: 2, 11: 3, 12: 6, 13: 4, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 시각마다 손님 구성 (주택가 골목 기준)
 function typeMix(hour) {
   if (hour < 11) return { elder: 5, worker: 4, student: 1 };
@@ -400,6 +401,8 @@ const TIP = { min: 500, max: 1500 };
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 const ratingSpawnMul = r => 0.55 + 0.15 * r;
 const ratingPriceMul = r => 1 + 0.05 * (r - 3);
+// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 45% → 7일차쯤 100%)
+const openingMul = day => Math.min(1, 0.45 + 0.09 * (day - 1));
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 // ── js/data/layout.js ──
 // 1등급 가게 배치 (가로 10칸 × 세로 13칸, 한 칸 16px)
@@ -939,7 +942,7 @@ function tickDay(dt) {
   }
   if (!r.closing) {
     const hour = 9 + Math.floor(r.min / 60);
-    const perSec = (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) / (DAY_SEC / 12);
+    const perSec = (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) / (DAY_SEC / 12);
     r.spawnAcc += perSec * dt;
     while (r.spawnAcc >= 1) { r.spawnAcc -= 1; if (rand() < 0.92) spawnCustomer(hour); }
     if (rand() < perSec * dt * 0.08) spawnCustomer(hour); // 가끔 한 명씩 더
@@ -1621,6 +1624,7 @@ function renderPrep() {
       <div class="phase-tag night">새벽 05:00</div>
       <h2>${dayLabel(G.day)} 준비</h2>
       ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명 · 놓친 손님 ${last.missed}명</p>` : `<p class="yday">첫 영업입니다. 가격과 준비량을 정하고 가게를 열어 보세요.</p>`}
+      ${openingMul(G.day) < 1 ? `<p class="yday">개업 ${G.day}일째 · 아직 가게를 아는 사람이 많지 않습니다</p>` : ''}
       ${cards}
       <div class="sum">
         <div><span>재료비</span><b>−${won(cost)}</b></div>

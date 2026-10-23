@@ -1,7 +1,7 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 주간 정산
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
-import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
+import { WEEK_RENT, LOAN_WEEKLY, openingMul } from '../data/economy.js';
 import { $, won, wonShort } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost } from '../sim/day.js';
@@ -65,6 +65,7 @@ export function renderPrep() {
       <div class="phase-tag night">새벽 05:00</div>
       <h2>${dayLabel(G.day)} 준비</h2>
       ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명 · 놓친 손님 ${last.missed}명</p>` : `<p class="yday">첫 영업입니다. 가격과 준비량을 정하고 가게를 열어 보세요.</p>`}
+      ${openingMul(G.day) < 1 ? `<p class="yday">개업 ${G.day}일째 · 아직 가게를 아는 사람이 많지 않습니다</p>` : ''}
       ${cards}
       <div class="sum">
         <div><span>재료비</span><b>−${won(cost)}</b></div>

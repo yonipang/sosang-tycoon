@@ -1,7 +1,7 @@
 // 하루의 흐름: 새벽 준비(prep) → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 주간 정산(weekly) → 다음 날 준비
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
-import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, ratingSpawnMul } from '../data/economy.js';
+import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, ratingSpawnMul, openingMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
@@ -65,7 +65,7 @@ export function tickDay(dt) {
   }
   if (!r.closing) {
     const hour = 9 + Math.floor(r.min / 60);
-    const perSec = (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) / (DAY_SEC / 12);
+    const perSec = (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) / (DAY_SEC / 12);
     r.spawnAcc += perSec * dt;
     while (r.spawnAcc >= 1) { r.spawnAcc -= 1; if (rand() < 0.92) spawnCustomer(hour); }
     if (rand() < perSec * dt * 0.08) spawnCustomer(hour); // 가끔 한 명씩 더

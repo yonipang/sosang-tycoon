@@ -15,7 +15,7 @@ with sync_playwright() as pw:
     pg.goto(GAME); pg.wait_for_function('window.__T && window.__T.viewReady()')
     shot(pg, '1-title')
     pg.click('[data-act=new]'); shot(pg, '2-prep')
-    pg.click('[data-act=price][data-m=tteok][data-d="1"]')
+    pg.click('[data-act=price][data-m=tteok][data-d="1"]'); pg.click('[data-act=price][data-m=tteok][data-d="-1"]')
     pg.click('[data-act=open]'); pg.add_script_tag(content=BOT)
     pg.evaluate('__bot.play(130)'); pg.wait_for_timeout(1300); shot(pg, '3-lunch'); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, '3b-shop.png'))
     # 실제 탭으로 조리 미니게임 열어 보기

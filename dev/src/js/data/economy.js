@@ -13,4 +13,6 @@ export const TIP = { min: 500, max: 1500 };
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 export const ratingSpawnMul = r => 0.55 + 0.15 * r;
 export const ratingPriceMul = r => 1 + 0.05 * (r - 3);
+// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 45% → 7일차쯤 100%)
+export const openingMul = day => Math.min(1, 0.45 + 0.09 * (day - 1));
 export const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];

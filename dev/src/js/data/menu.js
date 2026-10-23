@@ -12,7 +12,7 @@ export const PRICE_MIN = 1500;
 export const PRICE_MAX = 9000;
 export const PREP_STEP = 5;
 export const PREP_MAX = 80;
-export const PREP_FIRST_DAY = { tteok: 25, kimbap: 20, twigim: 15 };
+export const PREP_FIRST_DAY = { tteok: 10, kimbap: 10, twigim: 8 };
 // 조리 미니게임 (결과: 0 보통 · 1 좋음 · 2 완벽)
 //  stir 졸이기(떡볶이): 오가는 바늘을 가운데에서 멈춰요. zone = 가운데에서 떨어진 거리. timeout 초 안에 안 멈추면 보통
 //  roll 말기(김밥): taps번 빨리 눌러요. perfect·good = 다 마는 데 걸린 초. timeout 초가 지나면 보통

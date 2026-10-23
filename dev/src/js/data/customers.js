@@ -12,8 +12,9 @@ export const PEOPLE = {
 };
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
-// 시각(9~20시)마다 들어오려는 손님 수 기대값 — 점심·하교·퇴근에 몰려요
-export const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 5, 12: 8, 13: 6, 14: 3, 15: 4, 16: 6, 17: 4, 18: 6, 19: 5, 20: 2 };
+// 시각(9~20시)마다 들어오려는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심·하교·퇴근에 몰려요
+// 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
+export const SPAWN_PER_HOUR = { 9: 1, 10: 2, 11: 3, 12: 6, 13: 4, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 시각마다 손님 구성 (주택가 골목 기준)
 export function typeMix(hour) {
   if (hour < 11) return { elder: 5, worker: 4, student: 1 };
