@@ -209,9 +209,5 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 #screen.scr-pause { display: flex; align-items: center; }
 .pause { width: 100%; text-align: center; }
 
-/* 아직 안 여는 메뉴 · 새 메뉴 표시 */
-.mcard.locked { display: flex; align-items: center; gap: 10px; opacity: .6; background: var(--paper-2); box-shadow: none; }
-.mcard.locked .dish { width: 32px; height: 32px; filter: grayscale(1); }
-.mcard.locked b { font-weight: normal; }
-.mcard.locked small { margin-left: auto; font-size: 16px; color: var(--ink-soft); }
+/* 새 메뉴 표시 */
 .new { display: inline-block; background: var(--red); color: #fff; padding: 0 6px; margin-left: 4px; }

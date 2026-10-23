@@ -50,7 +50,7 @@ export function renderPrep() {
   const daysToWeekly = (7 - (G.day % 7)) % 7;
   const cards = MENU_IDS.map(m => {
     const M = MENUS[m], sold = last ? last.sold[m] : null;
-    if (!menuOpen(m, G.day)) return `<div class="mcard locked">${icon(m, 'dish')}<b>${M.name}</b><small>${MENU_UNLOCK[m]}일차부터 팝니다</small></div>`;
+    if (!menuOpen(m, G.day)) return ''; // 아직 안 여는 메뉴는 보여 주지 않아요 (열리는 날 「새 메뉴」로 등장)
     const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
     const prepY = last && last.prep ? last.prep[m] : null;
     let note = '';

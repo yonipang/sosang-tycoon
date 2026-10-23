@@ -214,11 +214,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 #screen.scr-pause { display: flex; align-items: center; }
 .pause { width: 100%; text-align: center; }
 
-/* 아직 안 여는 메뉴 · 새 메뉴 표시 */
-.mcard.locked { display: flex; align-items: center; gap: 10px; opacity: .6; background: var(--paper-2); box-shadow: none; }
-.mcard.locked .dish { width: 32px; height: 32px; filter: grayscale(1); }
-.mcard.locked b { font-weight: normal; }
-.mcard.locked small { margin-left: auto; font-size: 16px; color: var(--ink-soft); }
+/* 새 메뉴 표시 */
 .new { display: inline-block; background: var(--red); color: #fff; padding: 0 6px; margin-left: 4px; }
 </style>
 
@@ -1191,7 +1187,7 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', `${josa(MENUS[st.menu].name, '은/는')} ${MENU_UNLOCK[st.menu]}일차부터 팝니다`, 'info');
+    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', '아직 쓰지 않는 조리대입니다', 'info');
     else if (st.menu) startCook(st); else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
@@ -1634,7 +1630,7 @@ function renderPrep() {
   const daysToWeekly = (7 - (G.day % 7)) % 7;
   const cards = MENU_IDS.map(m => {
     const M = MENUS[m], sold = last ? last.sold[m] : null;
-    if (!menuOpen(m, G.day)) return `<div class="mcard locked">${icon(m, 'dish')}<b>${M.name}</b><small>${MENU_UNLOCK[m]}일차부터 팝니다</small></div>`;
+    if (!menuOpen(m, G.day)) return ''; // 아직 안 여는 메뉴는 보여 주지 않아요 (열리는 날 「새 메뉴」로 등장)
     const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
     const prepY = last && last.prep ? last.prep[m] : null;
     let note = '';
