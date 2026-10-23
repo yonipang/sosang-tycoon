@@ -8,7 +8,7 @@ export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
 // 저장하는 칸 (순서대로 직렬화)
 // prep = 오늘 아침 도착할 재료 주문량(인분) · inv = 가게 재료 { 메뉴: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] }
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'history', 'weekSales', 'baseSeed', 'stats'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats'];
 
 export const G = { phase: 'title', run: null };
 
@@ -24,6 +24,7 @@ export function newGame(shopName) {
     prices: Object.fromEntries(MENU_IDS.map(m => [m, MENUS[m].price])),
     prep: { ...PREP_FIRST_DAY },
     inv: Object.fromEntries(MENU_IDS.map(m => [m, []])),
+    ledger: Object.fromEntries(MENU_IDS.map(m => [m, {}])), // 가격 장부 { 메뉴: { 가격: { love, happy, meh, angry } } }
     history: [],
     weekSales: 0,
     baseSeed: 0,

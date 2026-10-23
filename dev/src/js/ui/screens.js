@@ -43,6 +43,14 @@ export function renderTitle() {
 }
 
 // ── 준비: 가격 · 재료 주문 (주문한 재료는 아침에 도착) ──
+// 가격 장부: 지금 가격에 손님들이 지었던 얼굴 (문라이터식). 가격을 바꾸면 그 가격의 기록이 보여요
+const FACE_ORDER = ['love', 'happy', 'meh', 'angry'];
+function ledgerLine(m) {
+  const e = (G.ledger[m] || {})[G.prices[m]];
+  const faces = e ? FACE_ORDER.filter(f => e[f]).map(f => `<span class="lf">${icon('face_' + f, 'face')}${e[f]}</span>`).join('') : '';
+  return `<div class="ledger"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</div>`;
+}
+
 export function renderPrep() {
   const last = G.history[G.history.length - 1];
   const cost = prepCost();
@@ -62,6 +70,7 @@ export function renderPrep() {
     return `<div class="mcard">
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
+      ${ledgerLine(m)}
       <div class="row"><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
       <details class="more"><summary>자세히</summary>
         <p>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(G.prices[m] - M.cost)}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
@@ -97,8 +106,25 @@ export function renderReceipt() {
   const miss = Object.entries(R.missed).filter(([, n]) => n).map(([k, n]) => `<span class="chip">${MISS_NAME[k]} ${n}</span>`).join('');
   const delta = R.ratingDelta;
   const rv = R.reviews.map(v => `<div class="rv"><div class="rs">${stars(v.stars)}<small>${v.who}</small></div><p>${v.text}</p></div>`).join('');
+  // 한눈에: 오늘 남은 돈(세어 올리기) · 별점 · 하이라이트 카드. 영수증 전체는 「자세히」
+  const best = MENU_IDS.filter(m => R.sales[m].n).sort((a, b) => R.sales[b].n - R.sales[a].n)[0];
+  const topMiss = Object.entries(R.missed).sort((a, b) => b[1] - a[1])[0];
+  const deltaHtml = Math.abs(delta) < 0.05 ? '' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`;
+  const cards = [
+    best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
+    R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
+    R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
+    R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '',
+  ].join('');
   showScreen(`
     <div class="receipt">
+      <div class="rc-hero">
+        <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
+        <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
+        <div class="hero-star">★ ${R.rating.toFixed(1)} ${deltaHtml}</div>
+      </div>
+      <div class="hls">${cards}</div>
+      <details class="more rc-more"><summary>영수증 자세히</summary>
       <div class="paper">
         <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · ${clockText(R.closeMin ?? 720)}${(R.closeMin ?? 720) < 720 ? ' (일찍 마감)' : ''}</small></div>
         <div class="dash"></div>
@@ -123,8 +149,23 @@ export function renderReceipt() {
         ${rv ? `<div class="rvs">${rv}</div>` : ''}
         <div class="rc-foot">잔고 ${won(G.cash)}</div>
       </div>
+      </details>
       <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '주간 정산 보기' : '다음 날 준비'}</button>
     </div>`, 'scr-receipt');
+  countUp(document.querySelector('.hero-num'));
+}
+
+// 큰 숫자를 0에서 세어 올려요 (끝나면 동전 소리)
+function countUp(el) {
+  if (!el) return;
+  const to = +el.dataset.to, t0 = performance.now(), dur = 900;
+  const tick = now => {
+    if (!el.isConnected) return;
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = won(Math.round(to * e / 100) * 100);
+    if (k < 1) requestAnimationFrame(tick); else { el.textContent = won(to); playSfx('coin'); }
+  };
+  requestAnimationFrame(tick);
 }
 
 // ── 주간 정산 ──

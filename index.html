@@ -256,6 +256,31 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .rush-row .btn:disabled { opacity: .5; }
 .rush-tip { margin: 6px 0 0; color: var(--ink-soft); }
 #stockMini .inc { font-style: normal; color: var(--green); }
+
+/* 가격 장부 */
+.ledger { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--ink-soft); margin-top: 2px; }
+.ledger .lf { display: inline-flex; align-items: center; gap: 2px; color: var(--ink); }
+.ledger .face { width: 22px; height: 22px; }
+
+/* 영업 마감: 큰 숫자 + 하이라이트 카드 */
+.rc-hero { text-align: center; color: var(--paper); margin: 8px 0 12px; }
+.rc-hero small { color: var(--paper-2); }
+.hero-num { display: block; font-size: 32px; line-height: 1.3; font-weight: normal; color: #ffe36e; text-shadow: 0 3px 0 var(--ink); }
+.hero-num.neg { color: #ffb3a6; }
+.hero-star { color: var(--mustard); }
+.hero-star small { font-size: 16px; }
+.hls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hl { position: relative; background: var(--paper); border: 3px solid var(--ink); padding: 6px 8px; min-height: 64px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.hl small { display: block; color: var(--ink-soft); font-size: 16px; }
+.hl b { font-weight: normal; display: block; }
+.hl .hl-ic { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; }
+.hl.warn b { color: var(--red); }
+.hl.good b { color: var(--green); }
+.hl.wide { grid-column: 1 / -1; min-height: 0; }
+.hl.wide small { color: var(--mustard); }
+.rc-more { margin-top: 10px; }
+.rc-more summary { color: var(--paper); text-align: center; }
+.rc-more .paper { margin-top: 6px; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -562,6 +587,7 @@ function migrate(o) {
   if (!o || typeof o !== 'object') throw new Error('세이브 형식이 아니에요');
   if (!o.stats) o.stats = { served: 0, sales: 0 };
   if (!Array.isArray(o.history)) o.history = [];
+  if (!o.ledger) o.ledger = { tteok: {}, kimbap: {}, twigim: {} }; // 가격 장부 이전 세이브
   if (!o.inv) o.inv = { tteok: [], kimbap: [], twigim: [] }; // 재료 이월(유통기한) 이전 세이브
   return o;
 }
@@ -573,7 +599,7 @@ const SAVE_KEY = 'sosang-tycoon-save-v1';
 const SAVE_V = 1;
 // 저장하는 칸 (순서대로 직렬화)
 // prep = 오늘 아침 도착할 재료 주문량(인분) · inv = 가게 재료 { 메뉴: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] }
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'history', 'weekSales', 'baseSeed', 'stats'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats'];
 
 const G = { phase: 'title', run: null };
 
@@ -589,6 +615,7 @@ function newGame(shopName) {
     prices: Object.fromEntries(MENU_IDS.map(m => [m, MENUS[m].price])),
     prep: { ...PREP_FIRST_DAY },
     inv: Object.fromEntries(MENU_IDS.map(m => [m, []])),
+    ledger: Object.fromEntries(MENU_IDS.map(m => [m, {}])), // 가격 장부 { 메뉴: { 가격: { love, happy, meh, angry } } }
     history: [],
     weekSales: 0,
     baseSeed: 0,
@@ -847,6 +874,7 @@ function decide(c) {
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
+  const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
     const alts = MENU_IDS.filter(x => x !== m && menuOpen(x, G.day) && r.stock[x] > 0 && !reaction(c, x).leave);
@@ -1039,6 +1067,7 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
+      priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
   };
 }
@@ -1174,11 +1203,17 @@ function endDay() {
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
-    reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces,
+    reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
+  // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
+  for (const m of MENU_IDS) {
+    const f = L.priceFaces[m]; if (!Object.keys(f).length) continue;
+    const book = (G.ledger[m] = G.ledger[m] || {}), p = G.prices[m], e = (book[p] = book[p] || {});
+    for (const k in f) e[k] = (e[k] || 0) + f[k];
+  }
   G.lastReceipt = rec;
   G.run = null;
   setPhase('receipt');
@@ -1851,6 +1886,14 @@ function renderTitle() {
 }
 
 // ── 준비: 가격 · 재료 주문 (주문한 재료는 아침에 도착) ──
+// 가격 장부: 지금 가격에 손님들이 지었던 얼굴 (문라이터식). 가격을 바꾸면 그 가격의 기록이 보여요
+const FACE_ORDER = ['love', 'happy', 'meh', 'angry'];
+function ledgerLine(m) {
+  const e = (G.ledger[m] || {})[G.prices[m]];
+  const faces = e ? FACE_ORDER.filter(f => e[f]).map(f => `<span class="lf">${icon('face_' + f, 'face')}${e[f]}</span>`).join('') : '';
+  return `<div class="ledger"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</div>`;
+}
+
 function renderPrep() {
   const last = G.history[G.history.length - 1];
   const cost = prepCost();
@@ -1870,6 +1913,7 @@ function renderPrep() {
     return `<div class="mcard">
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
+      ${ledgerLine(m)}
       <div class="row"><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
       <details class="more"><summary>자세히</summary>
         <p>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(G.prices[m] - M.cost)}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
@@ -1905,8 +1949,25 @@ function renderReceipt() {
   const miss = Object.entries(R.missed).filter(([, n]) => n).map(([k, n]) => `<span class="chip">${MISS_NAME[k]} ${n}</span>`).join('');
   const delta = R.ratingDelta;
   const rv = R.reviews.map(v => `<div class="rv"><div class="rs">${stars(v.stars)}<small>${v.who}</small></div><p>${v.text}</p></div>`).join('');
+  // 한눈에: 오늘 남은 돈(세어 올리기) · 별점 · 하이라이트 카드. 영수증 전체는 「자세히」
+  const best = MENU_IDS.filter(m => R.sales[m].n).sort((a, b) => R.sales[b].n - R.sales[a].n)[0];
+  const topMiss = Object.entries(R.missed).sort((a, b) => b[1] - a[1])[0];
+  const deltaHtml = Math.abs(delta) < 0.05 ? '' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`;
+  const cards = [
+    best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
+    R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
+    R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
+    R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '',
+  ].join('');
   showScreen(`
     <div class="receipt">
+      <div class="rc-hero">
+        <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
+        <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
+        <div class="hero-star">★ ${R.rating.toFixed(1)} ${deltaHtml}</div>
+      </div>
+      <div class="hls">${cards}</div>
+      <details class="more rc-more"><summary>영수증 자세히</summary>
       <div class="paper">
         <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · ${clockText(R.closeMin ?? 720)}${(R.closeMin ?? 720) < 720 ? ' (일찍 마감)' : ''}</small></div>
         <div class="dash"></div>
@@ -1931,8 +1992,23 @@ function renderReceipt() {
         ${rv ? `<div class="rvs">${rv}</div>` : ''}
         <div class="rc-foot">잔고 ${won(G.cash)}</div>
       </div>
+      </details>
       <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '주간 정산 보기' : '다음 날 준비'}</button>
     </div>`, 'scr-receipt');
+  countUp(document.querySelector('.hero-num'));
+}
+
+// 큰 숫자를 0에서 세어 올려요 (끝나면 동전 소리)
+function countUp(el) {
+  if (!el) return;
+  const to = +el.dataset.to, t0 = performance.now(), dur = 900;
+  const tick = now => {
+    if (!el.isConnected) return;
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = won(Math.round(to * e / 100) * 100);
+    if (k < 1) requestAnimationFrame(tick); else { el.textContent = won(to); playSfx('coin'); }
+  };
+  requestAnimationFrame(tick);
 }
 
 // ── 주간 정산 ──
@@ -2056,7 +2132,7 @@ function initFeedback() {
   onEvent('fridge', open => { if (open) $('rushUI').hidden = false; if (!$('rushUI').hidden) renderRush(); });
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요'));
   onEvent('phase', p => {
-    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; }
+    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { saveGame(); renderPrep(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();

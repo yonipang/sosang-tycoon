@@ -160,6 +160,7 @@ function decide(c) {
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
+  const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
     const alts = MENU_IDS.filter(x => x !== m && menuOpen(x, G.day) && r.stock[x] > 0 && !reaction(c, x).leave);

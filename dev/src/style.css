@@ -251,3 +251,28 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .rush-row .btn:disabled { opacity: .5; }
 .rush-tip { margin: 6px 0 0; color: var(--ink-soft); }
 #stockMini .inc { font-style: normal; color: var(--green); }
+
+/* 가격 장부 */
+.ledger { display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--ink-soft); margin-top: 2px; }
+.ledger .lf { display: inline-flex; align-items: center; gap: 2px; color: var(--ink); }
+.ledger .face { width: 22px; height: 22px; }
+
+/* 영업 마감: 큰 숫자 + 하이라이트 카드 */
+.rc-hero { text-align: center; color: var(--paper); margin: 8px 0 12px; }
+.rc-hero small { color: var(--paper-2); }
+.hero-num { display: block; font-size: 32px; line-height: 1.3; font-weight: normal; color: #ffe36e; text-shadow: 0 3px 0 var(--ink); }
+.hero-num.neg { color: #ffb3a6; }
+.hero-star { color: var(--mustard); }
+.hero-star small { font-size: 16px; }
+.hls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hl { position: relative; background: var(--paper); border: 3px solid var(--ink); padding: 6px 8px; min-height: 64px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.hl small { display: block; color: var(--ink-soft); font-size: 16px; }
+.hl b { font-weight: normal; display: block; }
+.hl .hl-ic { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; }
+.hl.warn b { color: var(--red); }
+.hl.good b { color: var(--green); }
+.hl.wide { grid-column: 1 / -1; min-height: 0; }
+.hl.wide small { color: var(--mustard); }
+.rc-more { margin-top: 10px; }
+.rc-more summary { color: var(--paper); text-align: center; }
+.rc-more .paper { margin-top: 6px; }

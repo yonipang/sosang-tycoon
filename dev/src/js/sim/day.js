@@ -38,6 +38,7 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
+      priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
   };
 }
@@ -173,11 +174,17 @@ export function endDay() {
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
-    reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces,
+    reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
+  // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
+  for (const m of MENU_IDS) {
+    const f = L.priceFaces[m]; if (!Object.keys(f).length) continue;
+    const book = (G.ledger[m] = G.ledger[m] || {}), p = G.prices[m], e = (book[p] = book[p] || {});
+    for (const k in f) e[k] = (e[k] || 0) + f[k];
+  }
   G.lastReceipt = rec;
   G.run = null;
   setPhase('receipt');
