@@ -7,7 +7,7 @@ import { setPhase } from './sim/day.js';
 import { targetAt } from './sim/player.js';
 import { initView, fitView, drawFrame, drawIdle, viewReady } from './render/view.js';
 import { loadIcons } from './ui/icons.js';
-import { updateHud } from './ui/hud.js';
+import { updateHud, initRush, renderRush } from './ui/hud.js';
 import { initScreens, renderTitle } from './ui/screens.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
@@ -27,6 +27,7 @@ function frame(now) {
   updateSpeech(dt);
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
+  if (G.run && !document.getElementById('rushUI').hidden && Math.floor(lastT / 500) !== Math.floor((lastT - dt * 1000) / 500)) renderRush(); // 도착까지 남은 초
   requestAnimationFrame(frame);
 }
 
@@ -35,6 +36,7 @@ async function boot() {
   await loadIcons();
   initFeedback();
   initInput();
+  initRush();
   initScreens(() => setPhase('prep'));
   layout();
   addEventListener('resize', layout);

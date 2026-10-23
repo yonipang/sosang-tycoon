@@ -2,9 +2,9 @@
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { WEEK_RENT, LOAN_WEEKLY, openingMul } from '../data/economy.js';
-import { $, won, wonShort, clockText } from '../engine/util.js';
+import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
-import { prepCost } from '../sim/day.js';
+import { prepCost, invCount } from '../sim/day.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
@@ -42,7 +42,7 @@ export function renderTitle() {
     </div>`, 'scr-title');
 }
 
-// ── 새벽 준비 ──
+// ── 준비: 가격 · 재료 주문 (주문한 재료는 아침에 도착) ──
 export function renderPrep() {
   const last = G.history[G.history.length - 1];
   const cost = prepCost();
@@ -52,34 +52,44 @@ export function renderPrep() {
     const M = MENUS[m], sold = last ? last.sold[m] : null;
     if (!menuOpen(m, G.day)) return ''; // 아직 안 여는 메뉴는 보여 주지 않아요 (열리는 날 「새 메뉴」로 등장)
     const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
-    const prepY = last && last.prep ? last.prep[m] : null;
+    const had = last ? (last.stockStart ? last.stockStart[m] : last.prep[m]) : null;
     let note = '';
-    if (sold !== null && prepY !== null) note = sold >= prepY ? `<em class="out">어제 ${sold}인분 · 다 팔림</em>` : `<em>어제 ${sold}인분 판매 · ${prepY - sold}인분 남음</em>`;
+    if (sold !== null && had) note = sold >= had ? `<em class="out">어제 ${sold}인분 판매 · 다 팔림</em>` : `<em>어제 ${sold}인분 판매</em>`;
     const margin = G.prices[m] - M.cost;
+    const inv = invCount(m), soon = (G.inv[m] || []).filter(b => b.exp <= G.day).reduce((s, b) => s + b.n, 0);
+    const invText = inv ? `${inv}인분${soon ? ` <em class="out">(${soon}인분은 오늘까지)</em>` : ''}` : '없음';
     return `<div class="mcard">
       <div class="mhead">${icon(m, 'dish')}<div><b>${M.name}${isNew ? ' <span class="new">새 메뉴</span>' : ''}</b><small>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(margin)}</small>${note}</div></div>
       <div class="row"><span>가격</span><div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 내리기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 올리기">+</button></div></div>
-      <div class="row"><span>준비량</span><div class="step"><button data-act="prep" data-m="${m}" data-d="-1" aria-label="${M.name} 준비량 줄이기">−</button><b>${G.prep[m]}인분</b><button data-act="prep" data-m="${m}" data-d="1" aria-label="${M.name} 준비량 늘리기">+</button></div></div>
+      <div class="row"><span>남은 재료</span><b class="inv">${invText}</b></div>
+      <div class="row"><span>재료 주문</span><div class="step"><button data-act="prep" data-m="${m}" data-d="-1" aria-label="${M.ing} 주문 줄이기">−</button><b>${G.prep[m]}인분</b><button data-act="prep" data-m="${m}" data-d="1" aria-label="${M.ing} 주문 늘리기">+</button></div></div>
+      <div class="row total-row"><span>오늘 쓸 수 있는 양</span><b>${inv + G.prep[m]}인분</b></div>
+      <p class="shelf">${josa(M.ing, '은/는')} 받은 날${M.shelf > 1 ? `부터 ${M.shelf}일 동안` : ' 하루만'} 쓸 수 있습니다</p>
     </div>`;
   }).join('');
   showScreen(`
     <div class="prep">
-      <div class="phase-tag night">새벽 05:00</div>
+      <div class="phase-tag night">${G.day === 1 ? '개업 전날 밤' : '전날 밤 22:00'}</div>
       <h2>${dayLabel(G.day)} 준비</h2>
-      ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명 · 놓친 손님 ${last.missed}명</p>` : `<p class="yday">첫 영업입니다. 가격과 준비량을 정하고 가게를 열어 보세요.</p>`}
+      ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명 · 놓친 손님 ${last.missed}명</p>` : `<p class="yday">첫 영업입니다. 가격을 정하고 재료를 주문해 보세요. 주문한 재료는 아침에 도착합니다.</p>`}
       ${openingMul(G.day) < 1 ? `<p class="yday">개업 ${G.day}일째 · 아직 가게를 아는 사람이 많지 않습니다</p>` : ''}
       ${cards}
       <div class="sum">
-        <div><span>재료비</span><b>−${won(cost)}</b></div>
+        <div><span>재료 주문 (아침 도착 때 결제)</span><b>−${won(cost)}</b></div>
         <div><span>잔고</span><b>${won(G.cash)} → <span class="${after < 0 ? 'neg' : ''}">${won(after)}</span></b></div>
         ${daysToWeekly === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>임대료 ${wonShort(WEEK_RENT)} · 대출 ${wonShort(Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : `<div class="due soft"><span>주간 정산까지</span><b>${daysToWeekly}일</b></div>`}
       </div>
-      <button class="btn primary big" data-act="open">가게 열기 · 09:00</button>
+      <button class="btn primary big" data-act="open">주문하고 가게 열기 · 09:00</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
 
 // ── 마감 영수증 ──
+// 내일로 넘어가는 재료 (남은 것만)
+function leftLine(R) {
+  const left = MENU_IDS.filter(m => R.leftover && R.leftover[m]).map(m => `${MENUS[m].name} ${R.leftover[m]}`).join(' · ');
+  return left ? `<div class="ln note"><span>내일 쓸 재료</span><b>${left}인분</b></div>` : '';
+}
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 export function renderReceipt() {
   const R = G.lastReceipt;
@@ -96,9 +106,12 @@ export function renderReceipt() {
         ${R.tips ? `<div class="ln"><span>팁</span><b>${won(R.tips)}</b></div>` : ''}
         <div class="dash"></div>
         <div class="ln"><span>오늘 매출</span><b>${won(R.revenue + R.tips)}</b></div>
-        <div class="ln minus"><span>재료비</span><b>−${won(R.ingredientCost)}</b></div>
+        <div class="ln minus"><span>오늘 쓴 재료값</span><b>−${won(R.usedCost)}</b></div>
+        ${R.expiredCost ? `<div class="ln minus"><span>유통기한 지나 버린 재료</span><b>−${won(R.expiredCost)}</b></div>` : ''}
+        ${R.rushExtra ? `<div class="ln minus"><span>급구매 웃돈</span><b>−${won(R.rushExtra)}</b></div>` : ''}
         <div class="ln total"><span>오늘 남은 돈</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>
-        ${R.waste ? `<div class="ln note"><span>못 팔고 버린 재료</span><b>${won(R.waste)}</b></div>` : ''}
+        ${R.dishWaste ? `<div class="ln note"><span>만들고 못 판 음식</span><b>${won(R.dishWaste)}</b></div>` : ''}
+        ${leftLine(R)}
         <div class="dash"></div>
         ${R.foot ? `<div class="ln"><span>가게 앞을 지나간 사람</span><b>${R.foot}명</b></div><div class="ln"><span>그중 들어온 사람</span><b>${R.entered}명 (${Math.round(R.entered / R.foot * 100)}%)</b></div>` : ''}
         <div class="ln"><span>받은 손님</span><b>${R.served}명</b></div>
@@ -129,7 +142,7 @@ export function renderWeekly() {
         <div class="ln total"><span>잔고</span><b class="${G.cash < 0 ? 'neg' : ''}">${won(G.cash)}</b></div>
         <div class="ln note"><span>남은 대출</span><b>${won(W.loanLeft)}</b></div>
       </div>
-      ${G.cash < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 준비량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
+      ${G.cash < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 주문량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
       <button class="btn primary big" data-act="afterWeekly">다음 주 시작</button>
     </div>`, 'scr-weekly');
 }

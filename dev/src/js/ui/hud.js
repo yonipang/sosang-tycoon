@@ -1,8 +1,11 @@
 // 영업 중 화면 위아래 막대: 날짜·시계·잔고·별점 / 주문표 / 손에 든 것·남은 재료·속도
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, COOK_GAMES, menuOpen } from '../data/menu.js';
+import { RUSH_QTY } from '../data/economy.js';
+import { rushCost } from '../sim/day.js';
+import { runCmd } from '../sim/events.js';
 import { WEEKDAYS } from '../data/economy.js';
-import { $, clockText, wonShort } from '../engine/util.js';
+import { $, clockText, won, wonShort } from '../engine/util.js';
 import { icon } from './icons.js';
 
 const last = {};
@@ -35,7 +38,10 @@ export function updateHud() {
   }).join('');
   setHTML('hands', hands);
   // 남은 재료
-  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
+  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => {
+    const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
+    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}</span>`;
+  }).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
   const c = r.cook;
@@ -47,6 +53,25 @@ export function updateHud() {
       setText('cookName', `${MENUS[c.menu].name} ${g.name} ${c.taps}/${g.taps}`);
     } else $('cookNeedle').style.left = (c.pos * 100).toFixed(1) + '%';
   }
+}
+
+// 냉장고 창: 메뉴마다 남은 재료와 급구매 버튼
+export function renderRush() {
+  const r = G.run;
+  if (!r) return;
+  $('rushList').innerHTML = MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => {
+    const inc = r.rush.filter(o => o.menu === m);
+    const wait = inc.length ? Math.ceil(Math.min(...inc.map(o => o.t))) : 0;
+    return `<div class="rush-row">${icon(m)}<div><b>${MENUS[m].ing}</b><small>남은 재료 ${r.stock[m]}인분${inc.length ? ` · ${inc.reduce((s, o) => s + o.n, 0)}인분 오는 중 (${wait}초)` : ''}</small></div>
+      <button type="button" class="btn small" data-rush="${m}" ${r.closing ? 'disabled' : ''}>${RUSH_QTY}인분 급구매<br>${won(rushCost(m))}</button></div>`;
+  }).join('');
+}
+export function initRush() {
+  $('rushList').addEventListener('click', e => {
+    const b = e.target.closest('[data-rush]');
+    if (b) runCmd('rushBuy', { menu: b.dataset.rush });
+  });
+  $('rushClose').addEventListener('click', () => { $('rushUI').hidden = true; });
 }
 
 // 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES)

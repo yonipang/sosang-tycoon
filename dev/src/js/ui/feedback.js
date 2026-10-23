@@ -6,7 +6,7 @@ import { tileToCss, addMark } from '../render/view.js';
 import { saveGame } from '../save/storage.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
-import { setupCook } from './hud.js';
+import { setupCook, renderRush } from './hud.js';
 
 export function toast(text, kind) {
   const box = $('toasts');
@@ -68,9 +68,10 @@ export function initFeedback() {
     $('cookUI').hidden = !on;
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요');
   });
+  onEvent('fridge', open => { if (open) $('rushUI').hidden = false; if (!$('rushUI').hidden) renderRush(); });
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요'));
   onEvent('phase', p => {
-    if (p !== 'day') $('cookUI').hidden = true;
+    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; }
     if (p === 'prep') { saveGame(); renderPrep(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();

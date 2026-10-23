@@ -1,10 +1,11 @@
 // 메뉴 (프로토타입: 분식집 3종). 가격·원가 단위는 원.
 // fair: 손님이 「적당하다」고 느끼는 기준 가격 (손님 유형·평판에 따라 달라져요 — data/customers.js)
 // game: 조리 미니게임 종류 (아래 COOK_GAMES) · cook: 졸이기 바늘 속도 (높을수록 어려워요)
+// ing: 재료 묶음 이름 · shelf: 유통기한(받은 날 포함 며칠 쓸 수 있는지). 재료 1인분 값 = cost
 export const MENUS = {
-  tteok: { name: '떡볶이', price: 4000, cost: 1300, fair: 4000, station: 'stove', game: 'stir', cook: 1.0 },
-  kimbap: { name: '김밥', price: 3500, cost: 1100, fair: 3500, station: 'mat', game: 'roll', cook: 0.85 },
-  twigim: { name: '튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2 },
+  tteok: { name: '떡볶이', price: 4000, cost: 1300, fair: 4000, station: 'stove', game: 'stir', cook: 1.0, ing: '떡볶이 재료', shelf: 2 },
+  kimbap: { name: '김밥', price: 3500, cost: 1100, fair: 3500, station: 'mat', game: 'roll', cook: 0.85, ing: '김밥 재료', shelf: 1 },
+  twigim: { name: '튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2, ing: '냉동 튀김', shelf: 5 },
 };
 export const MENU_IDS = ['tteok', 'kimbap', 'twigim'];
 // 메뉴가 열리는 날: 첫 사흘은 하루에 하나씩 (메뉴·미니게임을 하나씩 익히게)
@@ -13,9 +14,9 @@ export const menuOpen = (m, day) => day >= MENU_UNLOCK[m];
 export const PRICE_STEP = 500;
 export const PRICE_MIN = 1500;
 export const PRICE_MAX = 9000;
-export const PREP_STEP = 5;
+export const PREP_STEP = 5;   // 재료 주문 단위(인분)
 export const PREP_MAX = 80;
-// 처음 준비량 (그 메뉴가 열리는 날의 준비량으로도 써요)
+// 처음 주문량 (그 메뉴가 열리는 날의 주문량으로도 써요)
 export const PREP_FIRST_DAY = { tteok: 12, kimbap: 8, twigim: 8 };
 // 조리 미니게임 (결과: 0 보통 · 1 좋음 · 2 완벽)
 //  stir 졸이기(떡볶이): 오가는 바늘을 가운데에서 멈춰요. zone = 가운데에서 떨어진 거리. timeout 초 안에 안 멈추면 보통

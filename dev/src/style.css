@@ -218,3 +218,25 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
   border: 2px solid var(--ink); padding: 0 6px; line-height: 1.4; pointer-events: none; }
 .say::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -3px; border: 3px solid transparent; border-top-color: var(--ink); }
 .pause-note { color: var(--paper-2); margin: 6px 0 0; }
+.row b.inv { font-weight: normal; }
+.row b.inv em, .mhead em { font-style: normal; }
+.row b.inv em.out { color: var(--red); }
+.total-row { border-top: 2px dashed var(--line); padding-top: 4px; }
+.total-row b { font-weight: normal; }
+.shelf { margin: 4px 0 0; color: var(--ink-soft); }
+
+/* 냉장고 창 (급구매) — 영업은 계속돼요 */
+#rushUI { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; line-height: 1.5; }
+.rush-card { width: 92%; background: var(--paper); border: 4px solid var(--ink); padding: 6px 10px 8px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+.rush-head { display: flex; align-items: center; justify-content: space-between; }
+.rush-head b { font-weight: normal; }
+.rush-head .sq { width: 32px; height: 32px; }
+.rush-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.rush-row > img { width: 28px; height: 28px; flex: none; }
+.rush-row > div { flex: 1; min-width: 0; }
+.rush-row b { font-weight: normal; display: block; }
+.rush-row small { font-size: 16px; color: var(--ink-soft); }
+.rush-row .btn { width: auto; margin: 0; min-height: 44px; padding: 2px 8px; line-height: 1.2; }
+.rush-row .btn:disabled { opacity: .5; }
+.rush-tip { margin: 6px 0 0; color: var(--ink-soft); }
+#stockMini .inc { font-style: normal; color: var(--green); }

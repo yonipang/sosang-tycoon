@@ -35,6 +35,7 @@ export const STATIONS = {
   mat: { menu: 'kimbap', tiles: [[2, 1], [3, 1], [2, 2], [3, 2]], stand: [[2, 3], [3, 3]], label: '김밥 자리' },
   fryer: { menu: 'twigim', tiles: [[4, 1], [5, 1], [4, 2], [5, 2]], stand: [[4, 3], [5, 3]], label: '튀김기' },
   trash: { menu: null, tiles: [[6, 1], [7, 1], [6, 2], [7, 2]], stand: [[6, 3], [7, 3]], label: '퇴식대' },
+  fridge: { menu: null, tiles: [[0, 0], [0, 1], [0, 2]], stand: [[0, 3]], label: '냉장고' }, // 재료 보기·급구매
 };
 export const REGISTER = { tiles: [[8, 9], [9, 9], [8, 10], [9, 10]], stand: [[8, 8], [9, 8]] };
 // 자리: face = 앉아서 보는 쪽, table = 몇 번 탁자

@@ -44,7 +44,7 @@ with sync_playwright() as pw:
     b.close()
 r = json.loads(rec)
 print('1일차 받은 메뉴:', {m: r['sales'][m]['n'] for m in r['sales']})
-print('1일차:', {k: r[k] for k in ('revenue', 'tips', 'ingredientCost', 'net', 'served', 'missed', 'avgSpend', 'rating')})
+print('1일차:', {k: r[k] for k in ('revenue', 'tips', 'usedCost', 'expiredCost', 'net', 'served', 'missed', 'avgSpend', 'rating')})
 print('리뷰:', [v['text'] for v in r['reviews']])
 print('7일 기록 [일, 매출, 순이익, 손님, 놓침, 별]:', hist)
 print('7일차 유동인구·들어옴·받음:', r7)

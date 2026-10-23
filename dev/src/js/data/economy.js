@@ -10,6 +10,10 @@ export const PLAYER_SPEED = 5.5;     // 사장 걷는 속도 (칸/초)
 export const HANDS_MAX = 2;
 export const PAY_STEP_SEC = 0.35;    // 계산 한 명에 걸리는 시간
 export const TIP = { min: 500, max: 1500 };
+// 급구매: 영업 중 재료가 떨어지면 냉장고에서 근처 마트에 주문 (비싸고, 조금 기다려야 와요)
+export const RUSH_QTY = 5;       // 한 번에 몇 인분
+export const RUSH_MUL = 1.6;     // 재료값 배율
+export const RUSH_SEC = 20;      // 도착까지 실제 초
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 export const ratingSpawnMul = r => 0.55 + 0.15 * r;
 export const ratingPriceMul = r => 1 + 0.05 * (r - 3);

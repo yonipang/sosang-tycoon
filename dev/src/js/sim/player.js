@@ -174,7 +174,9 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu) startCook(st); else trash();
+    if (st.menu) startCook(st);
+    else if (t.id === 'fridge') emit('fridge', true); // 냉장고: 남은 재료 보기·급구매
+    else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }
