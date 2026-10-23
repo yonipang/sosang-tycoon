@@ -1,6 +1,6 @@
 // 영업 중 화면 위아래 막대: 날짜·시계·잔고·별점 / 주문표 / 손에 든 것·남은 재료·속도
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, COOK_ZONE } from '../data/menu.js';
+import { MENUS, MENU_IDS, COOK_GAMES } from '../data/menu.js';
 import { WEEKDAYS } from '../data/economy.js';
 import { $, clockText, wonShort } from '../engine/util.js';
 import { icon } from './icons.js';
@@ -37,16 +37,27 @@ export function updateHud() {
   // 남은 재료
   setHTML('stockMini', MENU_IDS.map(m => `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}</span>`).join(''));
   setText('bSpeed', r.speed + '×');
-  // 조리 바늘
-  if (r.cook) {
-    $('cookNeedle').style.left = (r.cook.pos * 100).toFixed(1) + '%';
-    setText('cookName', MENUS[r.cook.menu].name + ' 만드는 중');
+  // 조리 미니게임
+  const c = r.cook;
+  if (c) {
+    const g = COOK_GAMES[c.game];
+    if (c.game === 'roll') {
+      $('cookFill').style.width = (c.pos * 100).toFixed(1) + '%';
+      $('cookNeedle').style.left = (100 - Math.min(1, c.t / g.timeout) * 100).toFixed(1) + '%';
+      setText('cookName', `${MENUS[c.menu].name} ${g.name} ${c.taps}/${g.taps}`);
+    } else $('cookNeedle').style.left = (c.pos * 100).toFixed(1) + '%';
   }
 }
 
-// 조리 막대의 좋은 칸·완벽한 칸 너비 (data/menu.js 값에서)
-export function initCookBar() {
-  const p = COOK_ZONE.perfect, g = COOK_ZONE.good;
-  $('zoneGood').style.left = (50 - g * 100) + '%'; $('zoneGood').style.width = (g * 200) + '%';
-  $('zonePerfect').style.left = (50 - p * 100) + '%'; $('zonePerfect').style.width = (p * 200) + '%';
+// 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES)
+export function setupCook(menu, game) {
+  const g = COOK_GAMES[game];
+  $('cookBar').className = 'cook-bar g-' + game;
+  setText('cookName', `${MENUS[menu].name} ${g.name}`);
+  setText('cookTip', g.tip);
+  const zone = (id, a, b) => { $(id).style.left = a * 100 + '%'; $(id).style.width = (b - a) * 100 + '%'; };
+  $('cookFill').style.width = '0%';
+  if (game === 'stir') { zone('zoneGood', 0.5 - g.zone.good, 0.5 + g.zone.good); zone('zonePerfect', 0.5 - g.zone.perfect, 0.5 + g.zone.perfect); }
+  else if (game === 'fry') { zone('zoneGood', g.good[0], g.good[1]); zone('zonePerfect', g.perfect[0], g.perfect[1]); }
+  else { zone('zoneGood', 0, 0); zone('zonePerfect', 0, 0); $('cookNeedle').style.left = '100%'; }
 }

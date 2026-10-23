@@ -6,6 +6,7 @@ import { tileToCss, addMark } from '../render/view.js';
 import { saveGame } from '../save/storage.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
+import { setupCook } from './hud.js';
 
 export function toast(text, kind) {
   const box = $('toasts');
@@ -41,7 +42,8 @@ export function initFeedback() {
   onEvent('float', float);
   onEvent('sfx', playSfx);
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
-  onEvent('cook', (on) => {
+  onEvent('cook', (on, menu, game) => {
+    if (on) setupCook(menu, game);
     $('cookUI').hidden = !on;
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요');
   });

@@ -1,74 +1,107 @@
-// 손님: 보도에서 들어와 → 자리 → 메뉴 보기(가격 반응) → 주문 → 기다림 → 먹기 → 계산 줄 → 나가기
+// 손님: 일행(1~2명)으로 보도에서 들어와 → 빈 탁자(한 일행에 한 탁자) → 메뉴 보기(가격 반응) → 주문 → 기다림 → 먹기
+//       → 일행이 다 먹으면 한 명이 계산 줄에 서서 같이 계산 → 나가기
+// 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
-import { CUSTOMER_TYPES, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, typeMix } from '../data/customers.js';
+import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
-import { SEATS, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
+import { SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted } from '../engine/random.js';
-import { CHAR_COUNT } from '../art/atlas.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
+const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
+export const isSeated = c => SEATED.includes(c.state) && c.seat >= 0;
+const partyOf = c => G.run.customers.filter(q => q.party === c.party && q.state !== 'leave');
+const P = c => CUSTOMER_TYPES[c.type].patience;
 
-// 보도를 따라 x에서 x2까지 (y10)
+// 보도를 따라 x에서 toX까지 (y10)
 function sidewalk(fromX, toX) {
   const p = [], s = Math.sign(toX - fromX);
   for (let x = fromX + s; s && x !== toX + s; x += s) p.push([x, DOOR_OUT.y]);
   return p;
 }
 
+// ── 들어오기 ──
 export function spawnCustomer(hour) {
   const r = G.run;
-  const type = weighted(typeMix(hour));
+  const here = new Set(r.customers.map(c => c.char));
+  const free = Object.keys(PEOPLE).map(Number).filter(n => !here.has(n));
+  if (!free.length) return false;
+  const mix = typeMix(hour);
+  const typeCount = {};
+  for (const n in PEOPLE) typeCount[PEOPLE[n]] = (typeCount[PEOPLE[n]] || 0) + 1;
+  const w = {};
+  for (const n of free) w[n] = (mix[PEOPLE[n]] || 0) / typeCount[PEOPLE[n]];
+  const lead = +weighted(w);
+  const type = PEOPLE[lead];
+  const members = [lead];
+  const mates = free.filter(n => n !== lead && PEOPLE[n] === type);
+  if (mates.length && rand() < PAIR_CHANCE[type]) members.push(mates[Math.floor(rand() * mates.length)]);
   const fromLeft = rand() < 0.5;
-  const sx = fromLeft ? -1 : 8;
-  const c = {
-    id: r.nextId++, type, char: 1 + Math.floor(rand() * (CHAR_COUNT - 1)),
-    x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed: CUSTOMER_SPEED * (0.9 + rand() * 0.2),
-    path: sidewalk(sx, DOOR_OUT.x), state: 'arrive', moving: true,
-    seat: -1, menu: null, face: null, faceT: 0, patience: 0, patMax: 1, timer: 0,
-    priceSat: 0, quality: -1, foodWaitFrac: 0, payWaited: false, exitX: fromLeft ? 8 : -1,
-  };
-  r.customers.push(c);
+  const party = r.nextParty = (r.nextParty || 0) + 1;
+  const speed = CUSTOMER_SPEED * (0.9 + rand() * 0.2);
+  members.forEach((ch, k) => {
+    const sx = fromLeft ? -1 - k : 8 + k;
+    r.customers.push({
+      id: r.nextId++, char: ch, type: PEOPLE[ch], party, lead: k === 0,
+      x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
+      path: sidewalk(sx, DOOR_OUT.x), state: 'arrive', moving: true,
+      seat: -1, menu: null, face: null, faceT: 0, patience: 0, patMax: 1, timer: 0,
+      priceSat: 0, quality: -1, foodWaitFrac: 0, payWaited: false, exitX: fromLeft ? 8 + k : -1 - k,
+    });
+  });
+  return true;
 }
 
-const P = c => CUSTOMER_TYPES[c.type].patience;
-
-function freeSeatIndex() { return G.run.seats.findIndex(s => s === null); }
-
-function goToSeat(c, i) {
+// 아무도 없는 탁자 (자리 둘 다 비어 있어야 해요)
+function freeTable() {
   const r = G.run;
-  r.seats[i] = c.id; c.seat = i;
-  const s = SEATS[i];
-  c.path = findPath(c, [[s.x, s.y]], 'customer', [[s.x, s.y]]) || [];
-  c.state = 'toSeat';
+  return TABLES.find(t => SEATS.every((s, i) => s.table !== t.no || r.seats[i] === null));
+}
+
+function seatParty(members, table) {
+  const r = G.run;
+  const seatIdx = SEATS.map((s, i) => i).filter(i => SEATS[i].table === table.no);
+  members.forEach((c, k) => {
+    const i = seatIdx[k];
+    r.seats[i] = c.id; c.seat = i;
+    const s = SEATS[i];
+    c.path = findPath(c, [[s.x, s.y]], 'customer', [[s.x, s.y]]) || [];
+    c.state = 'toSeat';
+  });
+}
+
+function sidewalkTo(c, spot) { return findPath(c, [spot], 'customer') || []; }
+
+// 탁자가 비면 가게 앞에서 기다리던 일행을 들여보내요
+function seatFromQueue() {
+  const r = G.run;
+  if (r.closing || !r.queue.length) return;
+  const t = freeTable(); if (!t) return;
+  const first = custById(r.queue[0]); if (!first) { r.queue.shift(); return; }
+  const members = r.queue.map(custById).filter(q => q && q.party === first.party);
+  r.queue = r.queue.filter(id => !members.some(m => m.id === id));
+  seatParty(members, t);
+  r.queue.forEach((id, k) => { const q = custById(id); if (q) q.path = sidewalkTo(q, QUEUE_SPOTS[k]); });
 }
 
 function freeSeat(c) {
   const r = G.run;
   if (c.seat >= 0 && r.seats[c.seat] === c.id) r.seats[c.seat] = null;
   c.seat = -1;
-  // 밖에서 기다리던 손님을 들여보내요
-  const i = freeSeatIndex();
-  if (i >= 0 && r.queue.length && !r.closing) {
-    const next = custById(r.queue.shift());
-    if (next) goToSeat(next, i);
-    r.queue.forEach((id, k) => { const q = custById(id); if (q) q.path = sidewalkTo(q, QUEUE_SPOTS[k]); });
-  }
-}
-
-function sidewalkTo(c, [x, y]) {
-  return findPath(c, [[x, y]], 'customer') || [];
+  seatFromQueue();
 }
 
 function leave(c, angry) {
   const r = G.run;
+  if (c.menu && c.state === 'waitFood') removeTicket(c);
   freeSeat(c);
   r.queue = r.queue.filter(id => id !== c.id);
+  const wasPay = r.payLine.includes(c.id);
   r.payLine = r.payLine.filter(id => id !== c.id);
-  r.payLine.forEach((id, k) => { const q = custById(id); if (q) q.path = findPath(q, [PAY_SPOTS[k]], 'customer') || []; });
-  if (c.menu && c.state === 'waitFood') removeTicket(c);
+  if (wasPay) r.payLine.forEach((id, k) => { const q = custById(id); if (q) q.path = findPath(q, [PAY_SPOTS[k]], 'customer') || []; });
   const toDoor = c.y >= DOOR_OUT.y ? [] : (findPath(c, [[DOOR_OUT.x, DOOR_OUT.y]], 'customer') || []);
   const startX = toDoor.length ? DOOR_OUT.x : Math.round(c.x);
   c.path = toDoor.concat(sidewalk(startX, c.exitX));
@@ -76,13 +109,25 @@ function leave(c, angry) {
   if (angry) { c.face = 'angry'; c.faceT = 1.6; emit('sfx', 'angry'); }
 }
 
-function miss(c, reason, kind, menu) {
+const MISS_SAT = { full: 3, wait: 1, price: 1.5, soldout: 2 };
+const MISS_TEXT = { full: '자리 없음', wait: '너무 늦어요', price: '비싸요', soldout: '품절' };
+function miss(c, reason, menu, quiet) {
   const L = G.run.log;
   L.missed[reason]++;
-  const sat = { full: 3, wait: 1, price: 1.5, soldout: 2 }[reason];
-  L.sats.push(sat);
-  L.events.push({ kind, menu, who: CUSTOMER_TYPES[c.type].name });
-  emit('float', c.x, c.y - 1.4, { full: '자리 없음', wait: '너무 늦어요', price: '비싸요', soldout: '품절' }[reason], 'bad');
+  L.sats.push(MISS_SAT[reason]);
+  if (!quiet) {
+    L.events.push({ kind: reason, menu, who: CUSTOMER_TYPES[c.type].name });
+    emit('float', c.x, c.y - 1.4, MISS_TEXT[reason], 'bad');
+  }
+}
+// 일행이 함께 나가요 (아직 먹기 전인 사람만 — 먹고 있는 사람은 마저 먹고 계산해요)
+function partyLeaves(c, reason, menu) {
+  const pre = ['arrive', 'queue', 'toSeat', 'reading', 'waitFood'];
+  partyOf(c).forEach(m => {
+    if (!pre.includes(m.state)) return;
+    miss(m, reason, m.menu || menu, m !== c);
+    leave(m, reason !== 'full' || m.state === 'queue');
+  });
 }
 
 // 주문표에서 빼고, 아직 요리 안 한 몫이면 재료를 돌려놔요
@@ -99,8 +144,7 @@ function removeTicket(c) {
 
 function reaction(c, m) {
   const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating);
-  const ratio = G.prices[m] / fair;
-  return PRICE_REACT.find(p => ratio <= p.max);
+  return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
 }
 
 function decide(c) {
@@ -111,11 +155,11 @@ function decide(c) {
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
-  if (re.leave && rand() < re.leave) { miss(c, 'price', 'price', m); leave(c, true); return; }
+  if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
     const alts = MENU_IDS.filter(x => x !== m && r.stock[x] > 0 && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
-    else { miss(c, 'soldout', 'soldout', m); leave(c, true); return; }
+    else { partyLeaves(c, 'soldout', m); return; }
   }
   r.stock[m]--;
   c.menu = m; c.priceSat = re.sat;
@@ -127,17 +171,15 @@ function decide(c) {
 
 // 사장이 음식을 내줬을 때 (sim/player.js)
 export function serve(c, dish) {
+  const r = G.run;
   c.quality = dish.q;
   c.foodWaitFrac = 1 - c.patience / c.patMax;
-  removeTicketNoReturn(c);
+  const i = r.tickets.findIndex(t => t.cid === c.id);
+  if (i >= 0) r.tickets.splice(i, 1);
   c.state = 'eating';
   c.timer = CUSTOMER_TYPES[c.type].eat;
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
-}
-function removeTicketNoReturn(c) {
-  const r = G.run, i = r.tickets.findIndex(t => t.cid === c.id);
-  if (i >= 0) r.tickets.splice(i, 1);
 }
 
 function satisfaction(c) {
@@ -147,51 +189,57 @@ function satisfaction(c) {
   return Math.max(1, Math.min(5, s));
 }
 
-// 계산 (사장이 계산대에서 — sim/player.js)
+// 계산: 계산 줄에 선 사람이 자리에 남은 일행 몫까지 같이 내요 (사장이 계산대에서 — sim/player.js)
 export function pay(c) {
-  const r = G.run, L = r.log, T = CUSTOMER_TYPES[c.type];
-  const price = G.prices[c.menu];
-  const sat = satisfaction(c);
-  let tip = 0;
-  if (sat >= 4.5 && rand() < T.tip * 2.5) tip = rint(TIP.min / 100, TIP.max / 100) * 100;
-  G.cash += price + tip; G.weekSales += price;
-  L.sales[c.menu].n++; L.sales[c.menu].rev += price; L.tips += tip; L.served++;
-  L.sats.push(sat);
-  const who = T.name;
-  if (c.quality === 2) L.events.push({ kind: 'perfect', menu: c.menu, who });
-  else if (c.payWaited) L.events.push({ kind: 'payWait', menu: c.menu, who });
-  else if (c.priceSat >= 1) L.events.push({ kind: 'cheap', menu: c.menu, who });
-  else L.events.push({ kind: 'normal', menu: c.menu, who });
-  emit('float', c.x, c.y - 1.6, '+' + (price + tip).toLocaleString('ko-KR') + '원' + (tip ? ' 팁!' : ''), 'cash');
+  const r = G.run, L = r.log;
+  const group = [c].concat(partyOf(c).filter(m => m !== c && m.state === 'waitPayer'));
+  let total = 0, tips = 0;
+  for (const m of group) {
+    const T = CUSTOMER_TYPES[m.type], price = G.prices[m.menu];
+    m.payWaited = c.payWaited;
+    const sat = satisfaction(m);
+    if (sat >= 4.5 && rand() < T.tip * 2.5) tips += rint(TIP.min / 100, TIP.max / 100) * 100;
+    total += price;
+    L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
+    L.sats.push(sat);
+    const kind = m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
+    L.events.push({ kind, menu: m.menu, who: T.name });
+  }
+  G.cash += total + tips; G.weekSales += total; L.tips += tips;
+  emit('float', c.x, c.y - 1.6, '+' + (total + tips).toLocaleString('ko-KR') + '원' + (tips ? ' 팁!' : ''), 'cash');
   emit('sfx', 'coin');
-  leave(c, false);
+  for (const m of group) leave(m, false);
 }
 
 export function updateCustomers(dt) {
   const r = G.run;
   for (const c of r.customers.slice()) {
+    if (c.state === 'leave' && !r.customers.includes(c)) continue;
     if (c.faceT > 0) c.faceT -= dt;
     const arrived = walk(c, dt);
     switch (c.state) {
-      case 'arrive':
-        if (!arrived) break;
-        if (r.closing) { leave(c, false); break; }
-        { const i = freeSeatIndex();
-          if (i >= 0 && !r.queue.length) goToSeat(c, i);
-          else if (r.queue.length < QUEUE_MAX) {
-            r.queue.push(c.id); c.state = 'queue';
-            c.patMax = c.patience = PATIENCE.queue * P(c);
-            c.path = sidewalkTo(c, QUEUE_SPOTS[r.queue.length - 1]);
-          } else { miss(c, 'full', 'full'); leave(c, false); }
-        }
+      case 'arrive': {
+        if (!arrived || !c.lead) break; // 일행 중 앞사람이 정해요
+        const members = partyOf(c).filter(m => m.state === 'arrive');
+        if (r.closing) { members.forEach(m => leave(m, false)); break; }
+        const t = !r.queue.length && freeTable();
+        if (t) seatParty(members, t);
+        else if (r.queue.length + members.length <= QUEUE_MAX) {
+          for (const m of members) {
+            r.queue.push(m.id); m.state = 'queue';
+            m.patMax = m.patience = PATIENCE.queue * P(m);
+            m.path = sidewalkTo(m, QUEUE_SPOTS[r.queue.length - 1]);
+          }
+        } else members.forEach((m, k) => { miss(m, 'full', null, k > 0); leave(m, false); });
         break;
+      }
       case 'queue':
         c.patience -= dt;
         if (r.closing) { leave(c, false); break; }
-        if (c.patience <= 0) { miss(c, 'full', 'full'); leave(c, true); }
+        if (c.patience <= 0) partyLeaves(c, 'full');
         break;
       case 'toSeat':
-        if (arrived) { c.state = 'reading'; c.timer = READ_MENU_SEC; c.dir = SEATS[c.seat].face === 'right' ? 0 : 2; }
+        if (arrived) { c.state = 'reading'; c.timer = READ_MENU_SEC * (0.8 + rand() * 0.5); c.dir = SEATS[c.seat].face === 'right' ? 0 : 2; }
         break;
       case 'reading':
         c.timer -= dt;
@@ -199,24 +247,29 @@ export function updateCustomers(dt) {
         break;
       case 'waitFood':
         c.patience -= dt;
-        if (c.patience <= 0) { miss(c, 'wait', 'wait', c.menu); leave(c, true); }
+        if (c.patience <= 0) partyLeaves(c, 'wait', c.menu);
         break;
       case 'eating':
         c.timer -= dt;
-        if (c.timer <= 0) c.state = 'waitPayLine';
+        if (c.timer <= 0) c.state = 'done';
         break;
-      case 'waitPayLine':
-        if (r.payLine.length < PAY_SPOTS.length) {
-          r.payLine.push(c.id);
-          freeSeat(c);
-          c.path = findPath(c, [PAY_SPOTS[r.payLine.length - 1]], 'customer') || [];
-          c.state = 'payLine';
-          c.patMax = c.patience = PATIENCE.pay * P(c);
-        }
+      case 'done': {
+        // 일행이 모두 다 먹었으면 앞사람(남은 사람 중 첫째)이 계산 줄로
+        const party = partyOf(c);
+        if (party.some(m => m.state !== 'done' && m.state !== 'waitPayer')) break;
+        if (party[0] !== c) { c.state = 'waitPayer'; break; }
+        if (r.payLine.length >= PAY_SPOTS.length) break;
+        r.payLine.push(c.id);
+        party.forEach(m => { if (m !== c) m.state = 'waitPayer'; });
+        c.state = 'payLine';
+        freeSeat(c); // 일행이 아직 앉아 있으면 탁자는 비지 않아요
+        c.path = findPath(c, [PAY_SPOTS[r.payLine.length - 1]], 'customer') || [];
+        c.patMax = c.patience = PATIENCE.pay * P(c);
         break;
+      }
       case 'payLine':
         if (r.payLine[0] === c.id && arrived) {
-          c.dir = 1;
+          c.dir = 0;
           c.patience -= dt;
           if (c.patience <= 0) { c.payWaited = true; pay(c); }
         }
@@ -227,6 +280,3 @@ export function updateCustomers(dt) {
     }
   }
 }
-
-// 그림·화면용: 손님이 앉아 있는지
-export const isSeated = c => ['reading', 'waitFood', 'eating', 'waitPayLine'].includes(c.state);

@@ -5,6 +5,13 @@ export const CUSTOMER_TYPES = {
   worker: { name: '직장인', priceMul: 1.1, patience: 0.75, likes: { kimbap: 4, tteok: 2, twigim: 1 }, tip: 0.12, eat: 5 },
   elder: { name: '어르신', priceMul: 0.95, patience: 1.4, likes: { kimbap: 2, tteok: 2, twigim: 1 }, tip: 0.1, eat: 8 },
 };
+// 손님 한 명 = 그림 한 장 (같은 옷이면 같은 사람이라 가게에 동시에 둘이 올 수 없어요). 0번은 사장.
+export const PEOPLE = {
+  1: 'worker', 2: 'student', 3: 'student', 4: 'worker', 5: 'student', 6: 'student', 7: 'elder', 8: 'worker', 9: 'student',
+  10: 'worker', 11: 'student', 12: 'worker', 13: 'elder', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 18: 'worker', 19: 'elder',
+};
+// 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
+export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 // 시각(9~20시)마다 들어오려는 손님 수 기대값 — 점심·하교·퇴근에 몰려요
 export const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 5, 12: 8, 13: 6, 14: 3, 15: 4, 16: 6, 17: 4, 18: 6, 19: 5, 20: 2 };
 // 시각마다 손님 구성 (주택가 골목 기준)

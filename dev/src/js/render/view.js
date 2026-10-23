@@ -1,6 +1,6 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FURNITURE, STATIONS, SEATS } from '../data/layout.js';
+import { W, H, TILE, DOOR, FURNITURE, STATIONS, SEATS, TABLES } from '../data/layout.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount } from '../sim/player.js';
@@ -31,8 +31,8 @@ export function fitView(availW, availH) {
 export const viewScale = () => scale;
 // 칸 좌표 → 캔버스 요소 안의 CSS 픽셀 (떠오르는 글자 자리용)
 export const tileToCss = (x, y) => ({ x: (x + 0.5) * TILE * scale, y: (y + 0.5) * TILE * scale });
-// 화면 누른 자리 → 칸
-export function cssToTile(px, py) { return { x: Math.floor(px / scale / TILE), y: Math.floor(py / scale / TILE) }; }
+// 화면 누른 자리 → 칸 좌표 (소수점까지 — 사람 그림을 눌렀는지 보려고)
+export function cssToTile(px, py) { return { x: px / scale / TILE, y: py / scale / TILE }; }
 
 export function addMark(x, y, kind) { marks.push({ x, y, kind, t: 0 }); }
 
@@ -57,10 +57,12 @@ function tileFill(name, x0, y0, x1, y1) {
 function drawChar(ch, x, y, dir, mode, phase) {
   const r = SPR['char' + ch]; if (!r) return;
   let row, f;
-  if (mode === 'sit') { row = 3; f = (dir === 2 ? 6 : 0) + Math.floor(phase * 6) % 6; }
+  // 앉기: 0~5 오른쪽 · 6~11 왼쪽 보기. 고개를 돌리는 프레임은 빼고 첫 장(먹을 때만 두 장을 번갈아)을 써요
+  if (mode === 'sit' || mode === 'sitEat') { row = 3; f = (dir === 2 ? 6 : 0) + (mode === 'sitEat' ? Math.floor(phase * 2) % 2 : 0); }
   else if (mode === 'walk') { row = 2; f = dir * 6 + Math.floor(phase * 10) % 6; }
   else { row = 1; f = dir * 6 + Math.floor(phase * 6) % 6; }
-  const dx = Math.round(x * TILE), dy = Math.round(y * TILE - 16 - (mode === 'sit' ? 2 : 0));
+  const sit = mode === 'sit' || mode === 'sitEat';
+  const dx = Math.round(x * TILE) + (sit ? (dir === 2 ? -SIT_SHIFT : SIT_SHIFT) : 0), dy = Math.round(y * TILE - 16 - (sit ? SIT_LIFT : 0));
   ctx.drawImage(atlas, r[0] + f * 16, r[1] + row * 32, 16, 32, dx, dy, 16, 32);
 }
 
@@ -125,8 +127,12 @@ function digit(n, x, y) {
   for (let i = 0; i < 15; i++) if (s[i] === '1') ctx.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
 }
 
+// 자기 자리에 도착해 앉아 있는지 (걸어가는 중이면 서 있는 그림)
+const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c.y === SEATS[c.seat].y;
+const SIT_LIFT = 6; // 앉은 그림을 위로 올리는 픽셀 (의자 방석에 맞춰요)
+const SIT_SHIFT = 1; // 탁자 쪽으로 당기는 픽셀
 function drawCustomerUI(c) {
-  const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 13 - (isSeated(c) && !c.moving ? 2 : 0));
+  const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 13 - (sittingNow(c) ? SIT_LIFT : 0));
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);
@@ -168,15 +174,17 @@ export function drawFrame(dt) {
   SEATS.forEach((s, i) => items.push({ y: s.y + 0.4, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
   if (r) {
     for (const c of r.customers) {
-      const seated = isSeated(c) && !c.moving;
-      items.push({ y: c.y + (seated ? 0.5 : 0.6), d: () => drawChar(c.char, c.x, c.y, c.dir, seated ? 'sit' : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
+      const seated = sittingNow(c);
+      if (seated) c.dir = SEATS[c.seat].face === 'right' ? 0 : 2;
+      items.push({ y: c.y + (seated ? 0.5 : 0.6), d: () => drawChar(c.char, c.x, c.y, c.dir, seated ? (c.state === 'eating' ? 'sitEat' : 'sit') : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
     }
     const p = r.player;
     items.push({ y: p.y + 0.6, d: () => drawChar(0, p.x, p.y, p.dir, p.moving ? 'walk' : 'idle', t) });
     // 탁자 위 음식
     SEATS.forEach((s, i) => {
       const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
-      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, 2 * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 5) });
+      const tb = TABLES.find(q => q.no === s.table);
+      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 5) });
     });
   }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());

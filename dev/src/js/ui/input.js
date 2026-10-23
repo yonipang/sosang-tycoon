@@ -14,11 +14,11 @@ export function initInput() {
     if (G.phase !== 'day' || !G.run || G.run.paused) return;
     const rc = cv.getBoundingClientRect();
     const t = cssToTile(e.clientX - rc.left, e.clientY - rc.top);
-    runCmd('tap', t);
+    runCmd(G.run.cook ? 'cookTap' : 'tap', t);
     e.preventDefault();
   });
   // 조리 중에는 화면 어디를 눌러도 멈춰요
-  $('cookUI').addEventListener('pointerdown', e => { runCmd('cookStop'); e.preventDefault(); });
+  $('cookUI').addEventListener('pointerdown', e => { runCmd('cookTap'); e.preventDefault(); });
   $('bPause').addEventListener('click', () => { if (G.run) runCmd('pause', { on: !G.run.paused }); });
   $('bSpeed').addEventListener('click', () => {
     if (!G.run) return;
@@ -26,7 +26,7 @@ export function initInput() {
   });
   addEventListener('keydown', e => {
     if (G.phase !== 'day' || !G.run) return;
-    if (e.code === 'Space') { if (G.run.cook) runCmd('cookStop'); e.preventDefault(); }
+    if (e.code === 'Space') { if (G.run.cook && !e.repeat) runCmd('cookTap'); e.preventDefault(); }
     else if (e.code === 'Escape') runCmd('pause', { on: !G.run.paused });
   });
   // 다른 창으로 가면 저절로 쉬어요
