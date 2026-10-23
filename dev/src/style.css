@@ -162,7 +162,18 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .yday { color: var(--paper-2); margin: 0 0 10px; }
 .yday b { color: var(--mustard); font-weight: normal; }
 .mcard { background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px; margin-bottom: 8px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
-.mhead { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+.mhead { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
+.mhead .tags { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.tag { border: 2px solid var(--line); padding: 0 6px; color: var(--ink-soft); white-space: nowrap; }
+.tag.new { background: var(--red); border-color: var(--red); color: #fff; }
+.tag.hot { border-color: var(--mustard); color: #a06a10; }
+.tag.warn { border-color: var(--red); color: var(--red); }
+.more { margin-top: 4px; color: var(--ink-soft); }
+.more summary { cursor: pointer; list-style: none; text-align: right; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: ' ▾'; }
+.more[open] summary::after { content: ' ▴'; }
+.more p { margin: 4px 0 0; }
 .mhead .dish { width: 32px; height: 32px; flex: none; }
 .mhead b { font-weight: normal; display: block; }
 .mhead small, .mhead em { display: block; font-size: 16px; color: var(--ink-soft); font-style: normal; }
