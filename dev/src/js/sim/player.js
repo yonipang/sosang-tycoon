@@ -36,7 +36,7 @@ export function targetAt(fx, fy) {
   }
   // 2) 탁자·자리 칸
   const seat = SEATS.find(s => s.x === x && s.y === y);
-  const table = TABLES.find(t => (x === t.x || x === t.x + 1) && fy >= t.y - 0.65 && fy < t.y + 1); // 탁자 그림은 조금 올라가 있어요
+  const table = TABLES.find(t => x >= t.x && x < t.x + t.w && fy >= t.y - 0.65 && fy < t.y + 1); // 탁자 그림은 조금 올라가 있어요
   const no = seat ? seat.table : table ? table.no : 0;
   if (no) { const w = waiterAtTable(no); return w ? { kind: 'serve', cid: w.id } : null; }
   // 3) 조리대·계산대
@@ -57,7 +57,9 @@ function standFor(t) {
     const c = custById(t.cid);
     if (!c || c.seat < 0) return null;
     const s = SEATS[c.seat], tb = TABLES.find(q => q.no === s.table);
-    return standAround([[s.x, s.y], [tb.x, tb.y], [tb.x + 1, tb.y]], 'player'); // 탁자 옆 어디서든 내줄 수 있어요
+    const tiles = [[s.x, s.y]];
+    for (let k = 0; k < tb.w; k++) tiles.push([tb.x + k, tb.y]);
+    return standAround(tiles, 'player'); // 탁자 옆 어디서든 내줄 수 있어요
   }
   return [[t.x, t.y]];
 }

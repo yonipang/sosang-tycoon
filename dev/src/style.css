@@ -29,6 +29,7 @@ body {
 }
 button, input { font: inherit; color: inherit; }
 img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+img.px { object-fit: contain; }
 
 #app {
   position: relative;

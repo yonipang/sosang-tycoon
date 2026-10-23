@@ -113,6 +113,51 @@ def stack_counter(top, gap):
     return im
 
 
+# 탁자 위에 놓는 작은 음식 (8~9px) — 주문 말풍선·손에 든 그림은 큰 것(16px)을 써요
+SMALL_PAL = {'k': INK, 'r': (216, 69, 47, 255), 'R': (165, 42, 31, 255), 't': (255, 241, 220, 255),
+             'n': (95, 174, 74, 255), 'w': (244, 241, 236, 255), 'g': (207, 199, 189, 255),
+             'y': (240, 200, 60, 255), 'o': (235, 120, 60, 255), 'b': (30, 36, 34, 255),
+             'O': (226, 160, 64, 255), 'L': (250, 210, 120, 255), 'p': (236, 226, 200, 255)}
+
+
+def own_tteok_s():
+    return grid([
+        '.kkkkkk.',
+        'krrtrrRk',
+        'krtrnrtk',
+        'kRrrtrRk',
+        '.kwwwwk.',
+        '..kggk..',
+    ], SMALL_PAL)
+
+
+def own_kimbap_s():
+    return grid([
+        '.bbb.bbb.',
+        'bwywbwowb',
+        'bwnwbwnwb',
+        '.bbb.bbb.',
+        'kgwwwwwgk',
+        '.kkkkkkk.',
+    ], SMALL_PAL)
+
+
+def own_twigim_s():
+    return grid([
+        '..kk.kk.',
+        '.kOLkOOk',
+        'kOOOOLOk',
+        'kOLOOOOk',
+        '.kppppk.',
+        '..kkkk..',
+    ], SMALL_PAL)
+
+
+def tight(im):
+    """빈 테두리를 잘라 내요 (말풍선 가운데에 놓기 쉽게)"""
+    return im.crop(im.getbbox())
+
+
 def own_register():
     im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     d.rectangle((2, 7, 13, 14), fill=(90, 96, 110, 255), outline=INK)
@@ -194,7 +239,8 @@ def collect():
     s['chair'] = crop(INT, KIT % 280)
     s['plate'] = crop(INT, KIT % 381)
     s['menuboard'] = crop(INT, ICE % 14)
-    s['tteok'] = own_tteok(); s['kimbap'] = own_kimbap(); s['twigim'] = own_twigim()
+    s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
+    s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()
     s['register'] = own_register(); s['pot'] = own_pot(); s['mat'] = own_mat(); s['doormat'] = own_doormat()
     for k in ('love', 'happy', 'meh', 'angry'):
         s['face_' + k] = own_face(k)

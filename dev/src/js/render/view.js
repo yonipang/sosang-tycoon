@@ -1,6 +1,6 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES } from '../data/layout.js';
+import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT } from '../data/layout.js';
 import { menuOpen } from '../data/menu.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
@@ -74,6 +74,16 @@ function bubble(x, y, w, h) {
   ctx.fillStyle = 'rgba(59,42,32,.35)'; ctx.fillRect(x + 1, y + h, w - 2, 1);
   ctx.fillStyle = '#fffaf0'; ctx.fillRect(x + Math.floor(w / 2) - 1, y + h, 2, 2);
 }
+// 그림을 담은 말풍선: 그림 크기에 맞춰 만들고 그림은 정가운데에 (cx: 가운데 x, bottom: 꼬리 위 y)
+function iconBubble(name, cx, bottom) {
+  const r = SPR[name], w = r[2] + 4, h = r[3] + 4;
+  const x = Math.round(cx - w / 2), y = Math.round(bottom - h);
+  bubble(x, y, w, h);
+  spr(name, x + 2, y + 2);
+  return { x, y, w, h };
+}
+// 그림을 (cx, cy) 가운데에 맞춰 그려요
+function sprC(name, cx, cy) { const r = SPR[name]; spr(name, Math.round(cx - r[2] / 2), Math.round(cy - r[3] / 2)); }
 function bar(x, y, w, frac, col) {
   ctx.fillStyle = 'rgba(40,28,20,.6)'; ctx.fillRect(x, y, w, 3);
   ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, Math.max(0, Math.round((w - 2) * frac)), 1);
@@ -117,9 +127,8 @@ function stationHint() {
     const [x, y] = st.tiles[0];
     const bob = Math.round(Math.sin(t * 5) * 1.5);
     const bx = x * TILE + (st.tiles.length > 2 ? 8 : 0), by = y * TILE - 14 + bob;
-    bubble(bx, by, 16, 14);
-    spr(st.menu, bx, by - 1);
-    if (need > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(bx + 11, by - 2, 6, 6); ctx.fillStyle = '#fff'; digit(need, bx + 13, by - 1); }
+    const b = iconBubble(st.menu, bx + 8, by + 14);
+    if (need > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(b.x + b.w - 5, b.y - 2, 6, 6); ctx.fillStyle = '#fff'; digit(need, b.x + b.w - 3, b.y - 1); }
   }
 }
 // 아주 작은 숫자 (3×4 픽셀)
@@ -134,15 +143,14 @@ const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c
 const SIT_LIFT = 11; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 높이에 오게 (6이면 의자 앞 바닥에 앉은 것처럼 보여요)
 const SIT_SHIFT = 3; // 탁자 쪽으로 당기는 픽셀: 등받이가 등 뒤로 보이게
 function drawCustomerUI(c) {
-  const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 13 - (sittingNow(c) ? SIT_LIFT : 0));
+  const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 9 - (sittingNow(c) ? SIT_LIFT : 0)); // 머리 바로 위
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);
     ctx.fillStyle = '#3b2a20';
     for (let i = 0; i < 3; i++) if (Math.floor(t * 3) % 4 > i) ctx.fillRect(px + 4 + i * 3, top - 5, 2, 2);
   } else if (c.state === 'waitFood') {
-    bubble(px, top - 16, 16, 14);
-    spr(c.menu, px, top - 17);
+    iconBubble(c.menu, px + 8, top - 2);
     bar(px, top - 1, 16, c.patience / c.patMax, patCol(c.patience / c.patMax));
   } else if (c.state === 'queue' || (c.state === 'payLine' && G.run.payLine[0] === c.id && !c.moving)) {
     if (c.state === 'payLine') { bubble(px + 3, top - 9, 10, 8); ctx.fillStyle = '#f2b134'; ctx.fillRect(px + 6, top - 7, 4, 4); ctx.fillStyle = '#c4861c'; ctx.fillRect(px + 7, top - 6, 2, 2); }
@@ -189,7 +197,12 @@ export function drawFrame(dt) {
     SEATS.forEach((s, i) => {
       const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
       const tb = TABLES.find(q => q.no === s.table);
-      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? 0 : TILE), s.y * TILE - 15) });
+      if (c && c.state === 'eating') {
+        // 탁자 위 작은 음식: 왼쪽 자리 손님 몫은 탁자 왼쪽, 오른쪽 자리 몫은 오른쪽에
+        const sm = c.menu + '_s', sw = SPR[sm][2];
+        const dx = s.face === 'right' ? tb.x * TILE + 1 : (tb.x + tb.w) * TILE - 1 - sw;
+        items.push({ y: s.y + 1.05, d: () => spr(sm, dx, s.y * TILE - TABLE_LIFT + 2) });
+      }
     });
   }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
@@ -198,7 +211,7 @@ export function drawFrame(dt) {
     for (const c of r.customers) drawCustomerUI(c);
     // 사장 손에 든 음식
     const p = r.player;
-    r.hands.forEach((d, i) => spr(d.menu, Math.round(p.x * TILE) - 6 + i * 12, Math.round(p.y * TILE) - 30));
+    r.hands.forEach((d, i) => sprC(d.menu, p.x * TILE + 8 + (r.hands.length > 1 ? (i ? 7 : -7) : 0), p.y * TILE - 22));
     tint(r.min);
   }
   // 누른 자리
