@@ -1,0 +1,7 @@
+# dev/build.py가 dev/src/에서 만드는 결과물 (원본은 dev/src/)
+dev/index.html
+dev/qa/out/
+__pycache__/
+# 구매한 그림 원본은 올리지 않아요 (라이선스) — atlas.js만 올려요
+*.zip
+dev/art_src/limezu/

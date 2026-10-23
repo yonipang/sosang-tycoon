@@ -1,0 +1,71 @@
+<title>소상공인 키우기</title>
+<style>
+/* @include font.css */
+/* @include style.css */
+</style>
+
+<div id="app">
+  <header id="hud">
+    <div class="hud-row">
+      <span id="hDay" class="pill">1일차</span>
+      <span id="hClock" class="clock">09:00</span>
+      <span class="pill cash"><b id="hCash">0</b></span>
+      <span class="pill star">★ <b id="hStar">3.0</b></span>
+    </div>
+    <div id="tickets" aria-label="주문표"></div>
+  </header>
+  <main id="stage">
+    <div id="cvWrap">
+      <canvas id="cv" aria-label="가게 화면 — 칸을 눌러 움직여요"></canvas>
+      <div id="floats" aria-hidden="true"></div>
+      <div id="cookUI" hidden>
+        <div class="cook-card">
+          <div id="cookName" class="cook-name">만드는 중</div>
+          <div class="cook-bar"><i id="zoneGood"></i><i id="zonePerfect"></i><b id="cookNeedle"></b></div>
+          <div class="cook-tip">가운데에서 멈추면 「완벽」 · 눌러서 멈춰요</div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer id="bar">
+    <div class="hands-wrap"><small>손</small><div id="hands"></div></div>
+    <div id="stockMini" aria-label="남은 재료"></div>
+    <div class="ctl">
+      <button id="bSpeed" type="button" class="sq" aria-label="빠르기">1×</button>
+      <button id="bPause" type="button" class="sq" aria-label="쉬기">❚❚</button>
+    </div>
+  </footer>
+  <div id="toasts" aria-live="polite"></div>
+  <section id="screen" hidden></section>
+</div>
+
+<script>
+'use strict';
+(() => {
+// @include js/engine/util.js
+// @include js/engine/random.js
+// @include js/sim/events.js
+// @include js/art/atlas.js
+// @include js/data/menu.js
+// @include js/data/customers.js
+// @include js/data/economy.js
+// @include js/data/layout.js
+// @include js/data/reviews.js
+// @include js/save/migrations.js
+// @include js/save/state.js
+// @include js/save/storage.js
+// @include js/sim/path.js
+// @include js/sim/customers.js
+// @include js/sim/day.js
+// @include js/sim/player.js
+// @include js/sim/loop.js
+// @include js/render/view.js
+// @include js/ui/sfx.js
+// @include js/ui/icons.js
+// @include js/ui/hud.js
+// @include js/ui/screens.js
+// @include js/ui/feedback.js
+// @include js/ui/input.js
+// @include js/main.js
+})();
+</script>

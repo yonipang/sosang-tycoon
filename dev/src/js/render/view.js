@@ -1,0 +1,212 @@
+// 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
+import { G } from '../save/state.js';
+import { W, H, TILE, DOOR, FURNITURE, STATIONS, SEATS } from '../data/layout.js';
+import { SPR, ATLAS_URL } from '../art/atlas.js';
+import { isSeated } from '../sim/customers.js';
+import { handsCount, ticketsCount } from '../sim/player.js';
+
+export const VW = W * TILE;
+export const VH = H * TILE;
+let cv, ctx, atlas, scale = 3, ready = false;
+let t = 0; // 그리기용 시계 (초)
+const marks = []; // 누른 자리 표시
+
+export function initView(canvas) {
+  cv = canvas; ctx = cv.getContext('2d');
+  cv.width = VW; cv.height = VH;
+  atlas = new Image();
+  atlas.onload = () => { ready = true; };
+  atlas.src = ATLAS_URL;
+}
+export const viewReady = () => ready;
+
+// 화면 크기에 맞춰 배율 정하기 (가능하면 정수 배)
+export function fitView(availW, availH) {
+  const s = Math.min(availW / VW, availH / VH);
+  scale = s >= 2 ? Math.floor(s) : Math.max(1, s);
+  cv.style.width = VW * scale + 'px';
+  cv.style.height = VH * scale + 'px';
+  return scale;
+}
+export const viewScale = () => scale;
+// 칸 좌표 → 캔버스 요소 안의 CSS 픽셀 (떠오르는 글자 자리용)
+export const tileToCss = (x, y) => ({ x: (x + 0.5) * TILE * scale, y: (y + 0.5) * TILE * scale });
+// 화면 누른 자리 → 칸
+export function cssToTile(px, py) { return { x: Math.floor(px / scale / TILE), y: Math.floor(py / scale / TILE) }; }
+
+export function addMark(x, y, kind) { marks.push({ x, y, kind, t: 0 }); }
+
+function spr(name, dx, dy, flip, sw, sh, sy0) {
+  const r = SPR[name]; if (!r) return;
+  const w = sw || r[2], h = sh || r[3], oy = sy0 || 0;
+  if (flip) {
+    ctx.save(); ctx.translate(Math.round(dx) + w, Math.round(dy)); ctx.scale(-1, 1);
+    ctx.drawImage(atlas, r[0], r[1] + oy, w, h, 0, 0, w, h); ctx.restore();
+  } else ctx.drawImage(atlas, r[0], r[1] + oy, w, h, Math.round(dx), Math.round(dy), w, h);
+}
+// 바닥 무늬를 칸마다 깔아요
+function tileFill(name, x0, y0, x1, y1) {
+  const r = SPR[name];
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const sx = (x * TILE) % r[2], sy = (y * TILE) % r[3];
+    ctx.drawImage(atlas, r[0] + sx, r[1] + sy, TILE, TILE, x * TILE, y * TILE, TILE, TILE);
+  }
+}
+
+// 캐릭터: 한 장에 16×32 그림이 줄마다 — 0 서 있기 4장 · 1 숨쉬기 24장 · 2 걷기 24장 · 3 앉기 12장
+function drawChar(ch, x, y, dir, mode, phase) {
+  const r = SPR['char' + ch]; if (!r) return;
+  let row, f;
+  if (mode === 'sit') { row = 3; f = (dir === 2 ? 6 : 0) + Math.floor(phase * 6) % 6; }
+  else if (mode === 'walk') { row = 2; f = dir * 6 + Math.floor(phase * 10) % 6; }
+  else { row = 1; f = dir * 6 + Math.floor(phase * 6) % 6; }
+  const dx = Math.round(x * TILE), dy = Math.round(y * TILE - 16 - (mode === 'sit' ? 2 : 0));
+  ctx.drawImage(atlas, r[0] + f * 16, r[1] + row * 32, 16, 32, dx, dy, 16, 32);
+}
+
+function bubble(x, y, w, h) {
+  ctx.fillStyle = '#fffaf0';
+  ctx.fillRect(x + 1, y, w - 2, h); ctx.fillRect(x, y + 1, w, h - 2);
+  ctx.fillStyle = 'rgba(59,42,32,.35)'; ctx.fillRect(x + 1, y + h, w - 2, 1);
+  ctx.fillStyle = '#fffaf0'; ctx.fillRect(x + Math.floor(w / 2) - 1, y + h, 2, 2);
+}
+function bar(x, y, w, frac, col) {
+  ctx.fillStyle = 'rgba(40,28,20,.6)'; ctx.fillRect(x, y, w, 3);
+  ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, Math.max(0, Math.round((w - 2) * frac)), 1);
+}
+const patCol = f => f > 0.5 ? '#7cc95a' : f > 0.25 ? '#f2b134' : '#e0533a';
+
+// 시간에 따라 빛깔: 아침은 맑게, 저녁은 노을, 마감 뒤는 푸른 밤
+function tint(min) {
+  const h = 9 + min / 60;
+  let c = null;
+  if (h < 10) c = [255, 230, 180, 0.10 * (10 - h)];
+  else if (h >= 17 && h < 20) c = [255, 140, 60, 0.16 * (h - 17) / 3];
+  else if (h >= 20) c = [40, 50, 110, Math.min(0.32, 0.16 + 0.16 * (h - 20))];
+  if (!c) return;
+  ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${c[3]})`;
+  ctx.fillRect(0, 0, VW, VH);
+}
+
+function drawRoom() {
+  // 뒷벽(0~1줄), 주방 바닥(2~3줄), 홀(4~8줄), 앞벽(9줄), 보도(10줄)
+  for (let x = 0; x < W; x += 3) spr('wall', x * TILE, 0, false, Math.min(48, (W - x) * TILE), 32);
+  tileFill('floor_kitchen', 0, 2, W, 4);
+  tileFill('floor_dining', 0, 4, W, 9);
+  tileFill('sidewalk', 0, 9, W, 11);
+  // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
+  for (let x = 0; x < W; x++) {
+    if (x === DOOR.x) continue;
+    spr('wall_front', x * TILE, 9 * TILE, false, 16, 16, 16);
+  }
+  spr('doormat', DOOR.x * TILE, 9 * TILE);
+  // 주방과 홀 사이 얇은 그림자
+  ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
+}
+
+function stationHint() {
+  if (!G.run) return;
+  for (const id in STATIONS) {
+    const st = STATIONS[id]; if (!st.menu) continue;
+    const need = ticketsCount(st.menu) - handsCount(st.menu);
+    if (need <= 0) continue;
+    const [x, y] = st.tiles[0];
+    const bob = Math.round(Math.sin(t * 5) * 1.5);
+    const bx = x * TILE + (st.tiles.length > 2 ? 8 : 0), by = y * TILE - 14 + bob;
+    bubble(bx, by, 16, 14);
+    spr(st.menu, bx, by - 1);
+    if (need > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(bx + 11, by - 2, 6, 6); ctx.fillStyle = '#fff'; digit(need, bx + 13, by - 1); }
+  }
+}
+// 아주 작은 숫자 (3×4 픽셀)
+const DIG = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
+function digit(n, x, y) {
+  const s = DIG[Math.min(9, n)];
+  for (let i = 0; i < 15; i++) if (s[i] === '1') ctx.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
+}
+
+function drawCustomerUI(c) {
+  const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 13 - (isSeated(c) && !c.moving ? 2 : 0));
+  if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
+  if (c.state === 'reading') {
+    bubble(px + 2, top - 8, 12, 7);
+    ctx.fillStyle = '#3b2a20';
+    for (let i = 0; i < 3; i++) if (Math.floor(t * 3) % 4 > i) ctx.fillRect(px + 4 + i * 3, top - 5, 2, 2);
+  } else if (c.state === 'waitFood') {
+    bubble(px, top - 16, 16, 14);
+    spr(c.menu, px, top - 17);
+    bar(px, top - 1, 16, c.patience / c.patMax, patCol(c.patience / c.patMax));
+  } else if (c.state === 'queue' || (c.state === 'payLine' && G.run.payLine[0] === c.id && !c.moving)) {
+    if (c.state === 'payLine') { bubble(px + 3, top - 9, 10, 8); ctx.fillStyle = '#f2b134'; ctx.fillRect(px + 6, top - 7, 4, 4); ctx.fillStyle = '#c4861c'; ctx.fillRect(px + 7, top - 6, 2, 2); }
+    bar(px, top, 16, c.patience / c.patMax, patCol(c.patience / c.patMax));
+  }
+}
+
+export function drawFrame(dt) {
+  if (!ready) return;
+  t += dt;
+  ctx.clearRect(0, 0, VW, VH);
+  drawRoom();
+  const r = G.run;
+  // 뒤쪽 설비(벽에 붙은 것)
+  const back = FURNITURE.filter(f => f.y < 3 && !f.over);
+  for (const f of back) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of FURNITURE.filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  // 김이 나는 냄비
+  if (r && r.cook) {
+    const st = Object.values(STATIONS).find(s => s.menu === r.cook.menu);
+    const [x, y] = st.tiles[0];
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    for (let i = 0; i < 3; i++) {
+      const k = (t * 1.5 + i / 3) % 1;
+      ctx.fillRect(x * TILE + 4 + i * 4 + Math.round(Math.sin((t + i) * 6)), y * TILE + 2 - Math.round(k * 10), 2, 2);
+    }
+  }
+  // 앞쪽: 탁자·의자·계산대·사람을 y순으로
+  const items = [];
+  for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(f.spr, f.x * TILE, f.y * TILE) });
+  SEATS.forEach((s, i) => items.push({ y: s.y + 0.4, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  if (r) {
+    for (const c of r.customers) {
+      const seated = isSeated(c) && !c.moving;
+      items.push({ y: c.y + (seated ? 0.5 : 0.6), d: () => drawChar(c.char, c.x, c.y, c.dir, seated ? 'sit' : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
+    }
+    const p = r.player;
+    items.push({ y: p.y + 0.6, d: () => drawChar(0, p.x, p.y, p.dir, p.moving ? 'walk' : 'idle', t) });
+    // 탁자 위 음식
+    SEATS.forEach((s, i) => {
+      const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
+      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, 2 * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 5) });
+    });
+  }
+  items.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  stationHint();
+  if (r) {
+    for (const c of r.customers) drawCustomerUI(c);
+    // 사장 손에 든 음식
+    const p = r.player;
+    r.hands.forEach((d, i) => spr(d.menu, Math.round(p.x * TILE) - 6 + i * 12, Math.round(p.y * TILE) - 30));
+    tint(r.min);
+  }
+  // 누른 자리
+  for (let i = marks.length - 1; i >= 0; i--) {
+    const m = marks[i]; m.t += dt;
+    if (m.t > 0.35) { marks.splice(i, 1); continue; }
+    const k = m.t / 0.35, s = 4 + k * 6;
+    ctx.strokeStyle = `rgba(255,250,240,${1 - k})`; ctx.lineWidth = 1;
+    ctx.strokeRect(Math.round(m.x * TILE + 8 - s) + 0.5, Math.round(m.y * TILE + 8 - s) + 0.5, Math.round(s * 2), Math.round(s * 2));
+  }
+}
+
+// 준비·정산 화면 뒤에 비치는 가게 (손님 없이)
+export function drawIdle(dt, night) {
+  if (!ready) return;
+  t += dt;
+  ctx.clearRect(0, 0, VW, VH);
+  drawRoom();
+  for (const f of FURNITURE.filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  SEATS.forEach(s => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left'));
+  for (const f of FURNITURE.filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
+  ctx.fillRect(0, 0, VW, VH);
+}
