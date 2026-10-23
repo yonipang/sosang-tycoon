@@ -103,6 +103,16 @@ def own_twigim():
     return im
 
 
+def stack_counter(top, gap):
+    """윗판 top을 앞면(Kitchen 121) 위에 얹어 바닥에 붙는 32x32 조리대 한 장으로 (gap: 윗판과 앞면의 세로 간격)"""
+    front = crop(INT, KIT % 121)
+    im = Image.new('RGBA', (32, 32), (0, 0, 0, 0))
+    fy = 32 - 20          # 앞면 아래 끝(20)이 칸 바닥에 오게
+    im.alpha_composite(top, (0, fy - gap)) if fy - gap >= 0 else im.alpha_composite(top.crop((0, gap - fy, top.width, top.height)), (0, 0))
+    im.alpha_composite(front, (0, fy))
+    return im
+
+
 def own_register():
     im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     d.rectangle((2, 7, 13, 14), fill=(90, 96, 110, 255), outline=INK)
@@ -174,8 +184,10 @@ def collect():
     s['sidewalk'] = crop(EXT, CITY, 128, 0, 32, 32)
     s['stove'] = crop(INT, KIT % 148)
     s['fryer'] = crop(INT, KIT % 194)
-    s['counter_a'] = crop(INT, KIT % 126)
-    s['counter_b'] = crop(INT, KIT % 121)
+    # 조리대(카운터)는 윗판 + 앞면 두 장을 쌓아 만들어요 (낱장 하나만 쓰면 위가 잘린 것처럼 보여요)
+    #  앞면 121(서랍장, 내용 y6~20)을 아래에, 윗판을 그 위에 이어 붙여 32x32 한 장으로
+    s['counter'] = stack_counter(crop(INT, KIT % 126), 13)   # 나무 윗판 (내용 y9~19)
+    s['sink'] = stack_counter(crop(INT, KIT % 141), 9)       # 개수대 윗판 (퇴식대, 내용 y1~15)
     s['fridge'] = crop(INT, KIT % 158)
     s['table'] = crop(INT, KIT % 289)
     s['chair'] = crop(INT, KIT % 280)

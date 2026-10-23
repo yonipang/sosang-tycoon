@@ -7,6 +7,8 @@ export const FRONT_Y = H - 2;  // 앞벽 줄
 export const WALK_Y = H - 1;   // 가게 앞 보도 줄
 export const DOOR = { x: 5, y: FRONT_Y };
 export const KITCHEN_ROWS = [2, 3];
+// 탁자 그림을 올리는 픽셀: 의자 다리 끝(그림 y22)과 탁자 다리 끝이 같은 높이가 되게
+export const TABLE_LIFT = 10;
 // 탁자: 한 탁자에는 한 일행만 앉아요 (합석 없음). 자리는 탁자 왼쪽·오른쪽
 export const TABLES = [
   { no: 1, x: 2, y: 5 }, { no: 2, x: 6, y: 5 },
@@ -19,11 +21,11 @@ export const FURNITURE = [
   { spr: 'menuboard', x: 8, y: 0 },
   { spr: 'fridge', x: 0, y: 0 },
   { spr: 'stove', x: 1, y: 1 }, { spr: 'pot', x: 1, y: 1.25, over: true },
-  { spr: 'counter_a', x: 2, y: 1, station: 'mat' }, { spr: 'mat', x: 2.5, y: 1.2, over: true, station: 'mat' },
+  { spr: 'counter', x: 2, y: 1, station: 'mat' }, { spr: 'mat', x: 2.5, y: 1.55, over: true, station: 'mat' },
   { spr: 'fryer', x: 4, y: 1, station: 'fryer' },
-  { spr: 'counter_b', x: 6, y: 1 }, { spr: 'counter_a', x: 8, y: 1 },
-  ...TABLES.map(t => ({ spr: 'table', x: t.x, y: t.y })),
-  { spr: 'counter_b', x: 8, y: 9 }, { spr: 'register', x: 9, y: 8.75, over: true },
+  { spr: 'sink', x: 6, y: 1 }, { spr: 'counter', x: 8, y: 1 },
+  ...TABLES.map(t => ({ spr: 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
+  { spr: 'counter', x: 8, y: 9 }, { spr: 'register', x: 9, y: 8.875, over: true },
 ];
 // 조리대: 누를 수 있는 칸과 사장이 서는 칸
 export const STATIONS = {

@@ -189,7 +189,7 @@ export function drawFrame(dt) {
     SEATS.forEach((s, i) => {
       const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
       const tb = TABLES.find(q => q.no === s.table);
-      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 5) });
+      if (c && c.state === 'eating') items.push({ y: s.y + 1.05, d: () => spr(c.menu, tb.x * TILE + (s.face === 'right' ? -3 : 3), s.y * TILE - 9) });
     });
   }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());

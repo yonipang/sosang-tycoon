@@ -36,7 +36,7 @@ export function targetAt(fx, fy) {
   }
   // 2) 탁자·자리 칸
   const seat = SEATS.find(s => s.x === x && s.y === y);
-  const table = TABLES.find(t => t.x === x && t.y === y);
+  const table = TABLES.find(t => t.x === x && fy >= t.y - 0.65 && fy < t.y + 1); // 탁자 그림은 조금 올라가 있어요
   const no = seat ? seat.table : table ? table.no : 0;
   if (no) { const w = waiterAtTable(no); return w ? { kind: 'serve', cid: w.id } : null; }
   // 3) 조리대·계산대
