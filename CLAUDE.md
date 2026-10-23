@@ -18,9 +18,9 @@
 - **「게임이 먼저」**: 나이스비즈맵은 게임 도구로 녹여요. 광고처럼 보이는 문구·강제 이동을 넣지 않아요.
 
 ## 그림·글꼴 라이선스
-- 그림: LimeZu **Modern Interiors · Modern Exteriors** (구매, 크레딧 표기 필수, 원본 재배포 금지). 원본 zip·PNG는 **절대 커밋하지 않아요** — `art_pack.py`가 쓰는 그림만 잘라 만든 `atlas.js`만 올려요. 원본 zip 경로는 `python3 dev/art_pack.py <Interiors zip> <Exteriors zip>` 인자나 환경 변수로 줘요(파일 맨 위 설명).
+- 그림: LimeZu **Modern Interiors · Modern Exteriors** (구매, 크레딧 표기 필수, 원본 재배포 금지). 크레딧은 **엔딩 크레딧**(`js/data/credits.js`)에 — 엔딩이 생기기 전까지는 처음 화면 「크레딧」 버튼으로 같은 화면을 보여 줘요. 이 둘은 지우지 않아요. 원본 zip·PNG는 **절대 커밋하지 않아요** — `art_pack.py`가 쓰는 그림만 잘라 만든 `atlas.js`만 올려요. 원본 zip 경로는 `python3 dev/art_pack.py <Interiors zip> <Exteriors zip>` 인자나 환경 변수로 줘요(파일 맨 위 설명).
 - 직접 그린 그림(떡볶이·김밥·튀김·계산대·얼굴 아이콘 …)은 `art_pack.py` 안에 있어요.
-- 글꼴: Neo둥근모 Pro (SIL OFL 1.1, `dev/art_src/fonts/neodgm-pro-OFL.txt`). 처음 화면 크레딧은 지우지 않아요.
+- 글꼴: Neo둥근모 Pro (SIL OFL 1.1, `dev/art_src/fonts/neodgm-pro-OFL.txt`). 
 
 ## 확인과 보고
 - 고친 뒤: `python3 dev/build.py && python3 dev/qa/smoke.py` (봇이 7일을 돌리고 영수증·주간 정산·다시 열기까지 확인, 사진은 `dev/qa/out/`).

@@ -1,6 +1,7 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 주간 정산
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS, MENU_UNLOCK, menuOpen } from '../data/menu.js';
+import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
@@ -38,7 +39,7 @@ export function renderTitle() {
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 · 1단계 「분식집의 하루」</p>
-      <footer class="credits">그림 <a href="https://limezu.itch.io/" target="_blank" rel="noopener">LimeZu</a> Modern Interiors · Exteriors<br>글꼴 Neo둥근모 Pro (SIL OFL 1.1)</footer>
+      <button class="btn ghost small" data-act="credits">크레딧</button>
     </div>`, 'scr-title');
 }
 
@@ -188,6 +189,21 @@ export function renderWeekly() {
     </div>`, 'scr-weekly');
 }
 
+// ── 엔딩 크레딧 ──
+// 게임 엔딩(3년 기한)이 끝나면 올라가요. 엔딩이 생기기 전에는 처음 화면 「크레딧」 버튼으로 같은 화면을 봐요.
+export function renderCredits() {
+  const blocks = CREDITS.map(c => `<div class="cr-block"><small>${c.head}</small>${c.lines.map((l, i) => i === 0 && c.link ? `<b><a href="${c.link}" target="_blank" rel="noopener">${l}</a></b>` : i === 0 ? `<b>${l}</b>` : `<span>${l}</span>`).join('')}</div>`).join('');
+  showScreen(`
+    <div class="credits-roll">
+      <div class="cr-track">
+        <h1 class="logo">소상공인<br>키우기</h1>
+        ${blocks}
+        <p class="cr-thanks">${CREDITS_THANKS}</p>
+      </div>
+      <button class="btn ghost small cr-close" data-act="toTitle">처음 화면</button>
+    </div>`, 'scr-credits');
+}
+
 export function renderPause() {
   showScreen(`
     <div class="pause">
@@ -212,6 +228,7 @@ export function initScreens(onStart) {
     else if (a === 'open') runCmd('openShop');
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
+    else if (a === 'credits') { playSfx('page'); renderCredits(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }

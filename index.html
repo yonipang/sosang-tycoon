@@ -157,8 +157,6 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .namebox input { color: var(--ink); flex: 1; min-width: 0; background: var(--paper); border: 3px solid var(--ink); padding: 6px 8px; user-select: text; -webkit-user-select: text; }
 .howto { color: var(--paper-2); margin: 16px 0 4px; }
 .proto { color: var(--mustard); margin: 4px 0; }
-.credits { color: #b9a58a; margin-top: 16px; }
-.credits a { color: inherit; }
 
 /* 새벽 준비 */
 #screen.scr-prep { background: linear-gradient(180deg, rgba(29,35,64,.92), rgba(43,29,22,.92)); }
@@ -281,6 +279,22 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .rc-more { margin-top: 10px; }
 .rc-more summary { color: var(--paper); text-align: center; }
 .rc-more .paper { margin-top: 6px; }
+
+/* 엔딩 크레딧: 아래에서 위로 천천히 올라가요 */
+#screen.scr-credits { background: #14101c; overflow: hidden; padding: 0; }
+.credits-roll { position: relative; height: 100%; max-width: none !important; }
+.cr-track { position: absolute; left: 0; right: 0; top: 100%; text-align: center; color: var(--paper); animation: roll 22s linear forwards; }
+.credits-roll:active .cr-track { animation-play-state: paused; }
+.cr-track .logo { margin-bottom: 48px; }
+.cr-block { margin: 0 0 40px; }
+.cr-block small { display: block; color: var(--mustard); margin-bottom: 4px; }
+.cr-block b { display: block; font-weight: normal; font-size: 32px; line-height: 1.3; }
+.cr-block b a { color: inherit; text-decoration: none; }
+.cr-block span { display: block; color: var(--paper-2); }
+.cr-thanks { margin-top: 64px; color: var(--paper-2); }
+.cr-close { position: absolute; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: auto; background: #14101c !important; box-shadow: 0 -16px 16px #14101c !important; }
+@keyframes roll { to { transform: translateY(calc(-100% - 60vh)); } }
+@media (prefers-reduced-motion: reduce) { .cr-track { animation: none; top: 15%; } }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -581,6 +595,13 @@ const REVIEW_TEMPLATES = {
   payWait: { stars: 3, salience: 2, lines: ['계산하려고 한참 서 있었어요', '맛은 괜찮은데 계산이 느려요'] },
   normal: { stars: 4, salience: 1, lines: ['무난하게 먹고 가요', '동네에 이런 분식집 있어서 좋아요', '{menu} 괜찮았어요'] },
 };
+// ── js/data/credits.js ──
+// 엔딩 크레딧에 올라가는 이름들. 그림 크레딧(LimeZu)은 라이선스 조건이라 빼지 않아요.
+const CREDITS = [
+  { head: '그림', lines: ['LimeZu', 'Modern Interiors · Modern Exteriors', 'limezu.itch.io'], link: 'https://limezu.itch.io/' },
+  { head: '글꼴', lines: ['Neo둥근모 Pro', 'SIL Open Font License 1.1'] },
+];
+const CREDITS_THANKS = '플레이해 주셔서 고맙습니다';
 // ── js/save/migrations.js ──
 // 옛 세이브 보정은 모두 여기에 둬요. 세이브 구조를 바꾸면 기본값을 채우는 줄을 아래에 더해요.
 function migrate(o) {
@@ -1881,7 +1902,7 @@ function renderTitle() {
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 · 1단계 「분식집의 하루」</p>
-      <footer class="credits">그림 <a href="https://limezu.itch.io/" target="_blank" rel="noopener">LimeZu</a> Modern Interiors · Exteriors<br>글꼴 Neo둥근모 Pro (SIL OFL 1.1)</footer>
+      <button class="btn ghost small" data-act="credits">크레딧</button>
     </div>`, 'scr-title');
 }
 
@@ -2031,6 +2052,21 @@ function renderWeekly() {
     </div>`, 'scr-weekly');
 }
 
+// ── 엔딩 크레딧 ──
+// 게임 엔딩(3년 기한)이 끝나면 올라가요. 엔딩이 생기기 전에는 처음 화면 「크레딧」 버튼으로 같은 화면을 봐요.
+function renderCredits() {
+  const blocks = CREDITS.map(c => `<div class="cr-block"><small>${c.head}</small>${c.lines.map((l, i) => i === 0 && c.link ? `<b><a href="${c.link}" target="_blank" rel="noopener">${l}</a></b>` : i === 0 ? `<b>${l}</b>` : `<span>${l}</span>`).join('')}</div>`).join('');
+  showScreen(`
+    <div class="credits-roll">
+      <div class="cr-track">
+        <h1 class="logo">소상공인<br>키우기</h1>
+        ${blocks}
+        <p class="cr-thanks">${CREDITS_THANKS}</p>
+      </div>
+      <button class="btn ghost small cr-close" data-act="toTitle">처음 화면</button>
+    </div>`, 'scr-credits');
+}
+
 function renderPause() {
   showScreen(`
     <div class="pause">
@@ -2055,6 +2091,7 @@ function initScreens(onStart) {
     else if (a === 'open') runCmd('openShop');
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
+    else if (a === 'credits') { playSfx('page'); renderCredits(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
