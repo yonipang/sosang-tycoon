@@ -53,6 +53,14 @@ defineCmd('openShop', () => {
   emit('toast', `${G.day}일차 영업 시작! 재료비 ${cost.toLocaleString('ko-KR')}원`, 'good');
   return true;
 });
+// 일찍 마감: 새 손님은 받지 않고, 안에 있는 손님만 마저 받아요
+defineCmd('closeEarly', () => {
+  const r = G.run;
+  if (!r || r.closing) return;
+  r.closing = true; r.closeMin = r.min;
+  emit('toast', '영업을 마감합니다. 남은 손님만 받습니다', 'info');
+  emit('closing');
+});
 defineCmd('pause', ({ on }) => { if (G.run) G.run.paused = on; emit('pause', on); });
 defineCmd('speed', ({ x }) => { if (G.run) G.run.speed = x; });
 
@@ -61,7 +69,7 @@ export function tickDay(dt) {
   const r = G.run;
   r.min += dt * DAY_MIN / DAY_SEC;
   if (!r.closing && r.min >= DAY_MIN) {
-    r.closing = true;
+    r.closing = true; r.closeMin = DAY_MIN;
     emit('toast', '21시, 영업을 마감합니다. 남은 손님만 받습니다', 'info');
     emit('closing');
   }
@@ -72,7 +80,12 @@ export function tickDay(dt) {
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
-  if (r.closing && (shopCustomers().length === 0 || r.min >= CLOSE_CAP_MIN)) endDay();
+  // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
+  if (!r.closing && !r.soldOutHint && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length) {
+    r.soldOutHint = true;
+    emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
+  }
+  if (r.closing && (shopCustomers().length === 0 || r.min >= Math.max(CLOSE_CAP_MIN, r.closeMin + 60))) endDay();
 }
 
 // ── 마감 정산 ──
@@ -105,7 +118,7 @@ export function endDay() {
     day: G.day, revenue, tips: L.tips, ingredientCost: r.ingredientCost, waste: leftover, net,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
-    dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered,
+    dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     reviews: pickReviews(L.events), prices: { ...G.prices }, prepared: r.prepared, faces: L.faces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.prepared }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });

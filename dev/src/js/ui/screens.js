@@ -2,7 +2,7 @@
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS, MENU_UNLOCK, menuOpen } from '../data/menu.js';
 import { WEEK_RENT, LOAN_WEEKLY, openingMul } from '../data/economy.js';
-import { $, won, wonShort } from '../engine/util.js';
+import { $, won, wonShort, clockText } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost } from '../sim/day.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
@@ -90,7 +90,7 @@ export function renderReceipt() {
   showScreen(`
     <div class="receipt">
       <div class="paper">
-        <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · 21:00</small></div>
+        <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · ${clockText(R.closeMin ?? 720)}${(R.closeMin ?? 720) < 720 ? ' (일찍 마감)' : ''}</small></div>
         <div class="dash"></div>
         ${lines}
         ${R.tips ? `<div class="ln"><span>팁</span><b>${won(R.tips)}</b></div>` : ''}
@@ -139,6 +139,7 @@ export function renderPause() {
     <div class="pause">
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
+      ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
@@ -158,6 +159,7 @@ export function initScreens(onStart) {
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
+    else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
   });
 }

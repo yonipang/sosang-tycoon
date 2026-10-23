@@ -222,6 +222,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .say { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: #fffaf0; color: var(--ink);
   border: 2px solid var(--ink); padding: 0 6px; line-height: 1.4; pointer-events: none; }
 .say::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -3px; border: 3px solid transparent; border-top-color: var(--ink); }
+.pause-note { color: var(--paper-2); margin: 6px 0 0; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1004,6 +1005,14 @@ defineCmd('openShop', () => {
   emit('toast', `${G.day}일차 영업 시작! 재료비 ${cost.toLocaleString('ko-KR')}원`, 'good');
   return true;
 });
+// 일찍 마감: 새 손님은 받지 않고, 안에 있는 손님만 마저 받아요
+defineCmd('closeEarly', () => {
+  const r = G.run;
+  if (!r || r.closing) return;
+  r.closing = true; r.closeMin = r.min;
+  emit('toast', '영업을 마감합니다. 남은 손님만 받습니다', 'info');
+  emit('closing');
+});
 defineCmd('pause', ({ on }) => { if (G.run) G.run.paused = on; emit('pause', on); });
 defineCmd('speed', ({ x }) => { if (G.run) G.run.speed = x; });
 
@@ -1012,7 +1021,7 @@ function tickDay(dt) {
   const r = G.run;
   r.min += dt * DAY_MIN / DAY_SEC;
   if (!r.closing && r.min >= DAY_MIN) {
-    r.closing = true;
+    r.closing = true; r.closeMin = DAY_MIN;
     emit('toast', '21시, 영업을 마감합니다. 남은 손님만 받습니다', 'info');
     emit('closing');
   }
@@ -1023,7 +1032,12 @@ function tickDay(dt) {
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
-  if (r.closing && (shopCustomers().length === 0 || r.min >= CLOSE_CAP_MIN)) endDay();
+  // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
+  if (!r.closing && !r.soldOutHint && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length) {
+    r.soldOutHint = true;
+    emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
+  }
+  if (r.closing && (shopCustomers().length === 0 || r.min >= Math.max(CLOSE_CAP_MIN, r.closeMin + 60))) endDay();
 }
 
 // ── 마감 정산 ──
@@ -1056,7 +1070,7 @@ function endDay() {
     day: G.day, revenue, tips: L.tips, ingredientCost: r.ingredientCost, waste: leftover, net,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
-    dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered,
+    dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     reviews: pickReviews(L.events), prices: { ...G.prices }, prepared: r.prepared, faces: L.faces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.prepared }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
@@ -1750,7 +1764,7 @@ function renderReceipt() {
   showScreen(`
     <div class="receipt">
       <div class="paper">
-        <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · 21:00</small></div>
+        <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · ${clockText(R.closeMin ?? 720)}${(R.closeMin ?? 720) < 720 ? ' (일찍 마감)' : ''}</small></div>
         <div class="dash"></div>
         ${lines}
         ${R.tips ? `<div class="ln"><span>팁</span><b>${won(R.tips)}</b></div>` : ''}
@@ -1799,6 +1813,7 @@ function renderPause() {
     <div class="pause">
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
+      ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
@@ -1818,6 +1833,7 @@ function initScreens(onStart) {
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
+    else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
   });
 }

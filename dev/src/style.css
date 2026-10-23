@@ -217,3 +217,4 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .say { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; background: #fffaf0; color: var(--ink);
   border: 2px solid var(--ink); padding: 0 6px; line-height: 1.4; pointer-events: none; }
 .say::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -3px; border: 3px solid transparent; border-top-color: var(--ink); }
+.pause-note { color: var(--paper-2); margin: 6px 0 0; }
