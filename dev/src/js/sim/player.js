@@ -128,6 +128,12 @@ function updateCook(c, dt) {
   }
 }
 
+// 조리 미니게임은 빨리감기와 상관없이 실제 시간으로 흘러요 (sim/loop.js가 매 프레임 불러요)
+export function tickCook(realDt) {
+  const r = G.run;
+  if (r && r.cook) updateCook(r.cook, realDt);
+}
+
 function finishCook(q, note) {
   const r = G.run, c = r.cook;
   r.cook = null;
@@ -192,7 +198,7 @@ function atRegister(p) {
 
 export function updatePlayer(dt) {
   const r = G.run, p = r.player;
-  if (r.cook) { updateCook(r.cook, dt); return; }
+  if (r.cook) return; // 조리 중에는 서 있어요 (미니게임은 tickCook이 실제 시간으로 돌려요)
   const wasMoving = p.path.length > 0;
   const arrived = walk(p, dt);
   if (arrived && wasMoving) arriveAt(p);
