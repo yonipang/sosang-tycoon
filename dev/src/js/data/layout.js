@@ -14,12 +14,13 @@ export const TABLES = [
   { no: 5, x: 2, y: 9 }, { no: 6, x: 6, y: 9 },
 ];
 // 그릴 것 (그림 이름, 왼쪽 위 칸, 크기는 그림 그대로). 막힌 칸은 solid.
+// station이 붙은 것은 그 조리대의 메뉴가 열려야 보여요 (data/menu.js MENU_UNLOCK)
 export const FURNITURE = [
   { spr: 'menuboard', x: 8, y: 0 },
   { spr: 'fridge', x: 0, y: 0 },
   { spr: 'stove', x: 1, y: 1 }, { spr: 'pot', x: 1, y: 1.25, over: true },
-  { spr: 'counter_a', x: 2, y: 1 }, { spr: 'mat', x: 2.5, y: 1.2, over: true },
-  { spr: 'fryer', x: 4, y: 1 },
+  { spr: 'counter_a', x: 2, y: 1, station: 'mat' }, { spr: 'mat', x: 2.5, y: 1.2, over: true, station: 'mat' },
+  { spr: 'fryer', x: 4, y: 1, station: 'fryer' },
   { spr: 'counter_b', x: 6, y: 1 }, { spr: 'counter_a', x: 8, y: 1 },
   ...TABLES.map(t => ({ spr: 'table', x: t.x, y: t.y })),
   { spr: 'counter_b', x: 8, y: 9 }, { spr: 'register', x: 9, y: 8.75, over: true },

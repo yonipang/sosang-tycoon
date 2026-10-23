@@ -150,6 +150,9 @@ function drawCustomerUI(c) {
   }
 }
 
+// 아직 안 여는 메뉴의 조리대는 그리지 않아요 (메뉴가 열리는 날 생겨요)
+const visibleFurniture = () => FURNITURE.filter(f => !f.station || menuOpen(STATIONS[f.station].menu, G.day || 1));
+
 export function drawFrame(dt) {
   if (!ready) return;
   t += dt;
@@ -157,16 +160,9 @@ export function drawFrame(dt) {
   drawRoom();
   const r = G.run;
   // 뒤쪽 설비(벽에 붙은 것)
-  const back = FURNITURE.filter(f => f.y < 3 && !f.over);
+  const back = visibleFurniture().filter(f => f.y < 3 && !f.over);
   for (const f of back) spr(f.spr, f.x * TILE, f.y * TILE);
-  // 아직 안 여는 메뉴의 조리대는 덮개를 씌운 듯 어둡게
-  for (const id in STATIONS) {
-    const st = STATIONS[id];
-    if (!st.menu || menuOpen(st.menu, G.day)) continue;
-    ctx.fillStyle = 'rgba(30,22,18,.55)';
-    for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
-  }
-  for (const f of FURNITURE.filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
     const st = Object.values(STATIONS).find(s => s.menu === r.cook.menu);
@@ -221,9 +217,9 @@ export function drawIdle(dt, night) {
   t += dt;
   ctx.clearRect(0, 0, VW, VH);
   drawRoom();
-  for (const f of FURNITURE.filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   SEATS.forEach(s => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left'));
-  for (const f of FURNITURE.filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);
 }

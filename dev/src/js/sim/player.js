@@ -40,7 +40,11 @@ export function targetAt(fx, fy) {
   const no = seat ? seat.table : table ? table.no : 0;
   if (no) { const w = waiterAtTable(no); return w ? { kind: 'serve', cid: w.id } : null; }
   // 3) 조리대·계산대
-  for (const id in STATIONS) if (has(STATIONS[id].tiles, x, y) || has(STATIONS[id].stand, x, y)) return { kind: 'station', id };
+  for (const id in STATIONS) {
+    const st = STATIONS[id];
+    if (st.menu && !menuOpen(st.menu, G.day)) continue; // 아직 없는 조리대
+    if (has(st.tiles, x, y) || has(st.stand, x, y)) return { kind: 'station', id };
+  }
   if (has(REGISTER.tiles, x, y) || has(REGISTER.stand, x, y) || has(PAY_SPOTS, x, y)) return { kind: 'register' };
   if (!solidForPlayer(x, y)) return { kind: 'move', x, y };
   return null;
@@ -168,8 +172,7 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', '아직 쓰지 않는 조리대입니다', 'info');
-    else if (st.menu) startCook(st); else trash();
+    if (st.menu) startCook(st); else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }

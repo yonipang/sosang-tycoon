@@ -429,12 +429,13 @@ const TABLES = [
   { no: 5, x: 2, y: 9 }, { no: 6, x: 6, y: 9 },
 ];
 // 그릴 것 (그림 이름, 왼쪽 위 칸, 크기는 그림 그대로). 막힌 칸은 solid.
+// station이 붙은 것은 그 조리대의 메뉴가 열려야 보여요 (data/menu.js MENU_UNLOCK)
 const FURNITURE = [
   { spr: 'menuboard', x: 8, y: 0 },
   { spr: 'fridge', x: 0, y: 0 },
   { spr: 'stove', x: 1, y: 1 }, { spr: 'pot', x: 1, y: 1.25, over: true },
-  { spr: 'counter_a', x: 2, y: 1 }, { spr: 'mat', x: 2.5, y: 1.2, over: true },
-  { spr: 'fryer', x: 4, y: 1 },
+  { spr: 'counter_a', x: 2, y: 1, station: 'mat' }, { spr: 'mat', x: 2.5, y: 1.2, over: true, station: 'mat' },
+  { spr: 'fryer', x: 4, y: 1, station: 'fryer' },
   { spr: 'counter_b', x: 6, y: 1 }, { spr: 'counter_a', x: 8, y: 1 },
   ...TABLES.map(t => ({ spr: 'table', x: t.x, y: t.y })),
   { spr: 'counter_b', x: 8, y: 9 }, { spr: 'register', x: 9, y: 8.75, over: true },
@@ -1059,7 +1060,11 @@ function targetAt(fx, fy) {
   const no = seat ? seat.table : table ? table.no : 0;
   if (no) { const w = waiterAtTable(no); return w ? { kind: 'serve', cid: w.id } : null; }
   // 3) 조리대·계산대
-  for (const id in STATIONS) if (has(STATIONS[id].tiles, x, y) || has(STATIONS[id].stand, x, y)) return { kind: 'station', id };
+  for (const id in STATIONS) {
+    const st = STATIONS[id];
+    if (st.menu && !menuOpen(st.menu, G.day)) continue; // 아직 없는 조리대
+    if (has(st.tiles, x, y) || has(st.stand, x, y)) return { kind: 'station', id };
+  }
   if (has(REGISTER.tiles, x, y) || has(REGISTER.stand, x, y) || has(PAY_SPOTS, x, y)) return { kind: 'register' };
   if (!solidForPlayer(x, y)) return { kind: 'move', x, y };
   return null;
@@ -1187,8 +1192,7 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu && !menuOpen(st.menu, G.day)) emit('toast', '아직 쓰지 않는 조리대입니다', 'info');
-    else if (st.menu) startCook(st); else trash();
+    if (st.menu) startCook(st); else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }
@@ -1389,6 +1393,9 @@ function drawCustomerUI(c) {
   }
 }
 
+// 아직 안 여는 메뉴의 조리대는 그리지 않아요 (메뉴가 열리는 날 생겨요)
+const visibleFurniture = () => FURNITURE.filter(f => !f.station || menuOpen(STATIONS[f.station].menu, G.day || 1));
+
 function drawFrame(dt) {
   if (!ready) return;
   t += dt;
@@ -1396,16 +1403,9 @@ function drawFrame(dt) {
   drawRoom();
   const r = G.run;
   // 뒤쪽 설비(벽에 붙은 것)
-  const back = FURNITURE.filter(f => f.y < 3 && !f.over);
+  const back = visibleFurniture().filter(f => f.y < 3 && !f.over);
   for (const f of back) spr(f.spr, f.x * TILE, f.y * TILE);
-  // 아직 안 여는 메뉴의 조리대는 덮개를 씌운 듯 어둡게
-  for (const id in STATIONS) {
-    const st = STATIONS[id];
-    if (!st.menu || menuOpen(st.menu, G.day)) continue;
-    ctx.fillStyle = 'rgba(30,22,18,.55)';
-    for (const [x, y] of st.tiles) ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
-  }
-  for (const f of FURNITURE.filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
     const st = Object.values(STATIONS).find(s => s.menu === r.cook.menu);
@@ -1460,9 +1460,9 @@ function drawIdle(dt, night) {
   t += dt;
   ctx.clearRect(0, 0, VW, VH);
   drawRoom();
-  for (const f of FURNITURE.filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   SEATS.forEach(s => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left'));
-  for (const f of FURNITURE.filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);
 }
