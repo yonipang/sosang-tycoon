@@ -1,6 +1,6 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FURNITURE, STATIONS, SEATS, TABLES } from '../data/layout.js';
+import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES } from '../data/layout.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount } from '../sim/player.js';
@@ -20,10 +20,11 @@ export function initView(canvas) {
 }
 export const viewReady = () => ready;
 
-// 화면 크기에 맞춰 배율 정하기 (가능하면 정수 배)
+// 화면 크기에 맞춰 배율 정하기: 그림 1픽셀이 기기 화면 픽셀 정수 개가 되게 (휴대폰에서도 또렷하게)
 export function fitView(availW, availH) {
-  const s = Math.min(availW / VW, availH / VH);
-  scale = s >= 2 ? Math.floor(s) : Math.max(1, s);
+  const dpr = window.devicePixelRatio || 1;
+  const dev = Math.floor(Math.min(availW / VW, availH / VH) * dpr);
+  scale = Math.max(1, dev) / dpr;
   cv.style.width = VW * scale + 'px';
   cv.style.height = VH * scale + 'px';
   return scale;
@@ -91,17 +92,17 @@ function tint(min) {
 }
 
 function drawRoom() {
-  // 뒷벽(0~1줄), 주방 바닥(2~3줄), 홀(4~8줄), 앞벽(9줄), 보도(10줄)
+  // 뒷벽(0~1줄), 주방 바닥(2~3줄), 홀(4줄~앞벽 위), 앞벽, 보도
   for (let x = 0; x < W; x += 3) spr('wall', x * TILE, 0, false, Math.min(48, (W - x) * TILE), 32);
   tileFill('floor_kitchen', 0, 2, W, 4);
-  tileFill('floor_dining', 0, 4, W, 9);
-  tileFill('sidewalk', 0, 9, W, 11);
+  tileFill('floor_dining', 0, 4, W, FRONT_Y);
+  tileFill('sidewalk', 0, FRONT_Y, W, H);
   // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
   for (let x = 0; x < W; x++) {
     if (x === DOOR.x) continue;
-    spr('wall_front', x * TILE, 9 * TILE, false, 16, 16, 16);
+    spr('wall_front', x * TILE, FRONT_Y * TILE, false, 16, 16, 16);
   }
-  spr('doormat', DOOR.x * TILE, 9 * TILE);
+  spr('doormat', DOOR.x * TILE, FRONT_Y * TILE);
   // 주방과 홀 사이 얇은 그림자
   ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
 }

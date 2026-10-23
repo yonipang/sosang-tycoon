@@ -5,7 +5,7 @@ import { G } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
-import { SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
+import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted } from '../engine/random.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
@@ -16,7 +16,7 @@ export const isSeated = c => SEATED.includes(c.state) && c.seat >= 0;
 const partyOf = c => G.run.customers.filter(q => q.party === c.party && q.state !== 'leave');
 const P = c => CUSTOMER_TYPES[c.type].patience;
 
-// 보도를 따라 x에서 toX까지 (y10)
+// 보도를 따라 x에서 toX까지
 function sidewalk(fromX, toX) {
   const p = [], s = Math.sign(toX - fromX);
   for (let x = fromX + s; s && x !== toX + s; x += s) p.push([x, DOOR_OUT.y]);
@@ -43,13 +43,13 @@ export function spawnCustomer(hour) {
   const party = r.nextParty = (r.nextParty || 0) + 1;
   const speed = CUSTOMER_SPEED * (0.9 + rand() * 0.2);
   members.forEach((ch, k) => {
-    const sx = fromLeft ? -1 - k : 8 + k;
+    const sx = fromLeft ? -1 - k : W + k;
     r.customers.push({
       id: r.nextId++, char: ch, type: PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
       path: sidewalk(sx, DOOR_OUT.x), state: 'arrive', moving: true,
       seat: -1, menu: null, face: null, faceT: 0, patience: 0, patMax: 1, timer: 0,
-      priceSat: 0, quality: -1, foodWaitFrac: 0, payWaited: false, exitX: fromLeft ? 8 + k : -1 - k,
+      priceSat: 0, quality: -1, foodWaitFrac: 0, payWaited: false, exitX: fromLeft ? W + k : -1 - k,
     });
   });
   return true;

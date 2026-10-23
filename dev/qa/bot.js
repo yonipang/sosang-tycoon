@@ -25,17 +25,17 @@ window.__bot = (() => {
     const atReg = p.target && p.target.kind === 'register';
     if (atReg && front) return;
     const need = Object.keys(ST).filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length);
-    if (front && front.patience / front.patMax < 0.6) { tap(6, 7); return; }
+    if (front && front.patience / front.patMax < 0.6) { tap(8, 9); return; }
     if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
     if (r.hands.length && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { tap(6, 1); return; }
-    if (!atReg) tap(6, 7);
+    if (!atReg) tap(8, 9);
   }
   function check() {
     const r = window.__T.G.run; if (!r) return;
     const chars = r.customers.map(c => c.char);
     if (new Set(chars).size !== chars.length) problems.push('같은 사람 둘: ' + chars.join(','));
     const byTable = {};
-    r.seats.forEach((id, i) => { if (id === null) return; const c = r.customers.find(q => q.id === id); if (!c) { problems.push('빈 손님 자리'); return; } const no = [1, 1, 2, 2, 3, 3][i]; (byTable[no] = byTable[no] || new Set()).add(c.party); });
+    r.seats.forEach((id, i) => { if (id === null) return; const c = r.customers.find(q => q.id === id); if (!c) { problems.push('빈 손님 자리'); return; } const no = Math.floor(i / 2) + 1; (byTable[no] = byTable[no] || new Set()).add(c.party); });
     for (const no in byTable) if (byTable[no].size > 1) problems.push(`${no}번 탁자에 일행 ${byTable[no].size}팀`);
   }
   function play(sec) {

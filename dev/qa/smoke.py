@@ -9,7 +9,7 @@ errs = []
 def shot(pg, name): pg.wait_for_timeout(250); pg.screenshot(path=os.path.join(OUT, name + '.png'))
 with sync_playwright() as pw:
     b = pw.chromium.launch()
-    pg = b.new_page(viewport={'width': 390, 'height': 844}, device_scale_factor=1)
+    pg = b.new_page(viewport={'width': 390, 'height': 844}, device_scale_factor=3)  # 아이폰처럼
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
     pg.goto(GAME); pg.wait_for_function('window.__T && window.__T.viewReady()')
