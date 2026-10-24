@@ -13,6 +13,7 @@
       <span class="pill star">★ <b id="hStar">3.0</b></span>
     </div>
     <div id="tickets" aria-label="주문표"></div>
+    <div id="questTrack" hidden aria-label="할 일"></div>
   </header>
   <main id="stage">
     <div id="cvWrap">
@@ -44,6 +45,7 @@
   </footer>
   <div id="toasts" aria-live="polite"></div>
   <section id="screen" hidden></section>
+  <div id="talk" class="talk" hidden aria-live="polite"></div>
 </div>
 
 <script>
@@ -59,9 +61,11 @@
 // @include js/data/layout.js
 // @include js/data/reviews.js
 // @include js/data/credits.js
+// @include js/data/story.js
 // @include js/save/migrations.js
 // @include js/save/state.js
 // @include js/save/storage.js
+// @include js/sim/story.js
 // @include js/sim/path.js
 // @include js/sim/customers.js
 // @include js/sim/day.js
@@ -71,6 +75,7 @@
 // @include js/ui/sfx.js
 // @include js/ui/icons.js
 // @include js/ui/hud.js
+// @include js/ui/story.js
 // @include js/ui/screens.js
 // @include js/ui/feedback.js
 // @include js/ui/input.js

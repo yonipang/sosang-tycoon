@@ -239,6 +239,7 @@ def collect():
     s['chair'] = crop(INT, KIT % 280)
     s['plate'] = crop(INT, KIT % 381)
     s['menuboard'] = crop(INT, ICE % 14)
+    s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()
     s['register'] = own_register(); s['pot'] = own_pot(); s['mat'] = own_mat(); s['doormat'] = own_doormat()

@@ -7,9 +7,13 @@
 | engine | `util.js` `random.js` | 공통 도구 · 난수(rand/fxRand) |
 | sim | `events.js` | 사건(emit/onEvent) · 명령(defineCmd/runCmd) |
 | art | `atlas.js` | 그림 한 장 + 자리표 (art_pack.py가 만들어요) |
-| data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` | 메뉴·손님·돈과 시간·가게 배치·리뷰 문구 |
+| data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` `credits.js` `story.js` | 메뉴·손님·돈과 시간·가게 배치·리뷰 문구·크레딧·이야기(인물·퀘스트·대화 장면) |
 | save | `migrations.js` `state.js` `storage.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 |
-| sim | `path.js` `customers.js` `day.js` `player.js` `loop.js` | 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
+| sim | `story.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 이야기 규칙(퀘스트 세기·메뉴 열기) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | render | `view.js` | 가게 그리기 |
-| ui | `sfx.js` `icons.js` `hud.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 준비/영수증 화면 · 사건 받기 · 입력 |
+| ui | `sfx.js` `icons.js` `hud.js` `story.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 준비/영수증 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
+
+## 이야기 더하기
+- 인물·퀘스트·대화 장면은 `data/story.js`에만 써요. 퀘스트 `kind`가 새로 필요하면 `sim/story.js` `storyNote`에 세는 법을 더하고, 그 일이 일어나는 규칙 코드에서 `storyNote('이름', {...})`를 불러요.
+- 메뉴는 날짜가 아니라 이야기로 열려요 (`menuOpen`, 퀘스트 `give.menuNext`·`menuNow`).

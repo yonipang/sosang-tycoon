@@ -1,6 +1,6 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 주간 정산
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS, MENU_UNLOCK, menuOpen } from '../data/menu.js';
+import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
@@ -10,6 +10,8 @@ import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
+import { menuOpen } from '../sim/story.js';
+import { questCard, doneCard } from './story.js';
 
 const scr = () => $('screen');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -32,13 +34,9 @@ export function renderTitle() {
       <h1 class="logo">소상공인<br>키우기</h1>
       <div class="hero">${icon('char0', 'big')}${icon('tteok', 'dish')}${icon('kimbap', 'dish')}${icon('twigim', 'dish')}</div>
       ${save ? `<button class="btn primary" data-act="continue">이어하기</button>` : ''}
-      <div class="namebox">
-        <label for="shopName">가게 이름</label>
-        <input id="shopName" maxlength="8" value="골목분식" autocomplete="off">
-      </div>
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
-      <p class="proto">프로토타입 · 1단계 「분식집의 하루」</p>
+      <p class="proto">프로토타입 · 프롤로그와 1장</p>
       <button class="btn ghost small" data-act="credits">크레딧</button>
     </div>`, 'scr-title');
 }
@@ -58,9 +56,9 @@ export function renderPrep() {
   const after = G.cash - cost;
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
   const cards = MENU_IDS.map(m => {
-    if (!menuOpen(m, G.day)) return ''; // 아직 안 여는 메뉴는 보여 주지 않아요 (열리는 날 「새 메뉴」로 등장)
+    if (!menuOpen(m)) return ''; // 아직 안 연 메뉴는 보여 주지 않아요 (이야기로 열리면 「새 메뉴」로 등장)
     const M = MENUS[m];
-    const isNew = G.day > 1 && G.day === MENU_UNLOCK[m];
+    const isNew = G.story.fresh.includes(m);
     const had = last ? (last.stockStart ? last.stockStart[m] : last.prep[m]) : 0;
     const soldOut = last && had && last.sold[m] >= had;
     const inv = invCount(m), soon = (G.inv[m] || []).filter(b => b.exp <= G.day).reduce((s, b) => s + b.n, 0);
@@ -80,9 +78,10 @@ export function renderPrep() {
   }).join('');
   showScreen(`
     <div class="prep">
-      <div class="phase-tag night">${G.day === 1 ? '개업 전날 밤' : '전날 밤 22:00'}</div>
+      <div class="phase-tag night">전날 밤 22:00 · ${G.shop}</div>
       <h2>${dayLabel(G.day)} 준비</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
+      ${questCard()}
       ${cards}
       <div class="sum">
         <div><span>주문</span><b>−${won(cost)}</b></div>
@@ -112,6 +111,7 @@ export function renderReceipt() {
   const topMiss = Object.entries(R.missed).sort((a, b) => b[1] - a[1])[0];
   const deltaHtml = Math.abs(delta) < 0.05 ? '' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`;
   const cards = [
+    doneCard(R.quests),
     best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
     R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
     R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
@@ -176,6 +176,7 @@ export function renderWeekly() {
     <div class="weekly">
       <div class="phase-tag night">일요일 밤</div>
       <h2>${W.week}주차 정산</h2>
+      ${W.quests && W.quests.length ? `<div class="hls">${doneCard(W.quests)}</div>` : ''}
       <div class="paper">
         <div class="ln"><span>이번 주 매출</span><b>${won(W.sales)}</b></div>
         <div class="ln minus"><span>가게 임대료</span><b>−${won(W.rent)}</b></div>
@@ -221,11 +222,12 @@ export function initScreens(onStart) {
     if (!b) return;
     unlockAudio();
     const a = b.dataset.act, m = b.dataset.m, d = +b.dataset.d;
-    if (a === 'new') { if (hasSave() && !confirmNew(b)) return; clearSave(); newGame(($('shopName').value || '').trim().slice(0, 8)); playSfx('page'); onStart(); }
+    if (a === 'new') { if (hasSave() && !confirmNew(b)) return; clearSave(); newGame(); playSfx('page'); onStart(); }
     else if (a === 'continue') { if (loadGame()) { playSfx('page'); onStart(); } }
     else if (a === 'price') { runCmd('setPrice', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'open') runCmd('openShop');
+    else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

@@ -1,12 +1,13 @@
 // 영업 중 화면 위아래 막대: 날짜·시계·잔고·별점 / 주문표 / 손에 든 것·남은 재료·속도
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, COOK_GAMES, menuOpen } from '../data/menu.js';
+import { MENUS, MENU_IDS, COOK_GAMES } from '../data/menu.js';
 import { RUSH_QTY } from '../data/economy.js';
 import { rushCost } from '../sim/day.js';
 import { runCmd } from '../sim/events.js';
 import { WEEKDAYS } from '../data/economy.js';
 import { $, clockText, won, wonShort } from '../engine/util.js';
 import { icon } from './icons.js';
+import { menuOpen } from '../sim/story.js';
 
 const last = {};
 function setText(id, v) { if (last[id] !== v) { last[id] = v; $(id).textContent = v; } }
@@ -38,7 +39,7 @@ export function updateHud() {
   }).join('');
   setHTML('hands', hands);
   // 남은 재료
-  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => {
+  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m)).map(m => {
     const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
     return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}</span>`;
   }).join(''));
@@ -59,7 +60,7 @@ export function updateHud() {
 export function renderRush() {
   const r = G.run;
   if (!r) return;
-  $('rushList').innerHTML = MENU_IDS.filter(m => menuOpen(m, G.day)).map(m => {
+  $('rushList').innerHTML = MENU_IDS.filter(m => menuOpen(m)).map(m => {
     const inc = r.rush.filter(o => o.menu === m);
     const wait = inc.length ? Math.ceil(Math.min(...inc.map(o => o.t))) : 0;
     return `<div class="rush-row">${icon(m)}<div><b>${MENUS[m].ing}</b><small>남은 재료 ${r.stock[m]}인분${inc.length ? ` · ${inc.reduce((s, o) => s + o.n, 0)}인분 오는 중 (${wait}초)` : ''}</small></div>

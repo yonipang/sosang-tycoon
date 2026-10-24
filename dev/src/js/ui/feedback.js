@@ -7,6 +7,7 @@ import { saveGame } from '../save/storage.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
 import { setupCook, renderRush } from './hud.js';
+import { showNextScene, updateQuestTrack } from './story.js';
 
 export function toast(text, kind) {
   const box = $('toasts');
@@ -72,12 +73,15 @@ export function initFeedback() {
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요'));
   onEvent('phase', p => {
     if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
-    if (p === 'prep') { saveGame(); renderPrep(); }
+    if (p === 'prep') { saveGame(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();
+    updateQuestTrack();
   });
-  onEvent('prep', () => renderPrep());
+  onEvent('prep', () => { saveGame(); renderPrep(); }); // 준비 화면에서 바뀐 것(이야기 장면·수리비 등)은 바로 저장
+  onEvent('story', showNextScene);
+  onEvent('quest', updateQuestTrack);
   onEvent('pause', on => { if (on) renderPause(); else if (G.phase === 'day') hideScreen(); });
   onEvent('closing', () => playSfx('page'));
 }

@@ -1,10 +1,10 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT } from '../data/layout.js';
-import { menuOpen } from '../data/menu.js';
+import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR } from '../data/layout.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount } from '../sim/player.js';
+import { menuOpen, questActive } from '../sim/story.js';
 
 export const VW = W * TILE;
 export const VH = H * TILE;
@@ -158,8 +158,19 @@ function drawCustomerUI(c) {
   }
 }
 
-// 아직 안 여는 메뉴의 조리대는 그리지 않아요 (메뉴가 열리는 날 생겨요)
-const visibleFurniture = () => FURNITURE.filter(f => !f.station || menuOpen(STATIONS[f.station].menu, G.day || 1));
+// 이야기로 생긴 장식: 칸 가운데, 발이 칸 아래쪽에 닿게
+const decorNow = () => (G.story ? G.story.decor : []).map(k => DECOR[k]).filter(Boolean);
+function drawDecor(d) { const r = SPR[d.spr]; if (r) spr(d.spr, d.x * TILE + 8 - Math.floor(r[2] / 2), (d.y + 1) * TILE - r[3]); }
+// 이야기 단서: 냉장고 뒤 쪽지 (찾을 때까지 「!」 말풍선이 통통)
+function clueHint() {
+  if (!questActive('c1_note')) return;
+  const bob = Math.round(Math.sin(t * 5) * 1.5), x = 8, y = 4 + bob;
+  bubble(x, y, 9, 12);
+  ctx.fillStyle = '#e0533a'; ctx.fillRect(x + 4, y + 2, 2, 5); ctx.fillRect(x + 4, y + 8, 2, 2);
+}
+
+// 아직 안 연 메뉴의 조리대는 그리지 않아요 (이야기로 메뉴가 열리면 생겨요)
+const visibleFurniture = () => FURNITURE.filter(f => !f.station || menuOpen(STATIONS[f.station].menu));
 
 export function drawFrame(dt) {
   if (!ready) return;
@@ -185,6 +196,7 @@ export function drawFrame(dt) {
   const items = [];
   for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(f.spr, f.x * TILE, f.y * TILE) });
   SEATS.forEach((s, i) => items.push({ y: s.y + 0.4, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  for (const d of decorNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
   if (r) {
     for (const c of r.customers) {
       const seated = sittingNow(c);
@@ -207,6 +219,7 @@ export function drawFrame(dt) {
   }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   stationHint();
+  clueHint();
   if (r) {
     for (const c of r.customers) drawCustomerUI(c);
     // 사장 손에 든 음식
@@ -232,6 +245,7 @@ export function drawIdle(dt, night) {
   drawRoom();
   for (const f of visibleFurniture().filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   SEATS.forEach(s => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left'));
+  decorNow().forEach(drawDecor);
   for (const f of visibleFurniture().filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);

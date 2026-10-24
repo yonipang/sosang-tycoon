@@ -11,6 +11,7 @@ import { updateHud, initRush, renderRush } from './ui/hud.js';
 import { initScreens, renderTitle } from './ui/screens.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
+import { initStory } from './ui/story.js';
 
 function layout() {
   const st = $('stage');
@@ -36,6 +37,7 @@ async function boot() {
   await loadIcons();
   initFeedback();
   initInput();
+  initStory();
   initRush();
   initScreens(() => setPhase('prep'));
   layout();

@@ -1,7 +1,7 @@
 // 하루의 흐름: 준비(prep: 가격·재료 주문) → 아침 재료 도착 → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 주간 정산(weekly) → 다음 날 준비
 // 재료는 유통기한(MENUS.shelf)까지 남겨 두고 다음 날 써요. 먼저 받은 재료부터 써요.
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX, PREP_FIRST_DAY, MENU_UNLOCK, menuOpen } from '../data/menu.js';
+import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR, FOOT_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
@@ -10,8 +10,9 @@ import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { spawnPasser, shopCustomers } from './customers.js';
+import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 
-export const openMenus = () => MENU_IDS.filter(m => menuOpen(m, G.day));
+export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0); // 주문 금액 (아침 도착 때 결제)
 export const invCount = m => (G.inv[m] || []).reduce((s, b) => s + b.n, 0);
 const zeros = () => Object.fromEntries(MENU_IDS.map(m => [m, 0]));
@@ -59,11 +60,12 @@ defineCmd('openShop', () => {
   if (!G.baseSeed) G.baseSeed = newSeed();
   seedRand(G.baseSeed + G.day * 7919);
   G.cash -= cost;
-  const ordered = Object.fromEntries(MENU_IDS.map(m => [m, menuOpen(m, G.day) ? G.prep[m] : 0]));
+  const ordered = Object.fromEntries(MENU_IDS.map(m => [m, menuOpen(m) ? G.prep[m] : 0]));
   for (const m of MENU_IDS) stockIn(m, ordered[m]);
   G.run = newRun();
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startStock = { ...G.run.stock };
+  storyOpenDay();
   setPhase('day');
   emit('sfx', 'open');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);
@@ -73,7 +75,7 @@ defineCmd('openShop', () => {
 // 급구매: 영업 중에 근처 마트에서 재료를 사 와요 (비싸고 조금 기다려야 와요)
 defineCmd('rushBuy', ({ menu }) => {
   const r = G.run;
-  if (!r || r.closing || !menuOpen(menu, G.day)) return;
+  if (!r || r.closing || !menuOpen(menu)) return;
   const cost = rushCost(menu);
   if (cost > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return; }
   G.cash -= cost;
@@ -92,6 +94,8 @@ defineCmd('closeEarly', () => {
 });
 defineCmd('pause', ({ on }) => { if (G.run) G.run.paused = on; emit('pause', on); });
 defineCmd('speed', ({ x }) => { if (G.run) G.run.speed = x; });
+// 대화 장면을 보는 동안 가게를 잠깐 멈춰요 (쉬기 화면은 안 띄워요)
+defineCmd('hold', ({ on }) => { if (G.run) G.run.paused = on; });
 
 // ── 영업 중: 시계·손님 들어오기·마감 ──
 export function tickDay(dt) {
@@ -185,6 +189,10 @@ export function endDay() {
     const book = (G.ledger[m] = G.ledger[m] || {}), p = G.prices[m], e = (book[p] = book[p] || {});
     for (const k in f) e[k] = (e[k] || 0) + f[k];
   }
+  // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
+  const clean = !L.missed.soldout && openMenus().every(m => r.stock[m] > 0);
+  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
+  rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
   G.run = null;
   setPhase('receipt');
@@ -198,6 +206,8 @@ defineCmd('afterReceipt', () => {
     G.cash -= WEEK_RENT + loanPay;
     G.loan -= loanPay;
     G.weekSales = 0;
+    storyNote('weekly');
+    G.lastWeekly.quests = G.story.today.slice();
     setPhase('weekly');
   } else nextDay();
 });
@@ -208,8 +218,8 @@ function nextDay() {
   // 주문량 추천: (어제 판 만큼 + 5인분) − 남아 있는 재료, 5인분 단위
   const last = G.history[G.history.length - 1];
   for (const m of MENU_IDS) {
-    if (G.day === MENU_UNLOCK[m]) G.prep[m] = PREP_FIRST_DAY[m]; // 오늘 처음 여는 메뉴
-    else if (last && menuOpen(m, G.day)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invCount(m)) / 5) * 5));
+    if (last && menuOpen(m)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invCount(m)) / 5) * 5));
   }
+  storyNextDay(); // 예약한 메뉴는 처음 주문량으로 열려요
   setPhase('prep');
 }

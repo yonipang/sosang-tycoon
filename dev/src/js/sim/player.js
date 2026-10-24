@@ -2,13 +2,14 @@
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 import { G } from '../save/state.js';
-import { MENUS, COOK_GAMES, QUALITY_NAME, menuOpen } from '../data/menu.js';
+import { MENUS, COOK_GAMES, QUALITY_NAME } from '../data/menu.js';
 import { HANDS_MAX, PAY_STEP_SEC } from '../data/economy.js';
 import { STATIONS, REGISTER, SEATS, TABLES, PAY_SPOTS, solidForPlayer } from '../data/layout.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { findPath, standAround, walk } from './path.js';
 import { custById, serve, pay } from './customers.js';
+import { menuOpen, storyNote, storyFridge } from './story.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -42,7 +43,7 @@ export function targetAt(fx, fy) {
   // 3) 조리대·계산대
   for (const id in STATIONS) {
     const st = STATIONS[id];
-    if (st.menu && !menuOpen(st.menu, G.day)) continue; // 아직 없는 조리대
+    if (st.menu && !menuOpen(st.menu)) continue; // 아직 없는 조리대
     if (has(st.tiles, x, y) || has(st.stand, x, y)) return { kind: 'station', id };
   }
   if (has(REGISTER.tiles, x, y) || has(REGISTER.stand, x, y) || has(PAY_SPOTS, x, y)) return { kind: 'register' };
@@ -142,6 +143,7 @@ function finishCook(q, note) {
   emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
+  storyNote('cook', { menu: c.menu, q });
 }
 
 // ── 내주기·버리기 ──
@@ -181,7 +183,7 @@ function arriveAt(p) {
     p.dir = 1;
     const st = STATIONS[t.id];
     if (st.menu) startCook(st);
-    else if (t.id === 'fridge') emit('fridge', true); // 냉장고: 남은 재료 보기·급구매
+    else if (t.id === 'fridge') { if (!storyFridge()) emit('fridge', true); } // 냉장고: 남은 재료 보기·급구매 (이야기 쪽지가 먼저)
     else trash();
   } else if (t.kind === 'serve') {
     const c = custById(t.cid);

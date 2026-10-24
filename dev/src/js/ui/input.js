@@ -4,6 +4,7 @@ import { $ } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { cssToTile } from '../render/view.js';
 import { unlockAudio } from './sfx.js';
+import { talking } from './story.js';
 
 const SPEEDS = [1, 2, 3];
 
@@ -19,18 +20,18 @@ export function initInput() {
   });
   // 조리 중에는 화면 어디를 눌러도 멈춰요
   $('cookUI').addEventListener('pointerdown', e => { runCmd('cookTap'); e.preventDefault(); });
-  $('bPause').addEventListener('click', () => { if (G.run) runCmd('pause', { on: !G.run.paused }); });
+  $('bPause').addEventListener('click', () => { if (G.run && !talking()) runCmd('pause', { on: !G.run.paused }); });
   $('bSpeed').addEventListener('click', () => {
     if (!G.run) return;
     runCmd('speed', { x: SPEEDS[(SPEEDS.indexOf(G.run.speed) + 1) % SPEEDS.length] });
   });
   addEventListener('keydown', e => {
-    if (G.phase !== 'day' || !G.run) return;
+    if (G.phase !== 'day' || !G.run || talking()) return;
     if (e.code === 'Space') { if (G.run.cook && !e.repeat) runCmd('cookTap'); e.preventDefault(); }
     else if (e.code === 'Escape') runCmd('pause', { on: !G.run.paused });
   });
   // 다른 창으로 가면 저절로 쉬어요
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && G.phase === 'day' && G.run && !G.run.paused) runCmd('pause', { on: true });
+    if (document.hidden && G.phase === 'day' && G.run && !G.run.paused && !talking()) runCmd('pause', { on: true });
   });
 }

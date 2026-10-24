@@ -18,6 +18,8 @@ window.__bot = (() => {
     const p = r.player;
     if (r.cook) { cook(r); return; }
     if (p.moving) return;
+    // 이야기: 냉장고 뒤 쪽지를 찾아야 하면 한가할 때 냉장고로
+    if (G.story.active.includes('c1_note') && !r.hands.length && !r.tickets.length && !r.payLine.length) { tap(0, 1); return; }
     const waiting = r.customers.filter(c => c.state === 'waitFood');
     const serveTo = waiting.filter(c => r.hands.some(d => d.menu === c.menu)).sort((a, b) => a.patience - b.patience)[0];
     if (serveTo) { tap(serveTo.x, serveTo.y - 1); return; } // 사람 머리 쪽을 눌러요

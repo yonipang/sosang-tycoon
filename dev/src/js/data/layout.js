@@ -18,7 +18,7 @@ export const TABLES = [
 ];
 export const onTable = (t, x, y) => y === t.y && x >= t.x && x < t.x + t.w;
 // 그릴 것 (그림 이름, 왼쪽 위 칸, 크기는 그림 그대로). 막힌 칸은 solid.
-// station이 붙은 것은 그 조리대의 메뉴가 열려야 보여요 (data/menu.js MENU_UNLOCK)
+// station이 붙은 것은 그 조리대의 메뉴가 열려야 보여요 (sim/story.js menuOpen)
 export const FURNITURE = [
   { spr: 'menuboard', x: 8, y: 0 },
   { spr: 'fridge', x: 0, y: 0 },
@@ -46,6 +46,8 @@ export const PAY_SPOTS = [[7, 10], [6, 10], [4, 10]];   // 계산 줄 (앞부터
 export const QUEUE_SPOTS = [[6, WALK_Y], [7, WALK_Y], [4, WALK_Y]]; // 가게 앞 대기 줄
 export const DOOR_OUT = { x: 5, y: WALK_Y };
 export const PLAYER_START = { x: 4, y: 4 };
+// 장식 (이야기로 생겨요 — G.story.decor). 놓일 칸은 처음부터 막아 둬요 (생겨도 길이 바뀌지 않게)
+export const DECOR = { plant: { spr: 'plant', x: 9, y: 4 } };
 // 사장이 못 가는 칸 (자리·탁자·계산대·설비 줄·벽)
 export function solidForPlayer(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
@@ -53,6 +55,7 @@ export function solidForPlayer(x, y) {
   if (TABLES.some(t => onTable(t, x, y))) return true;
   if (SEATS.some(s => s.x === x && s.y === y)) return true;
   if (REGISTER.tiles.some(([a, b]) => a === x && b === y)) return true;
+  if (Object.values(DECOR).some(d => d.x === x && d.y === y)) return true;
   return false;
 }
 // 손님이 못 가는 칸 (자리는 자기 자리만 — sim/path.js에서 따로 허락)

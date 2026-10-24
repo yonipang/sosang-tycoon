@@ -6,9 +6,10 @@ export const CUSTOMER_TYPES = {
   elder: { name: '어르신', priceMul: 0.95, patience: 1.4, likes: { kimbap: 2, tteok: 2, twigim: 1 }, tip: 0.1, eat: 8 },
 };
 // 손님 한 명 = 그림 한 장 (같은 옷이면 같은 사람이라 가게에 동시에 둘이 올 수 없어요). 0번은 사장.
+// 18번은 오 사장님(이야기 인물)이라 손님으로 오지 않아요. 13번 박 할머니·7번 최 사장·9번 미소 사장은 손님으로도 와요 (data/story.js CAST)
 export const PEOPLE = {
   1: 'worker', 2: 'student', 3: 'student', 4: 'worker', 5: 'student', 6: 'student', 7: 'elder', 8: 'worker', 9: 'student',
-  10: 'worker', 11: 'student', 12: 'worker', 13: 'elder', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 18: 'worker', 19: 'elder',
+  10: 'worker', 11: 'student', 12: 'worker', 13: 'elder', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 19: 'elder',
 };
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };

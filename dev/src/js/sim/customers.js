@@ -3,13 +3,14 @@
 //       → 일행이 다 먹으면 한 명이 계산 줄에 서서 같이 계산 → 나가기
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, menuOpen } from '../data/menu.js';
+import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
+import { menuOpen, storyNote } from './story.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -155,7 +156,7 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOpen(x, G.day))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
@@ -163,7 +164,7 @@ function decide(c) {
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
   if (r.stock[m] <= 0) {
-    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x, G.day) && r.stock[x] > 0 && !reaction(c, x).leave);
+    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && r.stock[x] > 0 && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
     else { partyLeaves(c, 'soldout', m); return; }
   }
@@ -186,6 +187,7 @@ export function serve(c, dish) {
   c.timer = CUSTOMER_TYPES[c.type].eat;
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
+  storyNote('served', { menu: c.menu });
 }
 
 function satisfaction(c) {
@@ -214,6 +216,7 @@ export function pay(c) {
   G.cash += total + tips; G.weekSales += total; L.tips += tips;
   emit('float', c.x, c.y - 1.6, '+' + (total + tips).toLocaleString('ko-KR') + '원' + (tips ? ' 팁!' : ''), 'cash');
   emit('sfx', 'coin');
+  storyNote('paid', { n: group.length });
   for (const m of group) leave(m, false);
 }
 

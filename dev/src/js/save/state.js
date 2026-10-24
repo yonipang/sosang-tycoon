@@ -2,20 +2,22 @@
 // 세이브 호환: 저장 키·버전은 바꾸지 않아요. 새 칸은 기본값과 함께 추가만 하고, 옛 세이브 보정은 save/migrations.js에.
 import { MENUS, MENU_IDS, PREP_FIRST_DAY } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
+import { newStory } from '../data/story.js';
 import { migrate } from './migrations.js';
 
 export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
 // 저장하는 칸 (순서대로 직렬화)
+// story = 이야기 진행 (data/story.js newStory)
 // prep = 오늘 아침 도착할 재료 주문량(인분) · inv = 가게 재료 { 메뉴: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] }
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story'];
 
 export const G = { phase: 'title', run: null };
 
 export function newGame(shopName) {
   Object.assign(G, {
     v: SAVE_V,
-    shop: shopName || '골목분식',
+    shop: shopName || '오가네 분식', // 프롤로그는 오 사장님 가게. 인수할 때 이름을 지어요
     day: 1,
     cash: START_CASH,
     loan: START_LOAN,
@@ -29,6 +31,7 @@ export function newGame(shopName) {
     weekSales: 0,
     baseSeed: 0,
     stats: { served: 0, sales: 0 },
+    story: newStory(),
     phase: 'prep',
     run: null,
   });
