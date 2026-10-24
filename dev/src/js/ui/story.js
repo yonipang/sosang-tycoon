@@ -21,7 +21,8 @@ export function showNextScene() {
   if (G.phase === 'day') runCmd('hold', { on: true });
   open = { id, i: 0 };
   // 연출이 붙은 장면은 연출을 먼저 보고, 남은 줄을 이어서 보여 줘요
-  if (sc.cut) { playCut(sc.cut, () => { $('talk').hidden = false; drawScene(); }); return; }
+  if (sc.cut) { playCut(sc.cut, () => { runCmd('sceneOpen'); $('talk').hidden = false; drawScene(); }); return; }
+  runCmd('sceneOpen');
   $('talk').hidden = false;
   drawScene();
   playSfx('page');
@@ -33,12 +34,22 @@ export function lineHTML(who, text) {
   return `<div class="tk-box">${p ? face(who, 'tk-face') : ''}<div class="tk-body">${p ? `<b class="tk-name">${p.name}</b>` : ''}<p>${fill(text)}</p><i class="tk-next">▼</i></div></div>`;
 }
 
+// 준비 화면의 한 곳을 가리켜요 (오 사장님이 짚어 주는 줄)
+function guide(key) {
+  document.querySelectorAll('.guide-on').forEach(e => e.classList.remove('guide-on'));
+  $('screen').classList.toggle('guiding', !!key);
+  const el = key && document.querySelector(`[data-guide="${key}"]`);
+  if (el) { el.classList.add('guide-on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  return !!el;
+}
+
 function drawScene() {
   const sc = SCENES[open.id], box = $('talk');
+  guide(null);
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
-    const [who, text] = sc.lines[open.i];
-    box.className = 'talk' + (who ? '' : ' narr');
+    const [who, text, at] = sc.lines[open.i];
+    box.className = 'talk' + (who ? '' : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
     return;
   }
@@ -62,6 +73,7 @@ function paperHTML(sc) {
 
 function finish(name) {
   open = null;
+  guide(null);
   $('talk').hidden = true; $('talk').innerHTML = '';
   runCmd('sceneDone', { name });
   if (G.phase === 'day') runCmd('hold', { on: false });
@@ -108,7 +120,7 @@ export function questCard() {
   const S = G.story;
   if (!S || (!S.active.length && !S.title)) return '';
   const ch = CHAPTERS[S.ch];
-  return `<div class="qcard">
+  return `<div class="qcard" data-guide="quest">
     <div class="q-head"><small>${ch.name}</small><b>${ch.sub}</b>${S.title ? `<span class="q-title">${S.title}</span>` : ''}</div>
     ${S.active.map(id => questRow(id, true)).join('') || `<p class="q-none">${S.queue.length ? '이야기가 이어집니다…' : '지금은 이어지는 이야기가 없습니다'}</p>`}
   </div>`;

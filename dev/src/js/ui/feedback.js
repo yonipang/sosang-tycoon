@@ -4,16 +4,19 @@ import { $ } from '../engine/util.js';
 import { onEvent } from '../sim/events.js';
 import { tileToCss, addMark } from '../render/view.js';
 import { saveGame } from '../save/storage.js';
+import { CAST } from '../data/story.js';
+import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
 import { setupCook, renderRush } from './hud.js';
 import { showNextScene, updateQuestTrack } from './story.js';
 
-export function toast(text, kind) {
+export function toast(text, kind, who) {
   const box = $('toasts');
   const el = document.createElement('div');
-  el.className = 'toast ' + (kind || 'info');
-  el.textContent = text;
+  el.className = 'toast ' + (kind || 'info') + (who ? ' who' : '');
+  if (who) el.innerHTML = `<span class="q-face">${icon('char' + CAST[who].char)}</span><span>${text}</span>`; // 이야기 인물이 하는 말
+  else el.textContent = text;
   box.appendChild(el);
   while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.classList.add('out'), 2200);
@@ -52,10 +55,12 @@ export function updateSpeech(dt) {
 
 // 첫날 길잡이: 처음 겪는 일마다 한 번씩만
 const shown = new Set();
-function hint(key, text) {
+// oh: 프롤로그(알바 사흘) 동안은 오 사장님이 옆에서 말해 줘요
+function hint(key, text, oh) {
   if (G.day > 2 || shown.has(key)) return;
   shown.add(key);
-  toast(text, 'hint');
+  if (oh && G.story && G.story.ch === 0) toast(oh, 'hint', 'oh');
+  else toast(text, 'hint');
 }
 
 export function initFeedback() {
@@ -67,10 +72,10 @@ export function initFeedback() {
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);
     $('cookUI').hidden = !on;
-    if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요');
+    if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요', '다 됐으면 손님 자리를 눌러서 갖다줘. 식기 전에!');
   });
   onEvent('fridge', open => { if (open) $('rushUI').hidden = false; if (!$('rushUI').hidden) renderRush(); });
-  onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요'));
+  onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
     if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { saveGame(); renderPrep(); showNextScene(); }
@@ -89,5 +94,5 @@ export function initFeedback() {
 // 계산 줄이 처음 생기면 알려 줘요 (main.js가 매 프레임 불러요)
 export function watchHints() {
   const r = G.run;
-  if (r && r.payLine.length && !(r.player.target && r.player.target.kind === 'register')) hint('pay', '계산 줄이 생겼습니다. 계산대를 눌러 보세요');
+  if (r && r.payLine.length && !(r.player.target && r.player.target.kind === 'register')) hint('pay', '계산 줄이 생겼습니다. 계산대를 눌러 보세요', '계산 줄 섰다. 계산대 뒤에 서 있어야 계산이 돼.');
 }

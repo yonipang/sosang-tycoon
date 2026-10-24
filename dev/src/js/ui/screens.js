@@ -68,9 +68,9 @@ export function renderPrep() {
       + (inv ? `<span class="tag ${soon ? 'warn' : ''}">재고 ${inv}${soon ? ` · 오늘까지 ${soon}` : ''}</span>` : '');
     return `<div class="mcard">
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
-      <div class="row"><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
+      <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
-      <div class="row"><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
+      <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
       <details class="more"><summary>자세히</summary>
         <p>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(G.prices[m] - M.cost)}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
       </details>
@@ -88,7 +88,7 @@ export function renderPrep() {
         <div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
-      <button class="btn primary big" data-act="open">가게 열기 · 09:00</button>
+      <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }

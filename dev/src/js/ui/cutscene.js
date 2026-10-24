@@ -25,7 +25,7 @@ export function playCut(id, done) {
   C = {
     def, i: -1, t: 0, step: null, wait: false, time: 0, done,
     cam: { ...def.cam }, actors: JSON.parse(JSON.stringify(def.actors)), props: def.props.map(p => ({ ...p })),
-    door: false, fade: 1, emotes: {},
+    door: false, fade: 1, emotes: {}, night: !!def.night,
   };
   $('cut').hidden = false;
   layoutCut();
@@ -48,7 +48,12 @@ function next() {
   if (s.caption !== undefined) caption(s.caption, 'cap');
   if (s.title !== undefined) caption(s.title ? `<small>${s.title[0]}</small><b>${s.title[1]}</b>` : '', 'cap title');
   if (s.door !== undefined) { C.door = s.door; playSfx('tap'); }
+  if (s.night !== undefined) C.night = s.night;
+  if (s.cam) C.cam = { x: s.cam[0], y: s.cam[1] };
+  if (s.unprop) C.props = C.props.filter(p => p.spr !== s.unprop);
   if (s.show) A(s.show).hidden = false;
+  if (s.hide) { A(s.hide).hidden = true; delete C.emotes[s.hide]; }
+  if (s.stand) { const a = A(s.stand); a.pose = 'idle'; if (a.stool) { C.props.push({ spr: 'stool', x: a.x - 6, y: a.y - 1 }); a.stool = false; } a.y += 2; }
   if (s.carry) A(s.carry[0]).carry = s.carry[1];
   if (s.drop) { const a = A(s.drop); C.props.push({ spr: a.carry, x: a.x - 5, y: a.y + 1 }); a.carry = null; playSfx('trash'); }
   if (s.face) A(s.face[0]).dir = s.face[1];
@@ -90,12 +95,13 @@ export function updateCut(dt) {
     if (s.pan) { const e = ease(k); C.cam.x = C.from.x + (s.pan[0] - C.from.x) * e; C.cam.y = C.from.y + (s.pan[1] - C.from.y) * e; }
     if (s.fade !== undefined) C.fade = C.fadeFrom + (s.fade - C.fadeFrom) * k;
     let walking = false;
-    if (s.walk) {
-      const a = C.actors[s.walk[0]], [tx, ty] = a.to, dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), st = WALK_PX * dt;
+    const a = s.walk && C.actors[s.walk[0]];
+    if (a && a.to) {
+      const [tx, ty] = a.to, dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), st = WALK_PX * dt;
       if (d <= st) { a.x = tx; a.y = ty; a.moving = false; a.to = null; }
       else { a.x += dx / d * st; a.y += dy / d * st; a.moving = true; a.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 3 : 1); walking = true; }
     }
-    if (s.walk ? !walking : k >= 1) next();
+    if (!walking && k >= 1) next(); // 걷기와 카메라가 같이 있으면 둘 다 끝나야
   }
   if (C) drawCut(C);
 }

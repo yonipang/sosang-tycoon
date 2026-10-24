@@ -83,6 +83,16 @@ export function storyNextDay() {
   for (const m of soon) openMenu(m, true);
 }
 
+// 장면을 열 때 (startFirst면 퀘스트·칭호를 먼저)
+defineCmd('sceneOpen', () => {
+  const S = G.story, sc = SCENES[S.queue[0]];
+  if (!sc || !sc.startFirst) return;
+  for (const q of sc.start || []) start(q);
+  if (sc.title) S.title = sc.title;
+  emit('quest');
+  if (G.phase === 'prep') emit('prep');
+});
+
 // 장면을 다 보면: 퀘스트 시작 · 칭호 · 장 · 장식 · 가게 이름
 defineCmd('sceneDone', ({ name }) => {
   const S = G.story, id = S.queue.shift();

@@ -60,7 +60,15 @@ function emote(a, kind, k) {
   else if (kind === 'heart') { cx.fillStyle = '#e0533a'; cx.fillRect(x + 3, y + 3, 2, 2); cx.fillRect(x + 6, y + 3, 2, 2); cx.fillRect(x + 3, y + 4, 5, 2); cx.fillRect(x + 4, y + 6, 3, 1); cx.fillRect(x + 5, y + 7, 1, 1); }
 }
 
-function sky(t) {
+function sky(t, night) {
+  if (!night) { // 낮: 맑은 하늘 + 구름 두 점
+    const g = cx.createLinearGradient(0, -220, 0, GROUND);
+    g.addColorStop(0, '#5aa6e8'); g.addColorStop(1, '#bfe3f7');
+    cx.fillStyle = g; cx.fillRect(0, -220, WORLD_W, GROUND + 220);
+    cx.fillStyle = '#ffffff';
+    for (const [x, y] of [[58, 6], [176, -4]]) { const dx = Math.round(x + (t * 2) % 40); cx.fillRect(dx, y, 22, 5); cx.fillRect(dx + 5, y - 3, 12, 3); }
+    return;
+  }
   const g = cx.createLinearGradient(0, -220, 0, GROUND);
   g.addColorStop(0, '#0b0e24'); g.addColorStop(0.65, '#1d2340'); g.addColorStop(1, '#3a3160');
   cx.fillStyle = g; cx.fillRect(0, -220, WORLD_W, GROUND + 220);
@@ -92,7 +100,7 @@ export function drawCut(S) {
   cx.clearRect(0, 0, CUT_W, CUT_H);
   cx.save();
   cx.translate(-Math.round(S.cam.x), -Math.round(S.cam.y));
-  sky(t);
+  sky(t, S.night);
   for (const [n, x] of STORES) cspr(n, x, SHOP_TOP);
   cspr('sign', SHOP_X + 9, SHOP_TOP + 68);
   ground();
@@ -100,9 +108,18 @@ export function drawCut(S) {
   const items = S.props.map(p => ({ y: p.y, d: () => cspr(p.spr, p.x, p.y - SPR[p.spr][3]) }));
   for (const id in S.actors) { const a = S.actors[id]; if (!a.hidden) items.push({ y: a.y, d: () => person(a, t + a.char) }); }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
-  // 밤빛
+  if (!S.night) { // 낮: 문이 열리면 안쪽이 살짝 어둡게
+    if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); }
+  } else nightLights(S, t);
+  // 감정 표시 (밝게)
+  for (const id in S.emotes) { const e = S.emotes[id], a = S.actors[id]; if (a && !a.hidden) emote(a, e.kind, e.t); }
+  cx.restore();
+  if (S.fade > 0) { cx.fillStyle = `rgba(8,8,16,${S.fade})`; cx.fillRect(0, 0, CUT_W, CUT_H); }
+}
+
+// 밤빛을 덮고 따뜻한 불빛: 가게 창 · 열린 문 · 간판 · 가로등
+function nightLights(S, t) {
   cx.fillStyle = 'rgba(22,26,70,.42)'; cx.fillRect(0, -220, WORLD_W, 440);
-  // 불빛: 가게 창 · 열린 문 · 가로등
   const fl = 0.9 + Math.sin(t * 9) * 0.05;
   glow(SHOP_X + 41, SHOP_TOP + 86, 31, 22, 0.32);
   if (S.door) { glow(SHOP_X + 18, SHOP_TOP + 92, 12, 23, 0.55); glow(SHOP_X + 12, GROUND, 24, 10, 0.18); }
@@ -110,8 +127,4 @@ export function drawCut(S) {
   cx.fillStyle = `rgba(255,214,130,${0.10 * fl})`;
   for (let i = 0; i < 4; i++) { const w = 18 + i * 8; cx.fillRect(LAMP_X + 7 - w / 2, 150 + i * 6, w, 6); } // 가로등 불빛 웅덩이
   glow(LAMP_X + 3, 118, 8, 7, 0.45 * fl); // 가로등 머리
-  // 감정 표시 (밝게)
-  for (const id in S.emotes) { const e = S.emotes[id], a = S.actors[id]; if (a && !a.hidden) emote(a, e.kind, e.t); }
-  cx.restore();
-  if (S.fade > 0) { cx.fillStyle = `rgba(8,8,16,${S.fade})`; cx.fillRect(0, 0, CUT_W, CUT_H); }
 }

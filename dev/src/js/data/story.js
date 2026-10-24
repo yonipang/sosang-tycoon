@@ -38,16 +38,21 @@ export const QUESTS = {
 };
 
 // 대화 장면
-//  lines: [누가(CAST, null이면 설명 글), 말]
+//  lines: [누가(CAST, null이면 설명 글), 말, 가리킬 곳(준비 화면 data-guide — price·order·quest·open)]
 //  when: 'now' = 영업 중에도 바로 (가게를 잠깐 멈춰요) · 없으면 다음 준비 화면에서
 //  paper: 골목 신문 한 장 · ask: 'shop' = 가게 이름 짓기 · cut: 먼저 보여 줄 연출 (data/cutscenes.js)
-//  끝나면 — start(퀘스트 시작) · title(칭호) · ch(장) · decor(가게 장식)
+//  startFirst: 장면을 열 때 start를 먼저 · 끝나면 — start(퀘스트 시작) · title(칭호) · ch(장) · decor(가게 장식)
 //  alt: 조건에 따라 바꿔 보여 주는 장면 (sim/story.js pickScene)
 export const SCENES = {
   intro: {
-    cut: 'opening', // 가게 앞 밤 골목 연출 (data/cutscenes.js) → 끝나면 아래 줄
+    cut: 'opening', // 2년 전 낮 → 지금 밤, 가게 앞 연출 (data/cutscenes.js). 끝나면 준비 화면에서 오 사장님이 하나씩 짚어 줘요
+    startFirst: true, // 줄을 보기 전에 퀘스트를 먼저 시작해요 (할 일 카드를 가리키려고)
     lines: [
-      [null, '사흘 동안 오 사장님의 부탁을 들어 보세요. 할 일은 준비 화면과 영업 중 위 막대에 보입니다.'],
+      ['oh', '장사 준비는 전날 밤에 해. 할 건 딱 두 가지야.'],
+      ['oh', '하나, 가격. 떡볶이 한 그릇 4,000원. 비싸면 손님이 돌아가고, 싸면 남는 게 없다.', 'price'],
+      ['oh', '둘, 재료. 오늘 밤에 시키면 내일 아침에 온다. 모자라면 손님을 놓치고, 남으면 버리게 돼.', 'order'],
+      ['oh', '사흘 동안 내가 부탁할 건 여기 적어 놨다. 하나씩 해 봐.', 'quest'],
+      ['oh', '다 됐으면 「가게 열기」. 아침 아홉 시에 문 연다. 영업하는 동안 옆에서 봐 줄게.', 'open'],
     ],
     start: ['p_stir', 'p_serve', 'p_book', 'p_keys'], title: '알바생',
   },

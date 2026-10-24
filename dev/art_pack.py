@@ -238,6 +238,15 @@ def own_sign():
     return im
 
 
+def own_notice():  # 창문에 붙은 「알바 구함」 종이 (12x14)
+    im = Image.new('RGBA', (12, 14), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((0, 2, 11, 13), fill=(252, 250, 240, 255), outline=(150, 140, 120, 255))
+    d.rectangle((4, 0, 7, 3), fill=(240, 220, 150, 200))  # 테이프
+    d.line((2, 5, 9, 5), fill=(216, 69, 47, 255)); d.line((2, 6, 9, 6), fill=(216, 69, 47, 255))  # 빨간 제목
+    for y in (8, 10): d.line((2, y, 9 if y == 8 else 7, y), fill=(120, 110, 100, 255))
+    return im
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
@@ -269,6 +278,7 @@ def collect():
     s['bag'] = crop(EXT, PROPS, 355, 324, 11, 11)
     s['stool'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 1, 284, 13, 13)
     s['sign'] = own_sign()
+    s['notice'] = own_notice()
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()

@@ -362,3 +362,12 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 @keyframes capIn { from { opacity: 0; } }
 #cutSkip { position: absolute; right: 8px; top: max(8px, env(safe-area-inset-top)); background: transparent; border: 2px solid rgba(251,243,226,.5); color: rgba(251,243,226,.8); padding: 0 8px; cursor: pointer; }
 .talk.in-cut { background: none; }
+
+/* 오 사장님이 짚어 주는 곳 (준비 화면 길잡이) */
+.guide-on { position: relative; z-index: 1; outline: 3px solid var(--mustard); outline-offset: 3px; animation: guidePulse 1s steps(2) infinite; }
+@keyframes guidePulse { 50% { outline-color: #fff6d6; } }
+#screen.guiding { padding-bottom: 220px; }
+.talk.guide { background: none; }
+.toast.who { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-left: 0; }
+.toast.who .q-face { width: 32px; height: 24px; border: 0; border-right: 2px solid var(--ink); }
+.toast.who .q-face img { margin-top: -14px; }
