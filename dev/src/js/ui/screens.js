@@ -11,8 +11,10 @@ import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
 import { menuOpen } from '../sim/story.js';
-import { questCard, doneCard } from './story.js';
+import { questCard, doneCard, incidentCard } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
+import { INCIDENTS } from '../data/incidents.js';
+import { DEV_JUMPS } from '../sim/dev.js';
 
 const scr = () => $('screen');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -39,6 +41,7 @@ export function renderTitle() {
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 · 프롤로그와 1장</p>
       <button class="btn ghost small" data-act="credits">크레딧</button>
+      <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
     </div>`, 'scr-title');
 }
 
@@ -126,6 +129,7 @@ export function renderReceipt() {
   const deltaHtml = Math.abs(delta) < 0.05 ? '' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`;
   const cards = [
     doneCard(R.quests),
+    incidentCard(R.incidents),
     best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
     R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
     R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
@@ -204,6 +208,19 @@ export function renderWeekly() {
     </div>`, 'scr-weekly');
 }
 
+// ── 개발자 모드: 원하는 날·장면으로 바로 가기 (sim/dev.js DEV_JUMPS) ──
+let devOn = false;
+export function renderDev() {
+  devOn = true;
+  showScreen(`
+    <div class="devs">
+      <h2>개발자 모드</h2>
+      <p class="dev-note">고른 날의 준비 화면으로 바로 갑니다. 지금 세이브는 덮어씁니다. 영업 중 쉬기(❚❚)에서 돌발 이벤트를 바로 일으킬 수 있습니다.</p>
+      ${DEV_JUMPS.map(j => `<button class="btn" data-act="devJump" data-j="${j.id}">${j.name}</button>`).join('')}
+      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
+    </div>`, 'scr-dev');
+}
+
 // ── 엔딩 크레딧 ──
 // 게임 엔딩(3년 기한)이 끝나면 올라가요. 엔딩이 생기기 전에는 처음 화면 「크레딧」 버튼으로 같은 화면을 봐요.
 export function renderCredits() {
@@ -225,6 +242,7 @@ export function renderPause() {
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
+      ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button></div>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
@@ -246,6 +264,10 @@ export function initScreens(onStart) {
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
+    else if (a === 'dev') { playSfx('page'); renderDev(); }
+    else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
+    else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
+    else if (a === 'devCash') { runCmd('devCash'); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }

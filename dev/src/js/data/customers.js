@@ -6,10 +6,10 @@ export const CUSTOMER_TYPES = {
   elder: { name: '어르신', priceMul: 0.95, patience: 1.4, likes: { kimbap: 2, tteok: 2, twigim: 1 }, tip: 0.1, eat: 8 },
 };
 // 손님 한 명 = 그림 한 장 (같은 옷이면 같은 사람이라 가게에 동시에 둘이 올 수 없어요). 0번은 사장.
-// 18번은 오 사장님(이야기 인물)이라 손님으로 오지 않아요. 13번 박 할머니·7번 최 사장·9번 미소 사장은 손님으로도 와요 (data/story.js CAST)
+// 18번은 오 사장님(이야기 인물)이라 손님으로 오지 않아요. 13번 박 할머니는 단골로만 와요 (아래 REGULARS). 7번 최 사장·9번 미소 사장은 손님으로도 와요
 export const PEOPLE = {
   1: 'worker', 2: 'student', 3: 'student', 4: 'worker', 5: 'student', 6: 'student', 7: 'elder', 8: 'worker', 9: 'student',
-  10: 'worker', 11: 'student', 12: 'worker', 13: 'elder', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 19: 'elder',
+  10: 'worker', 11: 'student', 12: 'worker', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 19: 'elder',
 };
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
@@ -17,9 +17,9 @@ export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 // 손님은 모두 이 사람들 중에서 들어와요 (들어오는 비율 = 아래 SPAWN_PER_HOUR ÷ 유동인구).
 // ※ 프로토타입 값. 실제 개발에서는 게임 속 상권 데이터(나이스비즈맵 유동인구)와 같은 값을 써요.
 export const FOOT_PER_HOUR = { 9: 14, 10: 12, 11: 16, 12: 24, 13: 20, 14: 12, 15: 14, 16: 18, 17: 16, 18: 22, 19: 18, 20: 12, 21: 10, 22: 8 };
-// 시각(9~20시)마다 들어오는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심·하교·퇴근에 몰려요
+// 시각(9~20시)마다 들어오는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심이 가장 많고, 하교·퇴근에도 몰려요 (아침에 조금 나눠 둠)
 // 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
-export const SPAWN_PER_HOUR = { 9: 1, 10: 2, 11: 3, 12: 6, 13: 4, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
+export const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 3, 12: 5, 13: 3, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 지나가는 사람이 가게 앞에서 하는 말 (말풍선). 상황에 맞는 묶음에서 골라요
 export const PASSER_SAY_CHANCE = 0.3;   // 지나가는 일행이 한마디 할 확률
 export const GLANCE_CHANCE = 0.35;      // 들어오지 않아도 잠깐 멈춰 가게를 보는 확률
@@ -50,3 +50,14 @@ export const PRICE_REACT = [
   { max: 1.25, face: 'meh', name: '망설임', sat: -0.5, leave: 0.3 },
   { max: 99, face: 'angry', name: '화남', sat: -1.5, leave: 1 },
 ];
+// 단골: 날마다 정해진 무렵에 찾아와요 (손님 목록 PEOPLE과 따로). 오는 날·시각은 그날 씨앗으로 정해요
+//  at: [가장 이르게, 가장 늦게] (게임 분, 0 = 09:00) · chance: 오는 날 확률 · likes: 고르는 메뉴 순서 (열린 것 중 첫째)
+//  priceMul: 단골이라 가격에 너그러워요 · lines: 들어올 때 · bye: 계산하고 나갈 때
+export const REGULARS = {
+  park: {
+    char: 13, type: 'elder', name: '박 할머니', at: [40, 100], chance: 0.9, likes: ['kimbap', 'tteok'], priceMul: 1.25,
+    lines: ['오늘도 왔어~', '늘 먹던 걸로 줘', '아이고 다리야. 앉자 앉자', '오 사장은 잘 지낸대?'],
+    bye: ['잘 먹었어. 내일 또 올게', '맛있네. 그 양반 맛이랑 비슷해', '수고해~'],
+  },
+};
+

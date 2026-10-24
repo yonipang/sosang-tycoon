@@ -4,6 +4,8 @@ import { $, won } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { CAST, CHAPTERS, QUESTS, SCENES } from '../data/story.js';
 import { questProg, questWaiting } from '../sim/story.js';
+import { activeIncidents, incidentInfo } from '../sim/incidents.js';
+import { clockText } from '../engine/util.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
@@ -131,12 +133,25 @@ let lastTrack = '';
 export function updateQuestTrack() {
   const el = $('questTrack');
   const S = G.story;
-  const html = S && G.phase === 'day' ? S.active.slice(0, 2).map(id => {
+  // 돌발 이벤트가 먼저 (남은 시간·진행도)
+  const inc = G.phase === 'day' ? activeIncidents().map(x => {
+    const D = incidentInfo(x);
+    const prog = D.kind === 'takeout' ? ` <b>${x.qty - x.left}/${x.qty}</b>` : D.kind === 'mission' ? ` <b>${x.count}/${D.need}</b>` : D.kind === 'group' ? ` <b>${x.paid}/${x.need}</b>` : '';
+    const till = x.until !== undefined ? ` · ~${clockText(x.until)}` : '';
+    return `<div class="qt inc"><span class="inc-tag">${D.short}</span><span>${prog.trim() || D.name}${till}</span></div>`;
+  }).join('') : '';
+  const html = inc + (S && G.phase === 'day' ? S.active.slice(0, inc ? 1 : 2).map(id => {
     const q = QUESTS[id], [a, b] = questProg(id), wait = questWaiting(id);
     return `<div class="qt">${face(q.who, 'q-face')}<span>${wait ? q.title : q.goal}${b > 1 && !wait ? ` <b>${a}/${b}</b>` : ''}</span></div>`;
-  }).join('') : '';
+  }).join('') : '');
   if (html !== lastTrack) { lastTrack = html; el.innerHTML = html; }
   el.hidden = !html;
+}
+
+// 영수증: 오늘의 돌발 이벤트
+export function incidentCard(list) {
+  if (!list || !list.length) return '';
+  return `<div class="hl wide incident"><small>돌발 이벤트</small><b>${list.map(i => `${i.name} ${i.ok ? '성공' + (i.bonus ? ` +${i.bonus.toLocaleString('ko-KR')}원` : '') : '실패'}`).join(' · ')}</b></div>`;
 }
 
 // 영수증·주간 정산: 오늘 끝낸 퀘스트

@@ -9,7 +9,9 @@ import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
-import { spawnPasser, shopCustomers } from './customers.js';
+import { spawnPasser, shopCustomers, planRegulars, tickRegulars } from './customers.js';
+import { planIncidents, tickIncidents, closeIncidents } from './incidents.js';
+import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 import { readyCap } from './tools.js';
@@ -68,6 +70,7 @@ defineCmd('openShop', () => {
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startStock = { ...G.run.stock };
   G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
+  planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
   setPhase('day');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);
@@ -136,10 +139,12 @@ export function tickDay(dt) {
   // 가게 앞 보도에 사람이 지나가요. 그중 일부가 들어와 손님이 돼요 (마감 뒤에는 지나가기만)
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day);
+  // 들어올 손님 = 시간대 기대값 × 별점 × 개업 초기 × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) * districtVisitMul(openMenus());
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
+  tickRegulars(); tickIncidents();
   // 급구매한 재료 도착 (실제 초 기준)
   for (const o of r.rush.slice()) {
     o.t -= dt;
@@ -178,6 +183,7 @@ function pickReviews(events) {
 
 export function endDay() {
   const r = G.run, L = r.log;
+  closeIncidents(); // 끝나지 않은 돌발은 실패로
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
   for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, r.stock[m])); r.stock[m] -= k; readyLeft += k * MENUS[m].cost; }
@@ -208,7 +214,7 @@ export function endDay() {
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
-    reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
+    incidents: L.incidents || [], reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
   if (G.history.length > 60) G.history.shift();

@@ -11,6 +11,7 @@ import { findPath, standAround, walk } from './path.js';
 import { custById, serve, pay } from './customers.js';
 import { menuOpen, storyNote, storyFridge } from './story.js';
 import { handsMax, cookRule } from './tools.js';
+import { incidentNote, handTakeout } from './incidents.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -172,6 +173,7 @@ function finishCook(q, note) {
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });
+  incidentNote('cook', null, q);
 }
 
 // ── 내주기·버리기 ──
@@ -217,7 +219,7 @@ function arriveAt(p) {
     const c = custById(t.cid);
     if (c && c.seat >= 0) { const s = SEATS[c.seat]; p.dir = Math.abs(s.x - p.x) > Math.abs(s.y - p.y) ? (s.x > p.x ? 0 : 2) : (s.y > p.y ? 3 : 1); }
     serveTo(t.cid);
-  } else if (t.kind === 'register') p.dir = 3;
+  } else if (t.kind === 'register') { p.dir = 3; handTakeout(); } // 포장 주문은 계산대에 올려 둬요
   if (t.kind !== 'register') p.target = null;
 }
 

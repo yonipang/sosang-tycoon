@@ -32,7 +32,7 @@ export function updateHud() {
     const c = r.customers.find(q => q.id === t.cid);
     const f = c ? c.patience / c.patMax : 1;
     const ready = handLeft[t.menu] > 0 && (handLeft[t.menu]--, true);
-    return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}">${icon(t.menu)}<b>${t.table}번</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
+    return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}">${icon(t.menu)}<b>${t.table ? t.table + '번' : '포장'}</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
   }).join('') + (r.tickets.length > 7 ? `<div class="tk more">+${r.tickets.length - 7}</div>` : '');
   setHTML('tickets', tk || '<div class="tk-empty">주문이 들어오면 여기에 쌓입니다</div>');
   // 손
@@ -44,7 +44,7 @@ export function updateHud() {
   // 남은 재료
   setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m)).map(m => {
     const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
-    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] && r.ready[m].length ? `<i class="ready">미리 ${r.ready[m].length}</i>` : ''}</span>`;
+    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] && r.ready[m].length ? `<i class="ready" title="미리 끓여 둔 그릇">${r.ready[m].length}</i>` : ''}</span>`;
   }).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임

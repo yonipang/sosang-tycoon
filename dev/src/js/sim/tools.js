@@ -4,6 +4,7 @@ import { TOOLS, COOK_EASE } from '../data/tools.js';
 import { COOK_GAMES } from '../data/menu.js';
 import { HANDS_MAX } from '../data/economy.js';
 import { emit, defineCmd } from './events.js';
+import { josa } from '../engine/util.js';
 import { storyNote } from './story.js';
 
 export const hasTool = id => !!G.story && (G.story.tools || []).includes(id);
@@ -27,7 +28,7 @@ defineCmd('buyTool', ({ id }) => {
   G.cash -= t.price;
   S.tools.push(id);
   emit('sfx', 'coin');
-  emit('toast', `${t.name}을 들였습니다`, 'good');
+  emit('toast', `${josa(t.name, '을/를')} 들였습니다`, 'good');
   storyNote('buyTool');
   emit('prep');
 });

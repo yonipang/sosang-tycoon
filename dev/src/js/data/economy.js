@@ -16,7 +16,7 @@ export const RUSH_MUL = 1.6;     // 재료값 배율
 export const RUSH_SEC = 20;      // 도착까지 실제 초
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 export const ratingSpawnMul = r => 0.55 + 0.15 * r;
-export const ratingPriceMul = r => 1 + 0.05 * (r - 3);
+export const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」
 // 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 30%쯤 → 7일차 100%)
 const OPENING = [0.3, 0.45, 0.6, 0.7, 0.8, 0.9, 1];
 export const openingMul = day => OPENING[Math.min(OPENING.length, Math.max(1, day)) - 1];

@@ -4,13 +4,14 @@
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
-import { CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
+import { REGULARS, CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
 import { menuOpen, storyNote } from './story.js';
+import { incidentNote } from './incidents.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -30,10 +31,15 @@ function sidewalk(fromX, toX) {
 }
 
 // ── 지나가는 사람 (유동인구) ──
+// 지금 가게·보도에 없는 사람 (같은 그림은 동시에 둘이 있을 수 없어요). type을 주면 그 유형만, 섞어서
+export function freeChars(type) {
+  const here = new Set(G.run.customers.map(c => c.char));
+  const out = Object.keys(PEOPLE).map(Number).filter(n => !here.has(n) && (!type || PEOPLE[n] === type));
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
 export function spawnPasser(hour) {
-  const r = G.run;
-  const here = new Set(r.customers.map(c => c.char));
-  const free = Object.keys(PEOPLE).map(Number).filter(n => !here.has(n));
+  const free = freeChars();
   if (!free.length) return false;
   const mix = typeMix(hour);
   const typeCount = {};
@@ -45,13 +51,20 @@ export function spawnPasser(hour) {
   const members = [lead];
   const mates = free.filter(n => n !== lead && PEOPLE[n] === type);
   if (mates.length && rand() < PAIR_CHANCE[type]) members.push(mates[Math.floor(rand() * mates.length)]);
+  return spawnParty(members, {});
+}
+// 일행 하나를 보도 끝에서 걸어오게 해요
+//  opts: force(문 앞에서 꼭 들어와요 — 단골·돌발 손님) · tag(돌발 이벤트) · reg(단골 이름) · type(유형, 없으면 PEOPLE) · wants(고를 메뉴) · delay(조금 뒤에 따라옴)
+export function spawnParty(members, opts) {
+  const r = G.run;
   const fromLeft = rand() < 0.5;
   const party = r.nextParty = (r.nextParty || 0) + 1;
   const speed = CUSTOMER_SPEED * (0.9 + rand() * 0.2);
   members.forEach((ch, k) => {
-    const sx = fromLeft ? -1 - k : W + k;
+    const sx = (fromLeft ? -1 - k : W + k) + (fromLeft ? -1 : 1) * (opts.delay || 0);
     r.customers.push({
-      id: r.nextId++, char: ch, type: PEOPLE[ch], party, lead: k === 0,
+      force: !!opts.force, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null,
+      id: r.nextId++, char: ch, type: opts.type || PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
       path: sidewalk(sx, DOOR_OUT.x), state: 'walk', moving: true, lane: fromLeft ? -0.12 : 0.08,
       seat: -1, menu: null, face: null, faceT: 0, patience: 0, patMax: 1, timer: 0,
@@ -119,6 +132,7 @@ const MISS_SAT = { full: 3, wait: 1, price: 1.5, soldout: 2 };
 const MISS_TEXT = { full: '자리 없음', wait: '너무 늦어요', price: '비싸요', soldout: '품절' };
 function miss(c, reason, menu, quiet) {
   const L = G.run.log;
+  incidentNote('missed', c);
   L.missed[reason]++;
   L.sats.push(MISS_SAT[reason]);
   if (!quiet) {
@@ -149,15 +163,17 @@ function removeTicket(c) {
 }
 
 function reaction(c, m) {
-  const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating);
+  const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1);
   return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
 }
 
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
+  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && r.stock[x] > 0));
+  if (want && menuOpen(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
@@ -188,6 +204,7 @@ export function serve(c, dish) {
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
   storyNote('served', { menu: c.menu });
+  incidentNote('served', c, dish.q);
 }
 
 function satisfaction(c) {
@@ -210,8 +227,10 @@ export function pay(c) {
     total += price;
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
-    const kind = m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
-    L.events.push({ kind, menu: m.menu, who: T.name });
+    const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
+    L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
+    incidentNote('paid', m);
+    if (m.reg) emit('say', m.id, pickLine(REGULARS[m.reg].bye));
   }
   G.cash += total + tips; G.weekSales += total; L.tips += tips;
   emit('float', c.x, c.y - 1.6, '+' + (total + tips).toLocaleString('ko-KR') + '원' + (tips ? ' 팁!' : ''), 'cash');
@@ -224,9 +243,10 @@ export function pay(c) {
 function atDoor(c) {
   const r = G.run, members = partyOf(c);
   r.log.foot += members.length;
-  if (rand() < (r.enterP || 0)) {
+  if (c.force || rand() < (r.enterP || 0)) { // 단골·돌발 손님은 꼭 들어와요
     r.log.entered += members.length;
     members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
+    if (c.reg) emit('say', c.id, pickLine(REGULARS[c.reg].lines));
     return;
   }
   const glance = rand() < GLANCE_CHANCE;
@@ -235,6 +255,7 @@ function atDoor(c) {
   if (fxRand() < PASSER_SAY_CHANCE) emit('say', c.id, passerLine());
   members.forEach(m => { if (!glance) m.path = m.path.concat(sidewalk(DOOR_OUT.x, m.exitX)); });
 }
+const pickLine = a => a[Math.floor(fxRand() * a.length)];
 function passerLine() {
   const r = G.run, pick = a => a[Math.floor(fxRand() * a.length)];
   const busy = r.queue.length > 0 || !freeTable();
@@ -325,3 +346,20 @@ export function updateCustomers(dt) {
     }
   }
 }
+
+// ── 단골 ── 영업 시작 때 오늘 올지·언제 올지 정하고, 그 시각이 되면 보도에서 걸어와요
+export function planRegulars(r) {
+  r.regulars = Object.keys(REGULARS).filter(id => rand() < REGULARS[id].chance)
+    .map(id => ({ id, at: REGULARS[id].at[0] + rand() * (REGULARS[id].at[1] - REGULARS[id].at[0]), came: false }));
+}
+export function tickRegulars() {
+  const r = G.run;
+  for (const g of r.regulars || []) {
+    if (g.came || r.min < g.at || r.closing) continue;
+    const R = REGULARS[g.id];
+    if (r.customers.some(c => c.char === R.char)) continue;
+    g.came = true;
+    spawnParty([R.char], { force: true, reg: g.id, type: R.type });
+  }
+}
+

@@ -84,7 +84,7 @@ with sync_playwright() as pw:
     play(pg)
     shot(pg, '5-receipt')
     rec = pg.evaluate('JSON.stringify(__T.G.lastReceipt)')
-    chapters = []
+    chapters = []; incs = []
     for d in range(2, 9):
         to_prep(pg)
         chapters.append(pg.evaluate("[__T.G.day, __T.G.story.ch, __T.G.story.title, __T.G.story.menus.join('+'), __T.G.story.active.join(',')]"))
@@ -92,7 +92,10 @@ with sync_playwright() as pw:
         open_shop(pg)
         if d == 4:  # 1장 첫날: 냉장고 쪽지 「!」
             pg.evaluate('__bot.play(20)'); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, '6b-clue.png'))
+        if d == 6:  # 영업 중 돌발 이벤트 화면 (시작 직후)
+            pg.evaluate("(()=>{__T.runCmd('devIncident',{id:'takeout'}); __T.runFor(0.2)})()"); pg.wait_for_timeout(300); shot(pg, '6e-incident')
         play(pg)
+        incs.append([d, pg.evaluate('JSON.stringify(__T.G.lastReceipt.incidents)'), pg.evaluate('(__T.G.lastReceipt.reviews||[]).map(v=>v.who).join(",")')])
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     to_prep(pg); shot(pg, '9-prep-day9')
     story = pg.evaluate("JSON.stringify({dawn:__T.G.history.slice(-3).map(h=>h.day), tools:__T.G.story.tools, ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
@@ -110,6 +113,7 @@ print('8일 기록 [일, 매출, 순이익, 손님, 놓침, 별]:', hist)
 print('7일차:', r7)
 print('날마다 [일, 장, 칭호, 메뉴, 할 일]:'); [print('  ', c) for c in chapters]
 print('본 장면:', seen)
+print('돌발 [일, 결과, 리뷰 쓴 사람]:'); [print('  ', i) for i in incs]
 print('도구:', pg_tools if 'pg_tools' in dir() else '')
 print('이야기:', st)
 print('끝:', state, '· 다시 열기:', after)

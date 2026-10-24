@@ -10,6 +10,7 @@ import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
 import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack } from './story.js';
+import { incidentInfo } from '../sim/incidents.js';
 
 export function toast(text, kind, who) {
   const box = $('toasts');
@@ -74,6 +75,11 @@ export function initFeedback() {
     $('cookUI').hidden = !on;
     if (on && G.run && G.run.dawn) $('dawnUI').hidden = true; // 새벽에 끓이는 동안은 새벽 창을 잠깐 내려요
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요', '다 됐으면 손님 자리를 눌러서 갖다줘. 식기 전에!');
+  });
+  // 돌발 이벤트: 시작하면 알림 (오 사장님 미션은 얼굴과 함께), 진행은 위 막대 (ui/story.js)
+  onEvent('incident', (what, x) => {
+    if (what === 'start') { const D = incidentInfo(x); toast(D.text, 'event', D.who); }
+    updateQuestTrack();
   });
   onEvent('dawn', (on, q) => {
     $('dawnUI').hidden = !on;

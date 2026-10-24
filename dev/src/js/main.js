@@ -11,7 +11,7 @@ import { updateHud, initRush, renderRush, initDawn } from './ui/hud.js';
 import { initScreens, renderTitle } from './ui/screens.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
-import { initStory } from './ui/story.js';
+import { initStory, updateQuestTrack } from './ui/story.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
 
 function layout() {
@@ -28,6 +28,7 @@ function frame(now) {
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
   updateSpeech(dt);
   updateCut(dt);
+  if (G.phase === 'day') updateQuestTrack(); // 돌발 이벤트 진행도 (바뀐 것만 다시 그려요)
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
   if (G.run && !document.getElementById('rushUI').hidden && Math.floor(lastT / 500) !== Math.floor((lastT - dt * 1000) / 500)) renderRush(); // 도착까지 남은 초

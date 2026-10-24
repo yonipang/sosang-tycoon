@@ -407,3 +407,25 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .dawn-btns { display: flex; gap: 6px; }
 .dawn-btns .btn { flex: 1; margin-top: 8px; }
 .dawn-btns .btn[disabled] { opacity: .55; }
+
+/* 돌발 이벤트 */
+.qt.inc { background: #ffe9d6; border-color: var(--red-dark); padding-left: 0; }
+.inc-tag { background: var(--red); color: #fff; padding: 0 6px; border-right: 2px solid var(--ink); }
+.qt.inc span:last-child { color: var(--ink); }
+.toast.event { background: var(--red); color: #fff; border-color: var(--ink); }
+.toast.event.who { background: #ffe9d6; color: var(--ink); }
+.hl.incident { background: #ffe9d6; border-color: var(--red); }
+.hl.incident small { color: var(--red-dark); }
+
+/* 개발자 모드 */
+.dev-btn { opacity: .6; }
+#screen.scr-dev { background: #14101c; }
+.devs h2 { color: var(--mustard); margin: 8px 0; font-weight: normal; font-size: 32px; }
+.dev-note { color: var(--paper); opacity: .8; word-break: keep-all; }
+.devs .btn { margin-top: 6px; text-align: left; }
+.dev-inc { margin-top: 14px; padding: 8px; border: 2px dashed var(--mustard); }
+.dev-inc small { display: block; color: var(--mustard); font-size: 16px; }
+.dev-inc .btn { display: inline-block; width: auto; margin: 6px 6px 0 0; }
+.qt { flex: 1 1 0; }
+#stockMini > span { white-space: nowrap; }
+#stockMini .ready { display: inline-block; background: var(--green); color: #fff; padding: 0 3px; line-height: 1.2; margin-left: 2px; }
