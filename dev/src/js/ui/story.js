@@ -6,6 +6,7 @@ import { CAST, CHAPTERS, QUESTS, SCENES } from '../data/story.js';
 import { questProg, questWaiting } from '../sim/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
+import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
 const fill = s => s.replace(/\{shop\}/g, G.shop);
@@ -19,9 +20,17 @@ export function showNextScene() {
   if (!sc || (sc.when !== 'now' && G.phase !== 'prep')) return;
   if (G.phase === 'day') runCmd('hold', { on: true });
   open = { id, i: 0 };
+  // 연출이 붙은 장면은 연출을 먼저 보고, 남은 줄을 이어서 보여 줘요
+  if (sc.cut) { playCut(sc.cut, () => { $('talk').hidden = false; drawScene(); }); return; }
   $('talk').hidden = false;
   drawScene();
   playSfx('page');
+}
+
+// 대화 한 줄 (연출 중에도 같은 모양)
+export function lineHTML(who, text) {
+  const p = who && CAST[who];
+  return `<div class="tk-box">${p ? face(who, 'tk-face') : ''}<div class="tk-body">${p ? `<b class="tk-name">${p.name}</b>` : ''}<p>${fill(text)}</p><i class="tk-next">▼</i></div></div>`;
 }
 
 function drawScene() {
@@ -29,9 +38,8 @@ function drawScene() {
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
     const [who, text] = sc.lines[open.i];
-    const p = who && CAST[who];
-    box.className = 'talk' + (p ? '' : ' narr');
-    box.innerHTML = `<div class="tk-box">${p ? face(who, 'tk-face') : ''}<div class="tk-body">${p ? `<b class="tk-name">${p.name}</b>` : ''}<p>${fill(text)}</p><i class="tk-next">▼</i></div></div>`;
+    box.className = 'talk' + (who ? '' : ' narr');
+    box.innerHTML = lineHTML(who, text);
     return;
   }
   box.className = 'talk';
@@ -73,13 +81,17 @@ function advance() {
 export function initStory() {
   const box = $('talk');
   box.addEventListener('click', e => {
-    if (!open) return;
+    if (cutWaiting()) { cutTap(); return; }
+    if (!open || cutActive()) return;
     if (e.target.closest('[data-talk=name]')) { finish($('talkName').value); return; }
     if (e.target.closest('input')) return;
     advance();
   });
   box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'talkName') finish(e.target.value); });
-  addEventListener('keydown', e => { if (open && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); } });
+  addEventListener('keydown', e => {
+    if (cutWaiting() && (e.code === 'Space' || e.code === 'Enter')) { cutTap(); e.preventDefault(); return; }
+    if (open && !cutActive() && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); }
+  });
 }
 export const talking = () => !!open;
 

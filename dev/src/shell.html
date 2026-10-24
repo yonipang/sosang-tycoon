@@ -45,6 +45,7 @@
   </footer>
   <div id="toasts" aria-live="polite"></div>
   <section id="screen" hidden></section>
+  <div id="cut" hidden><canvas id="cutCv" aria-label="연출"></canvas><div id="cutCap" hidden></div><button id="cutSkip" type="button">건너뛰기 ▶▶</button></div>
   <div id="talk" class="talk" hidden aria-live="polite"></div>
 </div>
 
@@ -62,6 +63,7 @@
 // @include js/data/reviews.js
 // @include js/data/credits.js
 // @include js/data/story.js
+// @include js/data/cutscenes.js
 // @include js/save/migrations.js
 // @include js/save/state.js
 // @include js/save/storage.js
@@ -72,10 +74,12 @@
 // @include js/sim/player.js
 // @include js/sim/loop.js
 // @include js/render/view.js
+// @include js/render/cut.js
 // @include js/ui/sfx.js
 // @include js/ui/icons.js
 // @include js/ui/hud.js
 // @include js/ui/story.js
+// @include js/ui/cutscene.js
 // @include js/ui/screens.js
 // @include js/ui/feedback.js
 // @include js/ui/input.js

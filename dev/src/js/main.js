@@ -12,6 +12,7 @@ import { initScreens, renderTitle } from './ui/screens.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
 import { initStory } from './ui/story.js';
+import { initCutscene, updateCut } from './ui/cutscene.js';
 
 function layout() {
   const st = $('stage');
@@ -26,6 +27,7 @@ function frame(now) {
   if (G.phase === 'day' && G.run) { drawFrame(dt); watchHints(); }
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
   updateSpeech(dt);
+  updateCut(dt);
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
   if (G.run && !document.getElementById('rushUI').hidden && Math.floor(lastT / 500) !== Math.floor((lastT - dt * 1000) / 500)) renderRush(); // 도착까지 남은 초
@@ -38,6 +40,7 @@ async function boot() {
   initFeedback();
   initInput();
   initStory();
+  initCutscene();
   initRush();
   initScreens(() => setPhase('prep'));
   layout();

@@ -219,6 +219,25 @@ def own_doormat():
     return im
 
 
+# 「분식」 간판 (30x12) — 프롤로그 연출에서 가게 앞 STORE 판을 덮어요
+HANGUL = {
+    '분': ['..#...#..', '..#####..', '..#...#..', '..#####..', '#########', '....#....', '.#.......', '.#.......', '.#######.'],
+    '식': ['..#....#.', '..#....#.', '.#.#...#.', '#...#..#.', '.......#.', '.........', '.######..', '......#..', '......#..'],
+}
+
+
+def own_sign():
+    im = Image.new('RGBA', (30, 12), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((0, 0, 29, 11), fill=(200, 56, 42, 255), outline=INK)
+    d.line((1, 1, 28, 1), fill=(232, 104, 80, 255))
+    for k, ch in enumerate('분식'):
+        for y, row in enumerate(HANGUL[ch]):
+            for x, c in enumerate(row):
+                if c == '#':
+                    im.putpixel((5 + k * 11 + x, 2 + y), (255, 248, 230, 255))
+    return im
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
@@ -239,6 +258,17 @@ def collect():
     s['chair'] = crop(INT, KIT % 280)
     s['plate'] = crop(INT, KIT % 381)
     s['menuboard'] = crop(INT, ICE % 14)
+    # 프롤로그 연출: 밤의 골목 (가게 셋 · 가로등 · 쓰레기봉투 · 둥근 의자 · 간판)
+    STORE = 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/9_Shopping_Center_and_Markets_16x16.png'
+    PROPS = 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/3_City_Props_16x16.png'
+    s['st_flower'] = crop(EXT, STORE, 0, 409, 80, 118)    # 초록 차양 — 맞은편 꽃집 자리
+    s['st_bunsik'] = crop(EXT, STORE, 176, 409, 80, 118)  # 주황 차양 — 오가네 분식 (문 x16~32)
+    s['st_laundry'] = crop(EXT, STORE, 352, 409, 80, 118) # 줄무늬 차양 — 옆 세탁소
+    s['lamp'] = crop(EXT, PROPS, 321, 4, 14, 60)
+    s['pave'] = crop(EXT, CITY, 144, 0, 32, 32)  # 연출용 보도블록
+    s['bag'] = crop(EXT, PROPS, 355, 324, 11, 11)
+    s['stool'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 1, 284, 13, 13)
+    s['sign'] = own_sign()
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()

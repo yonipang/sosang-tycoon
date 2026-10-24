@@ -1,4 +1,4 @@
-# 연기 시험: 처음 화면 → 새 게임(프롤로그 대화) → 봇이 8일 영업 → 영수증·주간 정산·이야기(1장 끝 골목 신문)까지. 화면 사진은 dev/qa/out/
+# 연기 시험: 처음 화면 → 새 게임(프롤로그 연출·대화) → 봇이 8일 영업 → 영수증·주간 정산·이야기(1장 끝 골목 신문)까지. 화면 사진은 dev/qa/out/
 # 사용법: python3 dev/build.py && python3 dev/qa/smoke.py
 import os, sys, json
 from playwright.sync_api import sync_playwright
@@ -8,8 +8,20 @@ BOT = open(os.path.join(QA, 'bot.js'), encoding='utf-8').read()
 errs = []; seen = []
 def shot(pg, name): pg.wait_for_timeout(250); pg.screenshot(path=os.path.join(OUT, name + '.png'))
 SHOT_SCENES = {'intro', 'handover', 'paper0', 'ch1', 'note', 'choi', 'paper1', 'paper1b'}
+def cut(pg):
+    """연출이 열려 있으면 끝까지 봐요 (대화 창은 눌러 넘기고, 첫 대화와 중간 사진)"""
+    for i in range(400):
+        if not pg.evaluate("!document.getElementById('cut').hidden"): return
+        if pg.evaluate("!document.getElementById('talk').hidden"):
+            if 'cut' not in seen: seen.append('cut'); shot(pg, 'talk-cut')
+            pg.click('#talk')
+        else:
+            if i == 12: shot(pg, 'cut-pan')
+            pg.wait_for_timeout(200)
+    raise RuntimeError('연출이 끝나지 않아요')
 def talk(pg):
     """열린 대화 장면을 끝까지 넘겨요 (장면마다 첫 화면 사진, 가게 이름은 「떡집」)"""
+    cut(pg)
     for _ in range(80):
         if not pg.evaluate("!document.getElementById('talk').hidden"): return
         sid = pg.evaluate('__T.G.story.queue[0]')

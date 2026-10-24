@@ -30,6 +30,7 @@ const SOUNDS = {
   trash: () => tone(300, 0.12, 'square', 0.04, 150),
   open: () => { tone(523, 0.1, 'triangle', 0.08); tone(659, 0.1, 'triangle', 0.08, 0, 0.1); tone(784, 0.2, 'triangle', 0.08, 0, 0.2); },
   tap: () => tone(1200, 0.03, 'square', 0.025),
+  surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
 };
 export function playSfx(name) { const f = SOUNDS[name]; if (f) f(); }

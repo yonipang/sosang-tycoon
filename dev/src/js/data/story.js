@@ -40,17 +40,13 @@ export const QUESTS = {
 // 대화 장면
 //  lines: [누가(CAST, null이면 설명 글), 말]
 //  when: 'now' = 영업 중에도 바로 (가게를 잠깐 멈춰요) · 없으면 다음 준비 화면에서
-//  paper: 골목 신문 한 장 · ask: 'shop' = 가게 이름 짓기
+//  paper: 골목 신문 한 장 · ask: 'shop' = 가게 이름 짓기 · cut: 먼저 보여 줄 연출 (data/cutscenes.js)
 //  끝나면 — start(퀘스트 시작) · title(칭호) · ch(장) · decor(가게 장식)
 //  alt: 조건에 따라 바꿔 보여 주는 장면 (sim/story.js pickScene)
 export const SCENES = {
   intro: {
+    cut: 'opening', // 가게 앞 밤 골목 연출 (data/cutscenes.js) → 끝나면 아래 줄
     lines: [
-      ['oh', '어이, 알바. 나 이번 달까지만 한다.'],
-      ['me', '네? 가게 접으세요?'],
-      ['oh', '허리가 영 말을 안 들어. 30년 했으면 많이 했지.'],
-      ['oh', '그래서 말인데… 사흘만 니가 사장이다 생각하고 가게 봐 봐.'],
-      ['oh', '잘하면, 이 가게 니가 해볼래?'],
       [null, '사흘 동안 오 사장님의 부탁을 들어 보세요. 할 일은 준비 화면과 영업 중 위 막대에 보입니다.'],
     ],
     start: ['p_stir', 'p_serve', 'p_book', 'p_keys'], title: '알바생',
