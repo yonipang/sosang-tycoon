@@ -11,6 +11,7 @@ import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { spawnPasser, shopCustomers } from './customers.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
+import { readyDishes } from './tools.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0); // 주문 금액 (아침 도착 때 결제)
@@ -65,6 +66,7 @@ defineCmd('openShop', () => {
   G.run = newRun();
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startStock = { ...G.run.stock };
+  G.run.ready = readyDishes(G.run.stock); // 보온 통: 밤에 미리 끓여 둔 그릇
   storyOpenDay();
   setPhase('day');
   emit('sfx', 'open');

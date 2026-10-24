@@ -13,7 +13,9 @@ def cut(pg):
     for i in range(400):
         if not pg.evaluate("!document.getElementById('cut').hidden"): return
         if pg.evaluate("!document.getElementById('talk').hidden"):
-            if 'cut' not in seen: seen.append('cut'); shot(pg, 'talk-cut')
+            k = 'cut%d' % sum(1 for x in seen if x.startswith('cut'))
+            if not seen or not seen[-1].startswith('cut'): seen.append(k); shot(pg, 'talk-' + k)
+            elif len([x for x in seen if x.startswith('cut')]) == 2 and 'cut1-think' not in seen and pg.locator('.talk.think').count(): seen.append('cut1-think'); shot(pg, 'talk-cut1-think')
             pg.click('#talk')
         else:
             if i == 12: shot(pg, 'cut-pan')
@@ -39,6 +41,15 @@ def to_prep(pg):
     talk(pg)
     if pg.locator('[data-act=questPay]').count():
         shot(pg, '8-prep-pay'); pg.click('[data-act=questPay]'); talk(pg)
+    if pg.locator('[data-act=buyTool]').count():  # 장사 도구는 보이면 다 사요
+        shot(pg, '8b-prep-tools')
+        while pg.locator('[data-act=buyTool]').count(): pg.locator('[data-act=buyTool]').first.click()
+    if pg.locator('[data-act=buyTool]').count():  # 장사 도구는 보이면 다 사요
+        shot(pg, '8b-prep-tools')
+        while pg.locator('[data-act=buyTool]').count(): pg.locator('[data-act=buyTool]').first.click()
+    if pg.locator('[data-act=buyTool]').count():  # 장사 도구는 보이면 다 사요
+        shot(pg, '8b-prep-tools')
+        while pg.locator('[data-act=buyTool]').count(): pg.locator('[data-act=buyTool]').first.click()
     # 봇은 재료를 넉넉히 시켜요 (「재료가 떨어지지 않은 날」 퀘스트가 운에 맡겨지지 않게)
     for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
 def play(pg):
@@ -73,7 +84,7 @@ with sync_playwright() as pw:
         play(pg)
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     to_prep(pg); shot(pg, '9-prep-day9')
-    story = pg.evaluate("JSON.stringify({ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
+    story = pg.evaluate("JSON.stringify({tools:__T.G.story.tools, ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
     bot0 = pg.evaluate('({problems: __bot.problems, games: __bot.games})')
     hist = pg.evaluate('JSON.stringify(__T.G.history.map(h=>[h.day,h.revenue,h.net,h.served,h.missed,+(h.rating||0).toFixed(2)]))')
     state = pg.evaluate('JSON.stringify({day:__T.G.day,cash:__T.G.cash,loan:__T.G.loan,rating:__T.G.rating,phase:__T.G.phase})')
@@ -88,6 +99,7 @@ print('8일 기록 [일, 매출, 순이익, 손님, 놓침, 별]:', hist)
 print('7일차:', r7)
 print('날마다 [일, 장, 칭호, 메뉴, 할 일]:'); [print('  ', c) for c in chapters]
 print('본 장면:', seen)
+print('도구:', pg_tools if 'pg_tools' in dir() else '')
 print('이야기:', st)
 print('끝:', state, '· 다시 열기:', after)
 print('봇 확인:', bot0['problems'][:5] or '문제 없음')

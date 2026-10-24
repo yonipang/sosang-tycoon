@@ -1,6 +1,7 @@
 // 영업 중 화면 위아래 막대: 날짜·시계·잔고·별점 / 주문표 / 손에 든 것·남은 재료·속도
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, COOK_GAMES } from '../data/menu.js';
+import { MENUS, MENU_IDS } from '../data/menu.js';
+import { handsMax, cookRule } from '../sim/tools.js';
 import { RUSH_QTY } from '../data/economy.js';
 import { rushCost } from '../sim/day.js';
 import { runCmd } from '../sim/events.js';
@@ -18,6 +19,8 @@ export const dayLabel = d => `${d}일차 · ${WEEKDAYS[(d - 1) % 7]}요일`;
 export function updateHud() {
   setText('hDay', dayLabel(G.day || 1));
   setText('hCash', wonShort(G.cash || 0));
+  const alba = !!G.story && G.story.ch === 0; // 프롤로그: 아직 알바라 가게 돈은 오 사장님 것
+  if (last.alba !== alba) { last.alba = alba; $('hCash').parentElement.hidden = alba; }
   setText('hStar', (G.rating || 3).toFixed(1));
   const r = G.run;
   if (!r) return;
@@ -33,7 +36,7 @@ export function updateHud() {
   }).join('') + (r.tickets.length > 7 ? `<div class="tk more">+${r.tickets.length - 7}</div>` : '');
   setHTML('tickets', tk || '<div class="tk-empty">주문이 들어오면 여기에 쌓입니다</div>');
   // 손
-  const hands = [0, 1].map(i => {
+  const hands = Array.from({ length: handsMax() }, (_, i) => i).map(i => { // 서빙 쟁반이 있으면 3칸
     const d = r.hands[i];
     return `<div class="hand${d ? ' q' + d.q : ''}">${d ? icon(d.menu) : ''}</div>`;
   }).join('');
@@ -41,13 +44,13 @@ export function updateHud() {
   // 남은 재료
   setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m)).map(m => {
     const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
-    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}</span>`;
+    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] ? `<i class="ready">미리 ${r.ready[m]}</i>` : ''}</span>`;
   }).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
   const c = r.cook;
   if (c) {
-    const g = COOK_GAMES[c.game];
+    const g = cookRule(c.game);
     if (c.game === 'roll') {
       $('cookFill').style.width = (c.pos * 100).toFixed(1) + '%';
       $('cookNeedle').style.left = (100 - Math.min(1, c.t / g.timeout) * 100).toFixed(1) + '%';
@@ -75,9 +78,9 @@ export function initRush() {
   $('rushClose').addEventListener('click', () => { $('rushUI').hidden = true; });
 }
 
-// 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES)
+// 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES · 주방 타이머는 data/tools.js COOK_EASE)
 export function setupCook(menu, game) {
-  const g = COOK_GAMES[game];
+  const g = cookRule(game); // 주방 타이머가 있으면 넓은 구간
   $('cookBar').className = 'cook-bar g-' + game;
   setText('cookName', `${MENUS[menu].name} ${g.name}`);
   setText('cookTip', g.tip);

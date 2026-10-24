@@ -2,14 +2,15 @@
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 import { G } from '../save/state.js';
-import { MENUS, COOK_GAMES, QUALITY_NAME } from '../data/menu.js';
-import { HANDS_MAX, PAY_STEP_SEC } from '../data/economy.js';
+import { MENUS, QUALITY_NAME } from '../data/menu.js';
+import { PAY_STEP_SEC } from '../data/economy.js';
 import { STATIONS, REGISTER, SEATS, TABLES, PAY_SPOTS, solidForPlayer } from '../data/layout.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { findPath, standAround, walk } from './path.js';
 import { custById, serve, pay } from './customers.js';
 import { menuOpen, storyNote, storyFridge } from './story.js';
+import { handsMax, cookRule } from './tools.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -88,9 +89,18 @@ defineCmd('cookStop', () => cookTap()); // 옛 이름
 // ── 조리 미니게임 ──
 function startCook(st) {
   const r = G.run, m = st.menu;
-  if (r.hands.length >= HANDS_MAX) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
+  if (r.hands.length >= handsMax()) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
   if (ticketsCount(m) <= handsCount(m)) {
     emit('toast', ticketsCount(m) ? `${MENUS[m].name} 주문은 이미 손에 들고 있습니다` : `아직 ${MENUS[m].name} 주문이 없습니다`, 'info');
+    return;
+  }
+  // 보온 통: 미리 끓여 둔 그릇이 있으면 미니게임 없이 바로 들어요
+  if (r.ready && r.ready[m] > 0) {
+    r.ready[m]--;
+    r.hands.push({ menu: m, q: 1 });
+    emit('float', r.player.x, r.player.y - 1.8, `미리 끓여 둔 ${MENUS[m].name}`, 'good');
+    emit('sfx', 'cookDone');
+    emit('cook', false, m, MENUS[m].game, 1);
     return;
   }
   r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
@@ -101,7 +111,7 @@ function startCook(st) {
 function cookTap() {
   const r = G.run, c = r && r.cook;
   if (!c) return;
-  const g = COOK_GAMES[c.game];
+  const g = cookRule(c.game);
   if (c.game === 'stir') {
     const d = Math.abs(c.pos - 0.5);
     finishCook(d <= g.zone.perfect ? 2 : d <= g.zone.good ? 1 : 0);
@@ -116,7 +126,7 @@ function cookTap() {
 }
 
 function updateCook(c, dt) {
-  const g = COOK_GAMES[c.game];
+  const g = cookRule(c.game);
   c.t += dt;
   if (c.game === 'stir') {
     c.pos = 0.5 - 0.5 * Math.cos(c.t * 2.6 * c.speed); // 0~1을 오가요

@@ -371,3 +371,21 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .toast.who { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-left: 0; }
 .toast.who .q-face { width: 32px; height: 24px; border: 0; border-right: 2px solid var(--ink); }
 .toast.who .q-face img { margin-top: -14px; }
+
+/* 속마음 (주인공 독백) */
+.talk.think .tk-body { background: #efe9fb; border-style: dashed; }
+.talk.think .tk-name { background: #6b5a9a; }
+.talk.think .tk-body p { color: #4a3f6b; }
+
+/* 장사 도구 (준비 화면) */
+.tcard { background: var(--paper); border: 3px solid var(--ink); margin-bottom: 8px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.trow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 2px dashed var(--line); }
+.trow:nth-of-type(2) { border-top: 0; }
+.t-txt { flex: 1; min-width: 0; }
+.t-txt b { font-weight: normal; display: block; }
+.t-txt small { display: block; font-size: 16px; color: var(--ink-soft); word-break: keep-all; }
+.trow .btn { flex: none; width: auto; margin: 0 0 4px; padding: 4px 8px; background: var(--mustard); }
+.t-own { flex: none; color: var(--green); border: 2px solid var(--green); padding: 0 6px; }
+.trow.own b { color: var(--green); }
+#stockMini .ready { font-style: normal; color: var(--green); margin-left: 2px; }
+.pill.cash[hidden] + .pill.star { margin-left: auto; } /* 프롤로그(알바)엔 돈 대신 별점만 오른쪽에 */

@@ -16,5 +16,6 @@ export function migrate(o) {
     } else { st.active = ['p_stir', 'p_serve', 'p_book', 'p_keys']; st.prog = { p_keys: d - 1 }; st.title = '알바생'; }
     o.story = st;
   }
+  if (!o.story.tools) { o.story.tools = []; o.story.toolsOpen = o.story.ch >= 2 || o.story.done.includes('c1_kimbap'); } // 장사 도구 이전 세이브
   return o;
 }

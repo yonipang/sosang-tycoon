@@ -23,6 +23,6 @@ export const PREP_FIRST_DAY = { tteok: 12, kimbap: 8, twigim: 8 };
 export const COOK_GAMES = {
   stir: { name: '졸이는 중', tip: '바늘이 가운데 오면 눌러 보세요', zone: { perfect: 0.08, good: 0.22 }, timeout: 3.2 },
   roll: { name: '마는 중', tip: '여러 번 빠르게 눌러 보세요', taps: 6, perfect: 1.6, good: 2.6, timeout: 4.5 },
-  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 2.6, perfect: [0.64, 0.76], good: [0.54, 0.86] },
+  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.64, 0.76], good: [0.52, 0.87] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
 };
 export const QUALITY_NAME = ['보통', '좋음', '완벽'];

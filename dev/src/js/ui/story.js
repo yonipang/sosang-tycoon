@@ -49,7 +49,7 @@ function drawScene() {
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
     const [who, text, at] = sc.lines[open.i];
-    box.className = 'talk' + (who ? '' : ' narr') + (guide(at) ? ' guide' : '');
+    box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
     return;
   }

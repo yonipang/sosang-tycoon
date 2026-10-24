@@ -2,6 +2,7 @@
 // 화면만의 일이라 게임 규칙(G)은 바꾸지 않아요. 끝나면 done()을 불러요 (이야기 장면이 이어서 진행해요).
 import { $ } from '../engine/util.js';
 import { CUTS } from '../data/cutscenes.js';
+import { CAST } from '../data/story.js';
 import { initCut, fitCut, drawCut } from '../render/cut.js';
 import { lineHTML } from './story.js';
 import { playSfx } from './sfx.js';
@@ -64,7 +65,7 @@ function next() {
   if (s.say) {
     C.wait = true;
     const box = $('talk');
-    box.className = 'talk in-cut' + (s.say[0] ? '' : ' narr');
+    box.className = 'talk in-cut' + (s.say[0] ? (CAST[s.say[0]].think ? ' think' : '') : ' narr');
     box.innerHTML = lineHTML(s.say[0], s.say[1]);
     box.hidden = false;
     return;

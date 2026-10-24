@@ -140,7 +140,7 @@ function digit(n, x, y) {
 
 // 자기 자리에 도착해 앉아 있는지 (걸어가는 중이면 서 있는 그림)
 const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c.y === SEATS[c.seat].y;
-const SIT_LIFT = 11; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 높이에 오게 (6이면 의자 앞 바닥에 앉은 것처럼 보여요)
+const SIT_LIFT = 16; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 위에 오게 (발은 탁자 뒤로 숨어요 — drawFrame 그리는 순서)
 const SIT_SHIFT = 3; // 탁자 쪽으로 당기는 픽셀: 등받이가 등 뒤로 보이게
 function drawCustomerUI(c) {
   const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 9 - (sittingNow(c) ? SIT_LIFT : 0)); // 머리 바로 위
@@ -195,13 +195,14 @@ export function drawFrame(dt) {
   // 앞쪽: 탁자·의자·계산대·사람을 y순으로
   const items = [];
   for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(f.spr, f.x * TILE, f.y * TILE) });
-  SEATS.forEach((s, i) => items.push({ y: s.y + 0.4, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  // 같은 줄은 의자(0.2) → 앉은 손님(0.3) → 탁자(0.375) 순서: 발이 탁자에 올라가 보이지 않게
+  SEATS.forEach((s, i) => items.push({ y: s.y + 0.2, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
   for (const d of decorNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
   if (r) {
     for (const c of r.customers) {
       const seated = sittingNow(c);
       if (seated) c.dir = SEATS[c.seat].face === 'right' ? 0 : 2;
-      items.push({ y: c.y + (seated ? 0.5 : 0.6) + (c.lane || 0), d: () => drawChar(c.char, c.x, c.y + (c.lane || 0), c.dir, seated ? (c.state === 'eating' ? 'sitEat' : 'sit') : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
+      items.push({ y: c.y + (seated ? 0.3 : 0.6) + (c.lane || 0), d: () => drawChar(c.char, c.x, c.y + (c.lane || 0), c.dir, seated ? (c.state === 'eating' ? 'sitEat' : 'sit') : c.moving ? 'walk' : 'idle', t + c.id * 0.37) });
     }
     const p = r.player;
     items.push({ y: p.y + 0.6, d: () => drawChar(0, p.x, p.y, p.dir, p.moving ? 'walk' : 'idle', t) });

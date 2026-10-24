@@ -12,6 +12,7 @@ import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
 import { menuOpen } from '../sim/story.js';
 import { questCard, doneCard } from './story.js';
+import { TOOLS, TOOL_IDS } from '../data/tools.js';
 
 const scr = () => $('screen');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -54,6 +55,7 @@ export function renderPrep() {
   const last = G.history[G.history.length - 1];
   const cost = prepCost();
   const after = G.cash - cost;
+  const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
   const cards = MENU_IDS.map(m => {
     if (!menuOpen(m)) return ''; // 아직 안 연 메뉴는 보여 주지 않아요 (이야기로 열리면 「새 메뉴」로 등장)
@@ -82,15 +84,27 @@ export function renderPrep() {
       <h2>${dayLabel(G.day)} 준비</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
       ${questCard()}
+      ${toolsCard()}
       ${cards}
       <div class="sum">
-        <div><span>주문</span><b>−${won(cost)}</b></div>
-        <div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>
+        <div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>
+        ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
+}
+
+// 장사 도구 (오 사장님 권유로 1장 중간부터): 사면 계속 써요
+function toolsCard() {
+  const S = G.story;
+  if (!S.toolsOpen) return '';
+  const rows = TOOL_IDS.map(id => {
+    const t = TOOLS[id], own = S.tools.includes(id);
+    return `<div class="trow${own ? ' own' : ''}"><div class="t-txt"><b>${t.name}</b><small>${t.desc}</small></div>${own ? '<span class="t-own">있음</span>' : `<button type="button" class="btn small" data-act="buyTool" data-tool="${id}">${won(t.price)}</button>`}</div>`;
+  }).join('');
+  return `<div class="tcard" data-guide="tools"><div class="q-head"><small>장사 도구</small><b>한 번 사면 계속 씁니다</b></div>${rows}</div>`;
 }
 
 // ── 마감 영수증 ──
@@ -148,7 +162,7 @@ export function renderReceipt() {
         <div class="dash"></div>
         <div class="ln star"><span>가게 별점</span><b>★ ${R.rating.toFixed(1)} ${Math.abs(delta) < 0.05 ? '<small>−</small>' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`}</b></div>
         ${rv ? `<div class="rvs">${rv}</div>` : ''}
-        <div class="rc-foot">잔고 ${won(G.cash)}</div>
+        ${G.story.ch === 0 ? '<div class="rc-foot">오늘 번 돈은 오 사장님 가게 돈입니다</div>' : `<div class="rc-foot">잔고 ${won(G.cash)}</div>`}
       </div>
       </details>
       <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '주간 정산 보기' : '다음 날 준비'}</button>
@@ -228,6 +242,7 @@ export function initScreens(onStart) {
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'open') runCmd('openShop');
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
+    else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
