@@ -39,6 +39,8 @@ def to_prep(pg):
     talk(pg)
     if pg.locator('[data-act=questPay]').count():
         shot(pg, '8-prep-pay'); pg.click('[data-act=questPay]'); talk(pg)
+    # 봇은 재료를 넉넉히 시켜요 (「재료가 떨어지지 않은 날」 퀘스트가 운에 맡겨지지 않게)
+    for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
 def play(pg):
     pg.evaluate('__bot.play(1000)'); talk(pg)
 with sync_playwright() as pw:
