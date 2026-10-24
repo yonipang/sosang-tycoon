@@ -10,6 +10,7 @@ let acc = 0;
 export function stepSim(realDt) {
   if (G.phase !== 'day' || !G.run || G.run.paused) { acc = 0; return; }
   tickCook(Math.min(realDt, 0.1)); // 미니게임은 빨리감기해도 실제 속도 그대로
+  if (G.run.dawn) { acc = 0; return; } // 새벽(문 열기 전)에는 가게 시계가 멈춰요
   acc += Math.min(realDt, 0.25) * G.run.speed;
   while (acc >= STEP && G.run && G.phase === 'day') {
     acc -= STEP;
@@ -23,7 +24,8 @@ export function stepSim(realDt) {
 export function runFor(sec) {
   let t = 0;
   while (t < sec && G.run && G.phase === 'day') {
-    tickCook(STEP); updatePlayer(STEP); updateCustomers(STEP); tickDay(STEP);
+    tickCook(STEP);
+    if (!G.run.dawn) { updatePlayer(STEP); updateCustomers(STEP); tickDay(STEP); }
     t += STEP;
   }
 }

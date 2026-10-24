@@ -52,6 +52,17 @@ def to_prep(pg):
         while pg.locator('[data-act=buyTool]').count(): pg.locator('[data-act=buyTool]').first.click()
     # 봇은 재료를 넉넉히 시켜요 (「재료가 떨어지지 않은 날」 퀘스트가 운에 맡겨지지 않게)
     for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
+def open_shop(pg):
+    """가게 열기 → 보온 통이 있으면 새벽에 미리 끓이기(봇이 미니게임) → 문 열기"""
+    pg.click('[data-act=open]')
+    if pg.evaluate("!document.getElementById('dawnUI').hidden"):
+        if 'dawn' not in seen: seen.append('dawn'); shot(pg, '6c-dawn')
+        for _ in range(6):
+            if pg.locator('[data-dawn=cook][disabled]').count(): break
+            pg.click('[data-dawn=cook]')
+            pg.evaluate("(()=>{for(let i=0;i<400&&__T.G.run.cook;i++){__bot.think();__T.runFor(1/30)}})()")
+        if 'dawn2' not in seen: seen.append('dawn2'); shot(pg, '6d-dawn-full')
+        pg.click('[data-dawn=open]')
 def play(pg):
     pg.evaluate('__bot.play(1000)'); talk(pg)
 with sync_playwright() as pw:
@@ -78,13 +89,13 @@ with sync_playwright() as pw:
         to_prep(pg)
         chapters.append(pg.evaluate("[__T.G.day, __T.G.story.ch, __T.G.story.title, __T.G.story.menus.join('+'), __T.G.story.active.join(',')]"))
         if d == 4: shot(pg, '6-prep-ch1')
-        pg.click('[data-act=open]')
+        open_shop(pg)
         if d == 4:  # 1장 첫날: 냉장고 쪽지 「!」
             pg.evaluate('__bot.play(20)'); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, '6b-clue.png'))
         play(pg)
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     to_prep(pg); shot(pg, '9-prep-day9')
-    story = pg.evaluate("JSON.stringify({tools:__T.G.story.tools, ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
+    story = pg.evaluate("JSON.stringify({dawn:__T.G.history.slice(-3).map(h=>h.day), tools:__T.G.story.tools, ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
     bot0 = pg.evaluate('({problems: __bot.problems, games: __bot.games})')
     hist = pg.evaluate('JSON.stringify(__T.G.history.map(h=>[h.day,h.revenue,h.net,h.served,h.missed,+(h.rating||0).toFixed(2)]))')
     state = pg.evaluate('JSON.stringify({day:__T.G.day,cash:__T.G.cash,loan:__T.G.loan,rating:__T.G.rating,phase:__T.G.phase})')

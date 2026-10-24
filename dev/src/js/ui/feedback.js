@@ -8,7 +8,7 @@ import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
-import { setupCook, renderRush } from './hud.js';
+import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack } from './story.js';
 
 export function toast(text, kind, who) {
@@ -72,12 +72,18 @@ export function initFeedback() {
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);
     $('cookUI').hidden = !on;
+    if (on && G.run && G.run.dawn) $('dawnUI').hidden = true; // 새벽에 끓이는 동안은 새벽 창을 잠깐 내려요
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요', '다 됐으면 손님 자리를 눌러서 갖다줘. 식기 전에!');
+  });
+  onEvent('dawn', (on, q) => {
+    $('dawnUI').hidden = !on;
+    if (on) renderDawn();
+    if (q !== undefined) toast(q === 2 ? '완벽한 떡볶이를 보온 통에 담았습니다' : '떡볶이를 보온 통에 담았습니다', q === 2 ? 'good' : 'info');
   });
   onEvent('fridge', open => { if (open) $('rushUI').hidden = false; if (!$('rushUI').hidden) renderRush(); });
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
-    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
+    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { saveGame(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();

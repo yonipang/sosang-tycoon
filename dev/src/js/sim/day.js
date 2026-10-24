@@ -10,8 +10,9 @@ import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
 import { spawnPasser, shopCustomers } from './customers.js';
+import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
-import { readyDishes } from './tools.js';
+import { readyCap } from './tools.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0); // 주문 금액 (아침 도착 때 결제)
@@ -66,13 +67,37 @@ defineCmd('openShop', () => {
   G.run = newRun();
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startStock = { ...G.run.stock };
-  G.run.ready = readyDishes(G.run.stock); // 보온 통: 밤에 미리 끓여 둔 그릇
+  G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
   storyOpenDay();
   setPhase('day');
-  emit('sfx', 'open');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);
-  emit('toast', `${G.day}일차 영업 시작!${n ? ` 재료 ${n}인분 도착` : ''}`, 'good');
+  // 보온 통이 있으면 새벽 6시: 재료가 도착하고, 문 열기 전에 미리 끓여 둘 수 있어요 (그동안 가게 시계는 멈춰요)
+  const cap = readyCap(G.run.stock);
+  if (Object.keys(cap).length) {
+    G.run.dawn = { cap };
+    emit('toast', `새벽 6시${n ? `, 재료 ${n}인분 도착` : ''}`, 'info');
+    emit('dawn', true);
+  } else startBusiness(n);
   return true;
+});
+function startBusiness(n) {
+  emit('sfx', 'open');
+  emit('toast', `${G.day}일차 영업 시작!${n ? ` 재료 ${n}인분 도착` : ''}`, 'good');
+}
+// 새벽: 미리 끓이기 (미니게임은 sim/player.js startCook과 같아요)
+defineCmd('dawnCook', ({ menu }) => {
+  const r = G.run;
+  if (!r || !r.dawn || r.cook) return;
+  const m = menu || Object.keys(r.dawn.cap)[0];
+  if ((r.ready[m] || []).length >= r.dawn.cap[m]) return;
+  startDawnCook(m);
+});
+defineCmd('dawnDone', () => {
+  const r = G.run;
+  if (!r || !r.dawn || r.cook) return;
+  r.dawn = null;
+  emit('dawn', false);
+  startBusiness(0);
 });
 // 급구매: 영업 중에 근처 마트에서 재료를 사 와요 (비싸고 조금 기다려야 와요)
 defineCmd('rushBuy', ({ menu }) => {
@@ -153,6 +178,9 @@ function pickReviews(events) {
 
 export function endDay() {
   const r = G.run, L = r.log;
+  // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
+  let readyLeft = 0;
+  for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, r.stock[m])); r.stock[m] -= k; readyLeft += k * MENUS[m].cost; }
   const revenue = MENU_IDS.reduce((s, m) => s + L.sales[m].rev, 0);
   // 오늘 쓴 재료: 처음 재고 + 급구매 − 남은 재고 (먼저 받은 것부터). 그다음 유통기한이 오늘까지인 재료는 버려요
   const used = {}, expired = {};
@@ -166,7 +194,7 @@ export function endDay() {
   }
   r.rush.forEach(o => { G.cash += rushCost(o.menu); r.rushExtra -= rushCost(o.menu) - MENUS[o.menu].cost * o.n; }); // 도착 전 마감한 급구매는 취소
   const leftover = Object.fromEntries(MENU_IDS.map(m => [m, invCount(m)]));
-  const dishWaste = r.hands.reduce((s, d) => s + MENUS[d.menu].cost, 0) + L.wasteDishes; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
+  const dishWaste = r.hands.reduce((s, d) => s + MENUS[d.menu].cost, 0) + L.wasteDishes + readyLeft; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;
   const before = G.rating;

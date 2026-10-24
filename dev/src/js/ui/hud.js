@@ -24,7 +24,7 @@ export function updateHud() {
   setText('hStar', (G.rating || 3).toFixed(1));
   const r = G.run;
   if (!r) return;
-  setText('hClock', clockText(Math.min(r.min, 720)));
+  setText('hClock', r.dawn ? '06:00' : clockText(Math.min(r.min, 720)));
   // 주문표: 들어온 순서대로 (손에 이미 든 몫은 흐리게)
   const handLeft = {};
   for (const d of r.hands) handLeft[d.menu] = (handLeft[d.menu] || 0) + 1;
@@ -44,7 +44,7 @@ export function updateHud() {
   // 남은 재료
   setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m)).map(m => {
     const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
-    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] ? `<i class="ready">미리 ${r.ready[m]}</i>` : ''}</span>`;
+    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] && r.ready[m].length ? `<i class="ready">미리 ${r.ready[m].length}</i>` : ''}</span>`;
   }).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
@@ -57,6 +57,30 @@ export function updateHud() {
       setText('cookName', `${MENUS[c.menu].name} ${g.name} ${c.taps}/${g.taps}`);
     } else $('cookNeedle').style.left = (c.pos * 100).toFixed(1) + '%';
   }
+}
+
+// 새벽 창 (보온 통): 미리 끓인 그릇 칸 · 끓이기 · 문 열기
+const QMARK = ['보통', '좋음', '완벽'];
+export function renderDawn() {
+  const r = G.run;
+  if (!r || !r.dawn) return;
+  $('dawnSlots').innerHTML = Object.keys(r.dawn.cap).map(m => {
+    const made = r.ready[m] || [], cap = r.dawn.cap[m];
+    return Array.from({ length: cap }, (_, i) => made[i] !== undefined
+      ? `<span class="dslot q${made[i]}">${icon(m)}<small>${QMARK[made[i]]}</small></span>`
+      : '<span class="dslot empty"></span>').join('');
+  }).join('');
+  const m = Object.keys(r.dawn.cap)[0], full = (r.ready[m] || []).length >= r.dawn.cap[m];
+  const b = document.querySelector('[data-dawn=cook]');
+  b.disabled = full;
+  b.textContent = full ? '보온 통이 가득 찼습니다' : `${MENUS[m].name} 끓이기 (${(r.ready[m] || []).length}/${r.dawn.cap[m]})`;
+}
+export function initDawn() {
+  $('dawnUI').addEventListener('click', e => {
+    const b = e.target.closest('[data-dawn]');
+    if (!b) return;
+    runCmd(b.dataset.dawn === 'cook' ? 'dawnCook' : 'dawnDone');
+  });
 }
 
 // 냉장고 창: 메뉴마다 남은 재료와 급구매 버튼

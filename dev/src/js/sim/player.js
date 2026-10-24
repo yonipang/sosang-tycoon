@@ -71,6 +71,7 @@ defineCmd('tap', ({ x, y }) => {
   const r = G.run;
   if (!r || G.phase !== 'day') return;
   if (r.cook) { cookTap(); return; }
+  if (r.dawn) return; // 새벽에는 가게를 돌아다니지 않아요
   const t = targetAt(x, y);
   if (!t) return;
   const goals = standFor(t);
@@ -94,16 +95,26 @@ function startCook(st) {
     emit('toast', ticketsCount(m) ? `${MENUS[m].name} 주문은 이미 손에 들고 있습니다` : `아직 ${MENUS[m].name} 주문이 없습니다`, 'info');
     return;
   }
-  // 보온 통: 미리 끓여 둔 그릇이 있으면 미니게임 없이 바로 들어요
-  if (r.ready && r.ready[m] > 0) {
-    r.ready[m]--;
-    r.hands.push({ menu: m, q: 1 });
+  // 보온 통: 새벽에 미리 끓여 둔 그릇이 있으면 미니게임 없이 바로 들어요 (좋은 것부터)
+  const rd = r.ready && r.ready[m];
+  if (rd && rd.length) {
+    rd.sort((a, b) => b - a);
+    const q = rd.shift();
+    r.hands.push({ menu: m, q });
     emit('float', r.player.x, r.player.y - 1.8, `미리 끓여 둔 ${MENUS[m].name}`, 'good');
     emit('sfx', 'cookDone');
-    emit('cook', false, m, MENUS[m].game, 1);
+    emit('cook', false, m, MENUS[m].game, q);
     return;
   }
   r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
+  emit('cook', true, m, r.cook.game);
+  emit('sfx', 'cookStart');
+}
+
+// 새벽에 미리 끓이기 (sim/day.js dawnCook) — 주문 없이, 손에 들지 않고 보온 통에 담아요
+export function startDawnCook(m) {
+  const r = G.run;
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0, dawn: true };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
 }
@@ -148,6 +159,13 @@ export function tickCook(realDt) {
 function finishCook(q, note) {
   const r = G.run, c = r.cook;
   r.cook = null;
+  if (c.dawn) { // 새벽: 보온 통에 담아요
+    (r.ready[c.menu] = r.ready[c.menu] || []).push(q);
+    emit('sfx', q === 2 ? 'perfect' : 'cookDone');
+    emit('cook', false, c.menu, c.game, q);
+    emit('dawn', true, q);
+    return;
+  }
   r.hands.push({ menu: c.menu, q });
   const p = r.player;
   emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');

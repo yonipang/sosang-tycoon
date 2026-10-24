@@ -7,7 +7,7 @@ import { setPhase } from './sim/day.js';
 import { targetAt } from './sim/player.js';
 import { initView, fitView, drawFrame, drawIdle, viewReady } from './render/view.js';
 import { loadIcons } from './ui/icons.js';
-import { updateHud, initRush, renderRush } from './ui/hud.js';
+import { updateHud, initRush, renderRush, initDawn } from './ui/hud.js';
 import { initScreens, renderTitle } from './ui/screens.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
@@ -42,6 +42,7 @@ async function boot() {
   initStory();
   initCutscene();
   initRush();
+  initDawn();
   initScreens(() => setPhase('prep'));
   layout();
   addEventListener('resize', layout);
