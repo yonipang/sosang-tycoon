@@ -131,8 +131,8 @@ body[data-phase="title"] #hud { visibility: hidden; }
 .toast.out { opacity: 0; }
 
 /* ── 화면 (처음·준비·영수증·주간) ── */
-#screen { position: absolute; inset: 0; overflow-y: auto; z-index: 10; padding: 16px 14px 24px; background: rgba(29,35,64,.55); }
-#screen.scr-prep, #screen.scr-receipt, #screen.scr-weekly, #screen.scr-pause { top: 60px; }
+#screen { position: absolute; inset: 0; overflow-y: auto; z-index: 10; padding: 16px 14px 24px; padding-top: max(16px, calc(env(safe-area-inset-top) + 8px)); padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)); background: rgba(29,35,64,.55); } /* 홈 화면 앱: 노치·아래 막대를 피해요 */
+#screen.scr-prep, #screen.scr-receipt, #screen.scr-weekly, #screen.scr-pause { top: calc(60px + max(0px, env(safe-area-inset-top) - 8px)); padding-top: 16px; } /* 위 막대(노치만큼 길어져요) 아래부터 */
 #screen > div { max-width: 420px; margin: 0 auto; }
 h1, h2 { font-weight: normal; margin: 0; }
 h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px 0 var(--ink); margin-bottom: 8px; }
@@ -440,7 +440,20 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 
 /* 설정 */
 #screen.scr-settings { background: linear-gradient(180deg, rgba(29,35,64,.95), rgba(43,29,22,.95)); }
-.settings h2 { color: var(--paper); font-weight: normal; font-size: 32px; margin: 8px 0 12px; }
+.settings h2 { color: var(--paper); font-weight: normal; font-size: 32px; margin: 0; }
+/* 설정 머리: 위에 붙어 있고(노치 영역까지 칠해요) 오른쪽에 닫기 ✕ */
+#screen.scr-settings { padding-top: 0; }
+.set-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin: 0 -14px 8px; padding: max(12px, calc(env(safe-area-inset-top) + 6px)) 14px 10px; background: #1d2340; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.set-x { width: 44px; height: 44px; flex: none; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.set-x:active { transform: translateY(3px); box-shadow: none; }
+.set-restart { display: block; margin: 18px auto 4px; background: none; border: 0; padding: 6px 10px; color: #e8a395; font: inherit; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* 확인 창 */
+.modal.ask { z-index: 40; }
+.ask-card p { margin: 4px 0 12px; word-break: keep-all; }
+.ask-card small { color: var(--ink-soft); }
+.ask-btns { display: flex; gap: 8px; }
+.ask-btns .btn { flex: 1; margin: 0; }
+.btn.danger-fill { background: var(--red); color: #fff; text-shadow: 0 2px 0 var(--red-dark); }
 .set-card { background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
 .set-card .row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
 .set-note { margin: 6px 0 0; color: var(--ink-soft); word-break: keep-all; }
@@ -470,7 +483,6 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .set-soon { border: 2px solid var(--line); color: var(--ink-soft); padding: 0 6px; }
 .set-card .btn.small { margin: 4px 0; }
 .set-note a { color: var(--blue); word-break: break-all; }
-.btn.ghost.danger { border-color: #e88b7a; color: #ffb3a6; margin-top: 14px; }
 .set-ver { cursor: default; user-select: none; -webkit-user-select: none; }
 
 /* 클라우드 저장 (처음 화면 · 설정) */
@@ -542,6 +554,7 @@ body[data-phase="title"] .gear { visibility: hidden; }
   </footer>
   <div id="toasts" aria-live="polite"></div>
   <div id="qModal" class="modal" hidden></div>
+  <div id="askModal" class="modal ask" hidden></div>
   <section id="screen" hidden></section>
   <div id="cut" hidden><canvas id="cutCv" aria-label="연출"></canvas><div id="cutCap" hidden></div><button id="cutSkip" type="button">건너뛰기 ▶▶</button></div>
   <div id="talk" class="talk" hidden aria-live="polite"></div>
@@ -824,7 +837,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.12';
+const GAME_VERSION = '0.13';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3991,7 +4004,7 @@ function renderSettings(from) {
   const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
   showScreen(`
     <div class="settings">
-      <h2>설정</h2>
+      <div class="set-head"><h2>설정</h2><button type="button" class="set-x" data-act="settingsClose" aria-label="닫기">✕</button></div>
       <div class="set-card">
         <small class="set-h">소리</small>
         ${step('music', '배경음악')}
@@ -4012,9 +4025,8 @@ function renderSettings(from) {
         ${accountRows()}
       </div>
       <button class="btn" data-act="credits">크레딧</button>
-      <button class="btn ghost small danger" data-act="restart">처음부터 다시 하기</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
-      <button class="btn primary big" data-act="settingsClose">돌아가기</button>
+      ${hasSave() || G.phase !== 'title' ? '<button type="button" class="set-restart" data-act="restart">처음부터 다시 하기</button>' : ''}
     </div>`, 'scr-settings');
 }
 function closeSettings() {
@@ -4067,6 +4079,7 @@ function renderPause() {
 
 // 화면 버튼 → 명령
 function initScreens(onStart) {
+  initAsk();
   // 클라우드에 더 최근 세이브가 있을 때: 처음 화면이나 준비 화면(대화·연출 중 아님)에서만 바꿔 넣어요
   setCloudApplier({
     can: () => G.phase === 'title' || (G.phase === 'prep' && !talking() && !cutActive()),
@@ -4104,8 +4117,10 @@ function initScreens(onStart) {
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
-      if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }
-      clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+      playSfx('tap');
+      askConfirm('정말 처음부터 다시 할까요?<br><small>지금까지의 가게 진행은 지워지고 되돌릴 수 없습니다.</small>', '다시 시작', () => {
+        clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+      });
     }
     else if (a === 'ver') { if (settingsFrom === 'title' && ++verTaps >= 7) { verTaps = 0; playSfx('perfect'); renderDev(); } }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
@@ -4114,6 +4129,22 @@ function initScreens(onStart) {
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
+  });
+}
+// 확인 창 (되돌릴 수 없는 일 앞에서): 취소가 왼쪽, 창 밖을 눌러도 취소
+let askOk = null;
+function askConfirm(html, okLabel, onOk) {
+  const m = $('askModal');
+  m.innerHTML = `<div class="qm-card ask-card" role="alertdialog"><p>${html}</p><div class="ask-btns"><button type="button" class="btn" data-ask="no">취소</button><button type="button" class="btn danger-fill" data-ask="yes">${okLabel}</button></div></div>`;
+  m.hidden = false; askOk = onOk;
+}
+function initAsk() {
+  $('askModal').addEventListener('click', e => {
+    const b = e.target.closest('[data-ask]');
+    if (!b && e.target !== $('askModal')) return;
+    const ok = b && b.dataset.ask === 'yes' ? askOk : null;
+    $('askModal').hidden = true; $('askModal').innerHTML = ''; askOk = null;
+    if (ok) ok(); else playSfx('tap');
   });
 }
 // 이어하기가 있을 때 새로 시작은 한 번 더 눌러야 해요 (창 띄우지 않고)

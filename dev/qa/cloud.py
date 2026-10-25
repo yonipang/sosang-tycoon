@@ -101,7 +101,7 @@ with sync_playwright() as p:
 
     print('7. 새로 시작 → 이 기기가 더 최근: 올리고, 클라우드 옛 가게는 백업')
     pg.click('#bSet'); pg.wait_for_timeout(300); shot(pg, '7-settings-in')
-    pg.click('[data-act=restart]'); pg.click('[data-act=restart]'); pg.wait_for_timeout(300)
+    pg.click('[data-act=restart]'); pg.click('[data-ask=yes]'); pg.wait_for_timeout(300)
     pg.click('[data-act=new]'); skip_cut(pg); pg.wait_for_timeout(3600)
     c = cloud(pg)
     check(c['day'] == 1 and c.get('prev', {}).get('day') == 9, '새 가게 1일차 올림 · 9일차는 클라우드 백업')

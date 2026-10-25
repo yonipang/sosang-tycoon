@@ -265,7 +265,7 @@ export function renderSettings(from) {
   const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
   showScreen(`
     <div class="settings">
-      <h2>설정</h2>
+      <div class="set-head"><h2>설정</h2><button type="button" class="set-x" data-act="settingsClose" aria-label="닫기">✕</button></div>
       <div class="set-card">
         <small class="set-h">소리</small>
         ${step('music', '배경음악')}
@@ -286,9 +286,8 @@ export function renderSettings(from) {
         ${accountRows()}
       </div>
       <button class="btn" data-act="credits">크레딧</button>
-      <button class="btn ghost small danger" data-act="restart">처음부터 다시 하기</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
-      <button class="btn primary big" data-act="settingsClose">돌아가기</button>
+      ${hasSave() || G.phase !== 'title' ? '<button type="button" class="set-restart" data-act="restart">처음부터 다시 하기</button>' : ''}
     </div>`, 'scr-settings');
 }
 function closeSettings() {
@@ -341,6 +340,7 @@ export function renderPause() {
 
 // 화면 버튼 → 명령
 export function initScreens(onStart) {
+  initAsk();
   // 클라우드에 더 최근 세이브가 있을 때: 처음 화면이나 준비 화면(대화·연출 중 아님)에서만 바꿔 넣어요
   setCloudApplier({
     can: () => G.phase === 'title' || (G.phase === 'prep' && !talking() && !cutActive()),
@@ -378,8 +378,10 @@ export function initScreens(onStart) {
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
-      if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }
-      clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+      playSfx('tap');
+      askConfirm('정말 처음부터 다시 할까요?<br><small>지금까지의 가게 진행은 지워지고 되돌릴 수 없습니다.</small>', '다시 시작', () => {
+        clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+      });
     }
     else if (a === 'ver') { if (settingsFrom === 'title' && ++verTaps >= 7) { verTaps = 0; playSfx('perfect'); renderDev(); } }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
@@ -388,6 +390,22 @@ export function initScreens(onStart) {
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
+  });
+}
+// 확인 창 (되돌릴 수 없는 일 앞에서): 취소가 왼쪽, 창 밖을 눌러도 취소
+let askOk = null;
+function askConfirm(html, okLabel, onOk) {
+  const m = $('askModal');
+  m.innerHTML = `<div class="qm-card ask-card" role="alertdialog"><p>${html}</p><div class="ask-btns"><button type="button" class="btn" data-ask="no">취소</button><button type="button" class="btn danger-fill" data-ask="yes">${okLabel}</button></div></div>`;
+  m.hidden = false; askOk = onOk;
+}
+function initAsk() {
+  $('askModal').addEventListener('click', e => {
+    const b = e.target.closest('[data-ask]');
+    if (!b && e.target !== $('askModal')) return;
+    const ok = b && b.dataset.ask === 'yes' ? askOk : null;
+    $('askModal').hidden = true; $('askModal').innerHTML = ''; askOk = null;
+    if (ok) ok(); else playSfx('tap');
   });
 }
 // 이어하기가 있을 때 새로 시작은 한 번 더 눌러야 해요 (창 띄우지 않고)
