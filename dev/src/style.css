@@ -568,3 +568,5 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .bill small { display: block; color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
 .bill.total { border-bottom: 0; padding-top: 8px; }
 .bill.total b { color: var(--red-dark); font-size: 22px; }
+
+.nowrap { white-space: nowrap; }

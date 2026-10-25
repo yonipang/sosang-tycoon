@@ -26,12 +26,17 @@ import { DEV_JUMPS } from '../sim/dev.js';
 const scr = () => $('screen');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 
+// 같은 화면을 다시 그릴 때(가격·주문량 바꾸기 등)는 스크롤 위치와 펼친 「자세히」를 그대로 둬요. 다른 화면이면 맨 위부터
 export function showScreen(html, cls) {
   const s = scr();
-  s.className = cls || '';
+  const same = !s.hidden && s.dataset.scr === (cls || ''); // 길잡이가 붙이는 guiding 같은 꼬리표와 상관없이
+  const top = s.scrollTop;
+  const opened = same ? [...s.querySelectorAll('details')].map(d => d.open) : [];
+  s.className = cls || ''; s.dataset.scr = cls || '';
   s.innerHTML = html;
   s.hidden = false;
-  s.scrollTop = 0;
+  if (same) { s.querySelectorAll('details').forEach((d, i) => { if (opened[i]) d.open = true; }); s.scrollTop = top; }
+  else s.scrollTop = 0;
 }
 export function hideScreen() { scr().hidden = true; scr().innerHTML = ''; }
 
@@ -102,7 +107,7 @@ export function renderPrep() {
       <div class="sum">
         <div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>
         ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
-        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비 (임대료·대출·공과금)</span><b>약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
+        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
