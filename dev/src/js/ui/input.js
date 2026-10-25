@@ -5,6 +5,8 @@ import { runCmd } from '../sim/events.js';
 import { cssToTile } from '../render/view.js';
 import { unlockAudio } from './sfx.js';
 import { talking } from './story.js';
+import { cutActive } from './cutscene.js';
+import { openSettingsHere } from './screens.js';
 
 const SPEEDS = [1, 2, 3];
 
@@ -20,6 +22,7 @@ export function initInput() {
   });
   // 조리 중에는 화면 어디를 눌러도 멈춰요
   $('cookUI').addEventListener('pointerdown', e => { runCmd('cookTap'); e.preventDefault(); });
+  $('bSet').addEventListener('click', () => { unlockAudio(); if (!talking() && !cutActive()) openSettingsHere(); });
   $('bPause').addEventListener('click', () => { if (G.run && !talking()) runCmd('pause', { on: !G.run.paused }); });
   $('bSpeed').addEventListener('click', () => {
     if (!G.run) return;

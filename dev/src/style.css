@@ -439,3 +439,28 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .set-ver { color: var(--paper); opacity: .6; text-align: center; margin: 14px 0 0; }
 .btn-pair { display: flex; gap: 8px; }
 .btn-pair .btn { flex: 1; }
+
+/* 웹앱: 화면 전체가 미끄러지듯 스크롤되지 않게 (안쪽 화면만 스크롤) */
+html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+#app { height: 100%; }
+/* 흰 버튼에 흰 글씨가 되지 않게: 기본 버튼 글씨는 항상 진한 색 */
+.btn { color: var(--ink); }
+
+/* 위 막대 설정(톱니) */
+.gear { flex: none; display: grid; place-items: center; width: 32px; height: 28px; padding: 0; margin-left: 2px; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); cursor: pointer; }
+.gear:active { transform: translateY(2px); }
+.gear svg { image-rendering: pixelated; }
+body[data-phase="title"] .gear { visibility: hidden; }
+
+/* 설정 화면 추가 */
+.set-card + .set-card { margin-top: 8px; }
+.set-h { display: block; font-size: 16px; color: var(--ink-soft); border-bottom: 2px dashed var(--line); margin-bottom: 4px; }
+.seg { display: flex; border: 2px solid var(--ink); }
+.seg button { padding: 4px 10px; background: var(--paper-2); border: 0; cursor: pointer; color: var(--ink-soft); }
+.seg button + button { border-left: 2px solid var(--ink); }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.set-soon { border: 2px solid var(--line); color: var(--ink-soft); padding: 0 6px; }
+.set-card .btn.small { margin: 4px 0; }
+.set-note a { color: var(--blue); word-break: break-all; }
+.btn.ghost.danger { border-color: #e88b7a; color: #ffb3a6; margin-top: 14px; }
+.set-ver { cursor: default; user-select: none; -webkit-user-select: none; }

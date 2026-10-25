@@ -444,6 +444,31 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .set-ver { color: var(--paper); opacity: .6; text-align: center; margin: 14px 0 0; }
 .btn-pair { display: flex; gap: 8px; }
 .btn-pair .btn { flex: 1; }
+
+/* 웹앱: 화면 전체가 미끄러지듯 스크롤되지 않게 (안쪽 화면만 스크롤) */
+html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+#app { height: 100%; }
+/* 흰 버튼에 흰 글씨가 되지 않게: 기본 버튼 글씨는 항상 진한 색 */
+.btn { color: var(--ink); }
+
+/* 위 막대 설정(톱니) */
+.gear { flex: none; display: grid; place-items: center; width: 32px; height: 28px; padding: 0; margin-left: 2px; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); cursor: pointer; }
+.gear:active { transform: translateY(2px); }
+.gear svg { image-rendering: pixelated; }
+body[data-phase="title"] .gear { visibility: hidden; }
+
+/* 설정 화면 추가 */
+.set-card + .set-card { margin-top: 8px; }
+.set-h { display: block; font-size: 16px; color: var(--ink-soft); border-bottom: 2px dashed var(--line); margin-bottom: 4px; }
+.seg { display: flex; border: 2px solid var(--ink); }
+.seg button { padding: 4px 10px; background: var(--paper-2); border: 0; cursor: pointer; color: var(--ink-soft); }
+.seg button + button { border-left: 2px solid var(--ink); }
+.seg button.on { background: var(--ink); color: var(--paper); }
+.set-soon { border: 2px solid var(--line); color: var(--ink-soft); padding: 0 6px; }
+.set-card .btn.small { margin: 4px 0; }
+.set-note a { color: var(--blue); word-break: break-all; }
+.btn.ghost.danger { border-color: #e88b7a; color: #ffb3a6; margin-top: 14px; }
+.set-ver { cursor: default; user-select: none; -webkit-user-select: none; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -453,6 +478,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
       <span id="hClock" class="clock">09:00</span>
       <span class="pill cash"><b id="hCash">0</b></span>
       <span class="pill star">★ <b id="hStar">3.0</b></span>
+      <button id="bSet" type="button" class="gear" aria-label="설정"><svg viewBox="0 0 12 12" width="20" height="20" shape-rendering="crispEdges" aria-hidden="true"><g fill="currentColor"><rect x="5" y="0" width="2" height="2"/><rect x="5" y="10" width="2" height="2"/><rect x="0" y="5" width="2" height="2"/><rect x="10" y="5" width="2" height="2"/><rect x="1" y="1" width="2" height="2"/><rect x="9" y="1" width="2" height="2"/><rect x="1" y="9" width="2" height="2"/><rect x="9" y="9" width="2" height="2"/><rect x="2" y="3" width="8" height="6"/><rect x="3" y="2" width="6" height="8"/></g><rect x="5" y="5" width="2" height="2" fill="var(--paper)"/></svg></button>
     </div>
     <div id="tickets" aria-label="주문표"></div>
     <div id="questTrack" hidden aria-label="할 일"></div>
@@ -777,7 +803,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.8';
+const GAME_VERSION = '0.9';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2849,64 +2875,106 @@ function ground() {
   cx.fillStyle = '#c9b88e'; for (let x = 4; x < WORLD_W; x += 20) cx.fillRect(x, ROAD + 17, 10, 2);
 }
 
-// 따뜻한 불빛 (밤빛을 덮은 뒤에 더해요)
-function glow(x, y, w, h, a) {
-  cx.fillStyle = `rgba(255,214,130,${a})`;
-  cx.fillRect(x, y, w, h);
+
+// 사람·물건은 따로 한 장(layer)에 그려 밤빛을 옅게만 입혀요 — 불빛 사각형이 사람 위를 덮어 뚝 끊겨 보이지 않게
+let layer = null, lx = null;
+function itemLayer() {
+  if (!layer) { layer = document.createElement('canvas'); layer.width = CUT_W; layer.height = CUT_H; lx = layer.getContext('2d'); }
+  lx.setTransform(1, 0, 0, 1, 0, 0);
+  lx.clearRect(0, 0, CUT_W, CUT_H);
+  return lx;
 }
 
-// S: { cam, actors, props, door, fade, emotes, time }
+// S: { cam, actors, props, door, fade, emotes, time, night }
 function drawCut(S) {
   if (!cx || !cutAtlas.complete) return;
-  const t = S.time;
+  const t = S.time, ox = -Math.round(S.cam.x), oy = -Math.round(S.cam.y);
   cx.clearRect(0, 0, CUT_W, CUT_H);
   cx.save();
-  cx.translate(-Math.round(S.cam.x), -Math.round(S.cam.y));
+  cx.translate(ox, oy);
+  // 1) 배경: 하늘 · 가게 · 보도 (밤이면 밤빛과 불빛까지 — 불빛은 배경에만 비춰요)
   sky(t, S.night);
   for (const [n, x] of STORES) cspr(n, x, SHOP_TOP);
   cspr('sign', SHOP_X + 9, SHOP_TOP + 68);
   ground();
-  // 물건·사람을 발끝 순서로
+  if (S.night) nightLights(S, t);
+  else if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); } // 낮: 열린 문 안쪽은 살짝 어둡게
+  cx.restore();
+  // 2) 물건·사람을 발끝 순서로 따로 그리고, 밤이면 옅은 밤빛만
+  const L = itemLayer(), main = cx;
+  cx = L; L.translate(ox, oy);
   const items = S.props.map(p => ({ y: p.y, d: () => cspr(p.spr, p.x, p.y - SPR[p.spr][3]) }));
   for (const id in S.actors) { const a = S.actors[id]; if (!a.hidden) items.push({ y: a.y, d: () => person(a, t + a.char) }); }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
-  if (!S.night) { // 낮: 문이 열리면 안쪽이 살짝 어둡게
-    if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); }
-  } else nightLights(S, t);
-  // 감정 표시 (밝게)
+  cx = main;
+  if (S.night) { L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-atop'; L.fillStyle = 'rgba(22,26,70,.3)'; L.fillRect(0, 0, CUT_W, CUT_H); L.globalCompositeOperation = 'source-over'; }
+  cx.drawImage(layer, 0, 0);
+  // 3) 감정 표시 (밝게)
+  cx.save();
+  cx.translate(ox, oy);
   for (const id in S.emotes) { const e = S.emotes[id], a = S.actors[id]; if (a && !a.hidden) emote(a, e.kind, e.t); }
   cx.restore();
   if (S.fade > 0) { cx.fillStyle = `rgba(8,8,16,${S.fade})`; cx.fillRect(0, 0, CUT_W, CUT_H); }
 }
 
+// 둥글게 번지는 따뜻한 불빛 (가장자리로 갈수록 옅어져요). sy < 1이면 바닥에 납작하게
+function radial(x, y, r, a, sy) {
+  cx.save();
+  cx.translate(x, y); cx.scale(1, sy || 1);
+  const g = cx.createRadialGradient(0, 0, 0, 0, 0, r);
+  g.addColorStop(0, `rgba(255,214,130,${a})`); g.addColorStop(1, 'rgba(255,214,130,0)');
+  cx.fillStyle = g; cx.fillRect(-r, -r, r * 2, r * 2);
+  cx.restore();
+}
 // 밤빛을 덮고 따뜻한 불빛: 가게 창 · 열린 문 · 간판 · 가로등
 function nightLights(S, t) {
   cx.fillStyle = 'rgba(22,26,70,.42)'; cx.fillRect(0, -220, WORLD_W, 440);
   const fl = 0.9 + Math.sin(t * 9) * 0.05;
-  glow(SHOP_X + 41, SHOP_TOP + 86, 31, 22, 0.32);
-  if (S.door) { glow(SHOP_X + 18, SHOP_TOP + 92, 12, 23, 0.55); glow(SHOP_X + 12, GROUND, 24, 10, 0.18); }
-  glow(SHOP_X + 2, SHOP_TOP + 66, 76, 2, 0.25);
-  cx.fillStyle = `rgba(255,214,130,${0.10 * fl})`;
-  for (let i = 0; i < 4; i++) { const w = 18 + i * 8; cx.fillRect(LAMP_X + 7 - w / 2, 150 + i * 6, w, 6); } // 가로등 불빛 웅덩이
-  glow(LAMP_X + 3, 118, 8, 7, 0.45 * fl); // 가로등 머리
+  radial(SHOP_X + 56, SHOP_TOP + 97, 22, 0.38);             // 가게 창
+  radial(SHOP_X + 56, GROUND + 4, 26, 0.18, 0.4);           // 창 아래 보도
+  radial(SHOP_X + 24, SHOP_TOP + 76, 20, 0.16);             // 간판
+  if (S.door) { radial(SHOP_X + 24, SHOP_TOP + 104, 15, 0.5); radial(SHOP_X + 24, GROUND + 4, 18, 0.22, 0.45); }
+  radial(LAMP_X + 7, 160, 34, 0.24 * fl, 0.45);             // 가로등 불빛 웅덩이
+  radial(LAMP_X + 7, 121, 10, 0.55 * fl);                   // 가로등 머리
 }
 // ── js/ui/settings.js ──
 // 설정 (이 기기에만 기억해요 — 브라우저 저장소. 막혀 있으면 기본값으로)
-//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%)
+//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%) · vibe: 진동 1/0 · talk: 대화 글 0 한 번에 / 1 한 글자씩
 const KEY = 'sosang-settings';
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
-const S = { music: 4, sfx: 4 };
+const S = { music: 4, sfx: 4, vibe: 1, talk: 0 };
 try {
   Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}'));
   if (localStorage.getItem('sosang-music') === 'off') S.music = 0; // 옛 「음악 끄기」 버튼 설정
 } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.removeItem('sosang-music'); } catch (e) { /* 그대로 */ } }
 
 const setting = k => S[k];
 const levelVol = k => LEVELS[Math.max(0, Math.min(4, S[k] | 0))];
-function stepSetting(k, d) {
-  S[k] = Math.max(0, Math.min(4, (S[k] | 0) + d));
-  try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.removeItem('sosang-music'); } catch (e) { /* 그대로 */ }
-  return S[k];
+function stepSetting(k, d) { S[k] = Math.max(0, Math.min(4, (S[k] | 0) + d)); save(); return S[k]; }
+function setOption(k, v) { S[k] = v; save(); }
+
+// 진동 (안드로이드 브라우저만 돼요. 아이폰 사파리는 진동 기능을 열어 주지 않아요)
+const canVibrate = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+function vibrate(pattern) { if (S.vibe && canVibrate()) { try { navigator.vibrate(pattern); } catch (e) { /* 무시 */ } } }
+
+// 홈 화면에 추가 (웹앱 설치)
+//  installed: 이미 홈 화면에서 열림 · prompt: 바로 설치 창을 띄울 수 있음(안드로이드 크롬) · ios: 사파리 공유 버튼으로 · web: 웹앱 주소에서만
+const WEBAPP_URL = 'https://yonipang.github.io/sosang-tycoon/';
+let installEvent = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; });
+function installState() {
+  if ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone) return 'installed';
+  if (installEvent) return 'prompt';
+  if (!/github\.io$/.test(location.hostname)) return 'web';
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'ios' : 'manual';
+}
+async function promptInstall() {
+  if (!installEvent) return false;
+  installEvent.prompt();
+  try { await installEvent.userChoice; } catch (e) { /* 무시 */ }
+  installEvent = null;
+  return true;
 }
 // ── js/ui/sfx.js ──
 // 효과음: 파일 없이 짧은 소리를 만들어요. 첫 터치 뒤에만 소리가 나요(브라우저 규칙).
@@ -2946,7 +3014,9 @@ const SOUNDS = {
   surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
 };
-function playSfx(name) { const f = SOUNDS[name]; if (f) f(); }
+// 진동: 손맛이 필요한 순간만 짧게 (설정에서 끌 수 있어요)
+const VIBE = { perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
+function playSfx(name) { const f = SOUNDS[name]; if (f) f(); if (VIBE[name]) vibrate(VIBE[name]); }
 // ── js/ui/music.js ──
 // 배경음악: 장면마다 원하는 곡을 정하면(setMusic) 부드럽게 바꿔 틀어요. 곡은 js/audio/music.js (dev/audio_pack.py가 만들어요)
 // 지금 곡: oh = 오 사장님 테마 (오 사장님이 나오는 연출·대화·미션 전화)
@@ -3156,6 +3226,23 @@ function showNextScene() {
   playSfx('page');
 }
 
+// 설정 「한 글자씩」: 대화 글을 한 글자씩 띄워요. 누르면 남은 글이 한 번에 나와요
+let typing = null;
+function typeIn(box) {
+  stopTyping();
+  const p = box.querySelector('.tk-body p');
+  if (!p || !setting('talk')) return;
+  const full = p.textContent;
+  let i = 0;
+  p.textContent = '';
+  typing = { p, full, timer: setInterval(() => { i++; p.textContent = full.slice(0, i); if (i >= full.length) stopTyping(); }, 35) };
+}
+function stopTyping() {
+  if (!typing) return false;
+  clearInterval(typing.timer); typing.p.textContent = typing.full; typing = null;
+  return true;
+}
+
 // 대화 한 줄 (연출 중에도 같은 모양)
 function lineHTML(who, text) {
   const p = who && CAST[who];
@@ -3180,6 +3267,7 @@ function drawScene() {
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
+    typeIn(box);
     return;
   }
   box.className = 'talk';
@@ -3201,6 +3289,7 @@ function paperHTML(sc) {
 }
 
 function finish(name) {
+  stopTyping();
   open = null;
   guide(null);
   setMusic(null);
@@ -3223,6 +3312,7 @@ function advance() {
 function initStory() {
   const box = $('talk');
   box.addEventListener('click', e => {
+    if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     if (cutWaiting()) { cutTap(); return; }
     if (!open || cutActive()) return;
     if (e.target.closest('[data-talk=name]')) { finish($('talkName').value); return; }
@@ -3231,6 +3321,7 @@ function initStory() {
   });
   box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'talkName') finish(e.target.value); });
   addEventListener('keydown', e => {
+    if ((e.code === 'Space' || e.code === 'Enter') && stopTyping()) { e.preventDefault(); return; }
     if (cutWaiting() && (e.code === 'Space' || e.code === 'Enter')) { cutTap(); e.preventDefault(); return; }
     if (open && !cutActive() && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); }
   });
@@ -3353,6 +3444,7 @@ function next() {
     box.className = 'talk in-cut' + (s.say[0] ? (CAST[s.say[0]].think ? ' think' : '') : ' narr');
     box.innerHTML = lineHTML(s.say[0], s.say[1]);
     box.hidden = false;
+    typeIn(box);
     return;
   }
   if (!s.sec && !s.walk) next(); // 바로 끝나는 차례
@@ -3362,6 +3454,7 @@ function next() {
 function cutTap() {
   if (!cutWaiting()) return;
   C.wait = false;
+  stopTyping();
   $('talk').hidden = true; $('talk').innerHTML = '';
   playSfx('tap');
   next();
@@ -3402,6 +3495,7 @@ function end() {
 }
 function skipCut() {
   if (!C) return;
+  stopTyping();
   $('talk').hidden = true; $('talk').innerHTML = '';
   end();
 }
@@ -3486,7 +3580,7 @@ function renderPrep() {
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
-      <div class="btn-pair"><button class="btn ghost small" data-act="settings" data-from="prep">설정</button><button class="btn ghost small" data-act="toTitle">처음 화면</button></div>
+      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
 
@@ -3612,33 +3706,71 @@ function renderDev() {
     </div>`, 'scr-dev');
 }
 
-// ── 설정: 소리 크기 · 크레딧 · (처음 화면에서만) 개발자 모드 · 버전 ──
-// from: 어디서 열었는지 (title · prep · pause) — 「돌아가기」로 그 화면에 돌아가요
-let settingsFrom = 'title', musicBefore = null, previewing = false;
+// ── 설정: 소리 · 진동 · 대화 · 홈 화면에 추가 · 계정 · 크레딧 · 처음부터 · 버전 ──
+// from: 어디서 열었는지 (title · prep · day · receipt · weekly · pause) — 「돌아가기」로 그 화면에 돌아가요
+// 개발자 모드는 숨겨 둬요: 처음 화면에서 연 설정의 버전 글자를 7번 누르면 열려요
+let settingsFrom = 'title', musicBefore = null, previewing = false, verTaps = 0;
 const lvText = k => setting(k) ? `${LEVELS[setting(k)] * 100}%` : '끔';
+const seg = (k, opts) => `<div class="seg">${opts.map(([v, label]) => `<button type="button" data-act="setOpt" data-k="${k}" data-v="${v}" class="${setting(k) === v ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+function installRow() {
+  const st = installState();
+  if (st === 'installed') return '<p class="set-note">홈 화면에서 열려 있습니다.</p>';
+  if (st === 'prompt') return '<button type="button" class="btn small" data-act="install">홈 화면에 추가</button>';
+  if (st === 'ios') return '<p class="set-note">사파리 아래쪽 공유 버튼 → 「홈 화면에 추가」를 눌러 보세요.</p>';
+  if (st === 'manual') return '<p class="set-note">브라우저 메뉴(⋮) → 「홈 화면에 추가」 또는 「앱 설치」를 눌러 보세요.</p>';
+  return `<p class="set-note">웹앱 주소에서 추가할 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
+}
 function renderSettings(from) {
-  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; }
+  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; verTaps = 0; }
   const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
   showScreen(`
     <div class="settings">
       <h2>설정</h2>
       <div class="set-card">
+        <small class="set-h">소리</small>
         ${step('music', '배경음악')}
         ${step('sfx', '효과음')}
-        <p class="set-note">배경음악은 오 사장님이 나오는 장면에서 흐릅니다. 이 기기에만 기억합니다.</p>
+        <div class="row"><span>진동</span>${seg('vibe', [[1, '켬'], [0, '끔']])}</div>
+        ${canVibrate() ? '' : '<p class="set-note">이 기기는 진동을 지원하지 않습니다 (아이폰 등)</p>'}
+      </div>
+      <div class="set-card">
+        <small class="set-h">대화</small>
+        <div class="row"><span>글 나오는 방식</span>${seg('talk', [[0, '한 번에'], [1, '한 글자씩']])}</div>
+      </div>
+      <div class="set-card">
+        <small class="set-h">홈 화면에 추가</small>
+        ${installRow()}
+      </div>
+      <div class="set-card">
+        <small class="set-h">계정</small>
+        <div class="row"><span>구글 로그인</span><span class="set-soon">준비 중</span></div>
+        <p class="set-note">로그인하면 다른 기기에서도 이어서 할 수 있게 만들 예정입니다.</p>
       </div>
       <button class="btn" data-act="credits">크레딧</button>
-      ${settingsFrom === 'title' ? '<button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>' : ''}
-      <p class="set-ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
+      <button class="btn ghost small danger" data-act="restart">처음부터 다시 하기</button>
+      <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
       <button class="btn primary big" data-act="settingsClose">돌아가기</button>
     </div>`, 'scr-settings');
 }
 function closeSettings() {
   if (previewing) setMusic(musicBefore); // 미리 듣기를 끝내요
   previewing = false;
-  if (settingsFrom === 'prep' && G.phase === 'prep') renderPrep();
-  else if (settingsFrom === 'pause' && G.run) renderPause();
+  const f = settingsFrom;
+  if (f === 'prep' && G.phase === 'prep') renderPrep();
+  else if (f === 'receipt' && G.phase === 'receipt') renderReceipt();
+  else if (f === 'weekly' && G.phase === 'weekly') renderWeekly();
+  else if (f === 'pause' && G.run) renderPause();
+  else if (f === 'day' && G.run) { hideScreen(); runCmd('hold', { on: false }); }
   else renderTitle();
+}
+// 위 막대 톱니바퀴: 지금 화면에서 설정 열기 (영업 중이면 가게를 잠깐 멈춰요)
+function openSettingsHere() {
+  if (G.phase === 'title' || !$('screen').hidden && $('screen').classList.contains('scr-settings')) return;
+  if (G.phase === 'day' && G.run) {
+    if (G.run.paused) { renderSettings('pause'); return; }
+    runCmd('hold', { on: true }); renderSettings('day'); return;
+  }
+  renderSettings(G.phase);
 }
 
 // ── 엔딩 크레딧 ──
@@ -3693,6 +3825,13 @@ function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
+    else if (a === 'install') { promptInstall().then(() => renderSettings()); }
+    else if (a === 'restart') {
+      if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }
+      clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+    }
+    else if (a === 'ver') { if (settingsFrom === 'title' && ++verTaps >= 7) { verTaps = 0; playSfx('perfect'); renderDev(); } }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
@@ -3826,6 +3965,7 @@ function initInput() {
   });
   // 조리 중에는 화면 어디를 눌러도 멈춰요
   $('cookUI').addEventListener('pointerdown', e => { runCmd('cookTap'); e.preventDefault(); });
+  $('bSet').addEventListener('click', () => { unlockAudio(); if (!talking() && !cutActive()) openSettingsHere(); });
   $('bPause').addEventListener('click', () => { if (G.run && !talking()) runCmd('pause', { on: !G.run.paused }); });
   $('bSpeed').addEventListener('click', () => {
     if (!G.run) return;

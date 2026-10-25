@@ -87,44 +87,65 @@ function ground() {
   cx.fillStyle = '#c9b88e'; for (let x = 4; x < WORLD_W; x += 20) cx.fillRect(x, ROAD + 17, 10, 2);
 }
 
-// 따뜻한 불빛 (밤빛을 덮은 뒤에 더해요)
-function glow(x, y, w, h, a) {
-  cx.fillStyle = `rgba(255,214,130,${a})`;
-  cx.fillRect(x, y, w, h);
+
+// 사람·물건은 따로 한 장(layer)에 그려 밤빛을 옅게만 입혀요 — 불빛 사각형이 사람 위를 덮어 뚝 끊겨 보이지 않게
+let layer = null, lx = null;
+function itemLayer() {
+  if (!layer) { layer = document.createElement('canvas'); layer.width = CUT_W; layer.height = CUT_H; lx = layer.getContext('2d'); }
+  lx.setTransform(1, 0, 0, 1, 0, 0);
+  lx.clearRect(0, 0, CUT_W, CUT_H);
+  return lx;
 }
 
-// S: { cam, actors, props, door, fade, emotes, time }
+// S: { cam, actors, props, door, fade, emotes, time, night }
 export function drawCut(S) {
   if (!cx || !cutAtlas.complete) return;
-  const t = S.time;
+  const t = S.time, ox = -Math.round(S.cam.x), oy = -Math.round(S.cam.y);
   cx.clearRect(0, 0, CUT_W, CUT_H);
   cx.save();
-  cx.translate(-Math.round(S.cam.x), -Math.round(S.cam.y));
+  cx.translate(ox, oy);
+  // 1) 배경: 하늘 · 가게 · 보도 (밤이면 밤빛과 불빛까지 — 불빛은 배경에만 비춰요)
   sky(t, S.night);
   for (const [n, x] of STORES) cspr(n, x, SHOP_TOP);
   cspr('sign', SHOP_X + 9, SHOP_TOP + 68);
   ground();
-  // 물건·사람을 발끝 순서로
+  if (S.night) nightLights(S, t);
+  else if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); } // 낮: 열린 문 안쪽은 살짝 어둡게
+  cx.restore();
+  // 2) 물건·사람을 발끝 순서로 따로 그리고, 밤이면 옅은 밤빛만
+  const L = itemLayer(), main = cx;
+  cx = L; L.translate(ox, oy);
   const items = S.props.map(p => ({ y: p.y, d: () => cspr(p.spr, p.x, p.y - SPR[p.spr][3]) }));
   for (const id in S.actors) { const a = S.actors[id]; if (!a.hidden) items.push({ y: a.y, d: () => person(a, t + a.char) }); }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
-  if (!S.night) { // 낮: 문이 열리면 안쪽이 살짝 어둡게
-    if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); }
-  } else nightLights(S, t);
-  // 감정 표시 (밝게)
+  cx = main;
+  if (S.night) { L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-atop'; L.fillStyle = 'rgba(22,26,70,.3)'; L.fillRect(0, 0, CUT_W, CUT_H); L.globalCompositeOperation = 'source-over'; }
+  cx.drawImage(layer, 0, 0);
+  // 3) 감정 표시 (밝게)
+  cx.save();
+  cx.translate(ox, oy);
   for (const id in S.emotes) { const e = S.emotes[id], a = S.actors[id]; if (a && !a.hidden) emote(a, e.kind, e.t); }
   cx.restore();
   if (S.fade > 0) { cx.fillStyle = `rgba(8,8,16,${S.fade})`; cx.fillRect(0, 0, CUT_W, CUT_H); }
 }
 
+// 둥글게 번지는 따뜻한 불빛 (가장자리로 갈수록 옅어져요). sy < 1이면 바닥에 납작하게
+function radial(x, y, r, a, sy) {
+  cx.save();
+  cx.translate(x, y); cx.scale(1, sy || 1);
+  const g = cx.createRadialGradient(0, 0, 0, 0, 0, r);
+  g.addColorStop(0, `rgba(255,214,130,${a})`); g.addColorStop(1, 'rgba(255,214,130,0)');
+  cx.fillStyle = g; cx.fillRect(-r, -r, r * 2, r * 2);
+  cx.restore();
+}
 // 밤빛을 덮고 따뜻한 불빛: 가게 창 · 열린 문 · 간판 · 가로등
 function nightLights(S, t) {
   cx.fillStyle = 'rgba(22,26,70,.42)'; cx.fillRect(0, -220, WORLD_W, 440);
   const fl = 0.9 + Math.sin(t * 9) * 0.05;
-  glow(SHOP_X + 41, SHOP_TOP + 86, 31, 22, 0.32);
-  if (S.door) { glow(SHOP_X + 18, SHOP_TOP + 92, 12, 23, 0.55); glow(SHOP_X + 12, GROUND, 24, 10, 0.18); }
-  glow(SHOP_X + 2, SHOP_TOP + 66, 76, 2, 0.25);
-  cx.fillStyle = `rgba(255,214,130,${0.10 * fl})`;
-  for (let i = 0; i < 4; i++) { const w = 18 + i * 8; cx.fillRect(LAMP_X + 7 - w / 2, 150 + i * 6, w, 6); } // 가로등 불빛 웅덩이
-  glow(LAMP_X + 3, 118, 8, 7, 0.45 * fl); // 가로등 머리
+  radial(SHOP_X + 56, SHOP_TOP + 97, 22, 0.38);             // 가게 창
+  radial(SHOP_X + 56, GROUND + 4, 26, 0.18, 0.4);           // 창 아래 보도
+  radial(SHOP_X + 24, SHOP_TOP + 76, 20, 0.16);             // 간판
+  if (S.door) { radial(SHOP_X + 24, SHOP_TOP + 104, 15, 0.5); radial(SHOP_X + 24, GROUND + 4, 18, 0.22, 0.45); }
+  radial(LAMP_X + 7, 160, 34, 0.24 * fl, 0.45);             // 가로등 불빛 웅덩이
+  radial(LAMP_X + 7, 121, 10, 0.55 * fl);                   // 가로등 머리
 }

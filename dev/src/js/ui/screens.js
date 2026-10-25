@@ -12,7 +12,7 @@ import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
 import { setMusic, musicWant } from './music.js';
-import { LEVELS, setting, stepSetting } from './settings.js';
+import { LEVELS, setting, stepSetting, setOption, canVibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
 import { menuOpen } from '../sim/story.js';
 import { questCard, doneCard, incidentCard } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
@@ -97,7 +97,7 @@ export function renderPrep() {
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
-      <div class="btn-pair"><button class="btn ghost small" data-act="settings" data-from="prep">설정</button><button class="btn ghost small" data-act="toTitle">처음 화면</button></div>
+      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
 
@@ -223,33 +223,71 @@ export function renderDev() {
     </div>`, 'scr-dev');
 }
 
-// ── 설정: 소리 크기 · 크레딧 · (처음 화면에서만) 개발자 모드 · 버전 ──
-// from: 어디서 열었는지 (title · prep · pause) — 「돌아가기」로 그 화면에 돌아가요
-let settingsFrom = 'title', musicBefore = null, previewing = false;
+// ── 설정: 소리 · 진동 · 대화 · 홈 화면에 추가 · 계정 · 크레딧 · 처음부터 · 버전 ──
+// from: 어디서 열었는지 (title · prep · day · receipt · weekly · pause) — 「돌아가기」로 그 화면에 돌아가요
+// 개발자 모드는 숨겨 둬요: 처음 화면에서 연 설정의 버전 글자를 7번 누르면 열려요
+let settingsFrom = 'title', musicBefore = null, previewing = false, verTaps = 0;
 const lvText = k => setting(k) ? `${LEVELS[setting(k)] * 100}%` : '끔';
+const seg = (k, opts) => `<div class="seg">${opts.map(([v, label]) => `<button type="button" data-act="setOpt" data-k="${k}" data-v="${v}" class="${setting(k) === v ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+function installRow() {
+  const st = installState();
+  if (st === 'installed') return '<p class="set-note">홈 화면에서 열려 있습니다.</p>';
+  if (st === 'prompt') return '<button type="button" class="btn small" data-act="install">홈 화면에 추가</button>';
+  if (st === 'ios') return '<p class="set-note">사파리 아래쪽 공유 버튼 → 「홈 화면에 추가」를 눌러 보세요.</p>';
+  if (st === 'manual') return '<p class="set-note">브라우저 메뉴(⋮) → 「홈 화면에 추가」 또는 「앱 설치」를 눌러 보세요.</p>';
+  return `<p class="set-note">웹앱 주소에서 추가할 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
+}
 export function renderSettings(from) {
-  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; }
+  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; verTaps = 0; }
   const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
   showScreen(`
     <div class="settings">
       <h2>설정</h2>
       <div class="set-card">
+        <small class="set-h">소리</small>
         ${step('music', '배경음악')}
         ${step('sfx', '효과음')}
-        <p class="set-note">배경음악은 오 사장님이 나오는 장면에서 흐릅니다. 이 기기에만 기억합니다.</p>
+        <div class="row"><span>진동</span>${seg('vibe', [[1, '켬'], [0, '끔']])}</div>
+        ${canVibrate() ? '' : '<p class="set-note">이 기기는 진동을 지원하지 않습니다 (아이폰 등)</p>'}
+      </div>
+      <div class="set-card">
+        <small class="set-h">대화</small>
+        <div class="row"><span>글 나오는 방식</span>${seg('talk', [[0, '한 번에'], [1, '한 글자씩']])}</div>
+      </div>
+      <div class="set-card">
+        <small class="set-h">홈 화면에 추가</small>
+        ${installRow()}
+      </div>
+      <div class="set-card">
+        <small class="set-h">계정</small>
+        <div class="row"><span>구글 로그인</span><span class="set-soon">준비 중</span></div>
+        <p class="set-note">로그인하면 다른 기기에서도 이어서 할 수 있게 만들 예정입니다.</p>
       </div>
       <button class="btn" data-act="credits">크레딧</button>
-      ${settingsFrom === 'title' ? '<button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>' : ''}
-      <p class="set-ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
+      <button class="btn ghost small danger" data-act="restart">처음부터 다시 하기</button>
+      <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
       <button class="btn primary big" data-act="settingsClose">돌아가기</button>
     </div>`, 'scr-settings');
 }
 function closeSettings() {
   if (previewing) setMusic(musicBefore); // 미리 듣기를 끝내요
   previewing = false;
-  if (settingsFrom === 'prep' && G.phase === 'prep') renderPrep();
-  else if (settingsFrom === 'pause' && G.run) renderPause();
+  const f = settingsFrom;
+  if (f === 'prep' && G.phase === 'prep') renderPrep();
+  else if (f === 'receipt' && G.phase === 'receipt') renderReceipt();
+  else if (f === 'weekly' && G.phase === 'weekly') renderWeekly();
+  else if (f === 'pause' && G.run) renderPause();
+  else if (f === 'day' && G.run) { hideScreen(); runCmd('hold', { on: false }); }
   else renderTitle();
+}
+// 위 막대 톱니바퀴: 지금 화면에서 설정 열기 (영업 중이면 가게를 잠깐 멈춰요)
+export function openSettingsHere() {
+  if (G.phase === 'title' || !$('screen').hidden && $('screen').classList.contains('scr-settings')) return;
+  if (G.phase === 'day' && G.run) {
+    if (G.run.paused) { renderSettings('pause'); return; }
+    runCmd('hold', { on: true }); renderSettings('day'); return;
+  }
+  renderSettings(G.phase);
 }
 
 // ── 엔딩 크레딧 ──
@@ -304,6 +342,13 @@ export function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
+    else if (a === 'install') { promptInstall().then(() => renderSettings()); }
+    else if (a === 'restart') {
+      if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }
+      clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+    }
+    else if (a === 'ver') { if (settingsFrom === 'title' && ++verTaps >= 7) { verTaps = 0; playSfx('perfect'); renderDev(); } }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }

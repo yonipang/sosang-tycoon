@@ -1,5 +1,5 @@
 // 효과음: 파일 없이 짧은 소리를 만들어요. 첫 터치 뒤에만 소리가 나요(브라우저 규칙).
-import { levelVol } from './settings.js';
+import { levelVol, vibrate } from './settings.js';
 
 let ac = null, muted = false;
 export function unlockAudio() {
@@ -36,4 +36,6 @@ const SOUNDS = {
   surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
 };
-export function playSfx(name) { const f = SOUNDS[name]; if (f) f(); }
+// 진동: 손맛이 필요한 순간만 짧게 (설정에서 끌 수 있어요)
+const VIBE = { perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
+export function playSfx(name) { const f = SOUNDS[name]; if (f) f(); if (VIBE[name]) vibrate(VIBE[name]); }

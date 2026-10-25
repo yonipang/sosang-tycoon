@@ -4,7 +4,7 @@ import { $ } from '../engine/util.js';
 import { CUTS } from '../data/cutscenes.js';
 import { CAST } from '../data/story.js';
 import { initCut, fitCut, drawCut } from '../render/cut.js';
-import { lineHTML } from './story.js';
+import { lineHTML, typeIn, stopTyping } from './story.js';
 import { playSfx } from './sfx.js';
 import { setMusic } from './music.js';
 
@@ -70,6 +70,7 @@ function next() {
     box.className = 'talk in-cut' + (s.say[0] ? (CAST[s.say[0]].think ? ' think' : '') : ' narr');
     box.innerHTML = lineHTML(s.say[0], s.say[1]);
     box.hidden = false;
+    typeIn(box);
     return;
   }
   if (!s.sec && !s.walk) next(); // 바로 끝나는 차례
@@ -79,6 +80,7 @@ function next() {
 export function cutTap() {
   if (!cutWaiting()) return;
   C.wait = false;
+  stopTyping();
   $('talk').hidden = true; $('talk').innerHTML = '';
   playSfx('tap');
   next();
@@ -119,6 +121,7 @@ function end() {
 }
 export function skipCut() {
   if (!C) return;
+  stopTyping();
   $('talk').hidden = true; $('talk').innerHTML = '';
   end();
 }

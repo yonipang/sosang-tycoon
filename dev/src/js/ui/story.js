@@ -9,6 +9,7 @@ import { clockText } from '../engine/util.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { setMusic } from './music.js';
+import { setting } from './settings.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
@@ -29,6 +30,23 @@ export function showNextScene() {
   $('talk').hidden = false;
   drawScene();
   playSfx('page');
+}
+
+// 설정 「한 글자씩」: 대화 글을 한 글자씩 띄워요. 누르면 남은 글이 한 번에 나와요
+let typing = null;
+export function typeIn(box) {
+  stopTyping();
+  const p = box.querySelector('.tk-body p');
+  if (!p || !setting('talk')) return;
+  const full = p.textContent;
+  let i = 0;
+  p.textContent = '';
+  typing = { p, full, timer: setInterval(() => { i++; p.textContent = full.slice(0, i); if (i >= full.length) stopTyping(); }, 35) };
+}
+export function stopTyping() {
+  if (!typing) return false;
+  clearInterval(typing.timer); typing.p.textContent = typing.full; typing = null;
+  return true;
 }
 
 // 대화 한 줄 (연출 중에도 같은 모양)
@@ -55,6 +73,7 @@ function drawScene() {
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
+    typeIn(box);
     return;
   }
   box.className = 'talk';
@@ -76,6 +95,7 @@ function paperHTML(sc) {
 }
 
 function finish(name) {
+  stopTyping();
   open = null;
   guide(null);
   setMusic(null);
@@ -98,6 +118,7 @@ function advance() {
 export function initStory() {
   const box = $('talk');
   box.addEventListener('click', e => {
+    if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     if (cutWaiting()) { cutTap(); return; }
     if (!open || cutActive()) return;
     if (e.target.closest('[data-talk=name]')) { finish($('talkName').value); return; }
@@ -106,6 +127,7 @@ export function initStory() {
   });
   box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'talkName') finish(e.target.value); });
   addEventListener('keydown', e => {
+    if ((e.code === 'Space' || e.code === 'Enter') && stopTyping()) { e.preventDefault(); return; }
     if (cutWaiting() && (e.code === 'Space' || e.code === 'Enter')) { cutTap(); e.preventDefault(); return; }
     if (open && !cutActive() && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); }
   });
