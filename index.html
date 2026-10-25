@@ -760,6 +760,9 @@ const REVIEW_TEMPLATES = {
   regular: { stars: 5, salience: 2, lines: ['매일 와도 안 질려', '여기 {menu}는 옛날 맛 그대로야'] },
   normal: { stars: 4, salience: 1, lines: ['무난하게 먹고 가요', '동네에 이런 분식집 있어서 좋아요', '{menu} 괜찮았어요'] },
 };
+// ── js/data/version.js ──
+// 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
+const GAME_VERSION = '0.6';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림 크레딧(LimeZu)은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3332,7 +3335,7 @@ function renderTitle() {
       ${save ? `<button class="btn primary" data-act="continue">이어하기</button>` : ''}
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
-      <p class="proto">프로토타입 · 프롤로그와 1장</p>
+      <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
       <button class="btn ghost small" data-act="credits">크레딧</button>
       <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
     </div>`, 'scr-title');

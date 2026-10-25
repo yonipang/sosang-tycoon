@@ -2,6 +2,7 @@
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
+import { GAME_VERSION } from '../data/version.js';
 import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
@@ -39,7 +40,7 @@ export function renderTitle() {
       ${save ? `<button class="btn primary" data-act="continue">이어하기</button>` : ''}
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
-      <p class="proto">프로토타입 · 프롤로그와 1장</p>
+      <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
       <button class="btn ghost small" data-act="credits">크레딧</button>
       <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
     </div>`, 'scr-title');
