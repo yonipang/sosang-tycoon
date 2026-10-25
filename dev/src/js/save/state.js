@@ -9,8 +9,9 @@ export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
 // 저장하는 칸 (순서대로 직렬화)
 // story = 이야기 진행 (data/story.js newStory)
+// meta = 세이브 꼬리표 { id: 이 가게(판) 번호, at: 마지막 저장 시각 } — 클라우드 저장에서 같은 판인지·어느 쪽이 최근인지 봐요
 // prep = 오늘 아침 도착할 재료 주문량(인분) · inv = 가게 재료 { 메뉴: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] }
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta'];
 
 export const G = { phase: 'title', run: null };
 
@@ -32,6 +33,7 @@ export function newGame(shopName) {
     baseSeed: 0,
     stats: { served: 0, sales: 0 },
     story: newStory(),
+    meta: { id: Date.now().toString(36), at: 0 }, // 새 판마다 새 번호
     phase: 'prep',
     run: null,
   });

@@ -464,3 +464,16 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .set-note a { color: var(--blue); word-break: break-all; }
 .btn.ghost.danger { border-color: #e88b7a; color: #ffb3a6; margin-top: 14px; }
 .set-ver { cursor: default; user-select: none; -webkit-user-select: none; }
+
+/* 클라우드 저장 (처음 화면 · 설정) */
+.cl-ask { background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); padding: 8px 10px; margin: 0 0 12px; text-align: left; word-break: keep-all; }
+.set-card .cl-ask { box-shadow: none; border-width: 2px; margin: 6px 0 4px; }
+.cl-ask p { margin: 0 0 6px; }
+.cl-ask small { color: var(--ink-soft); }
+.cl-ask .cl-line { margin: 2px 0; color: var(--ink-soft); }
+.cl-two { display: flex; gap: 8px; }
+.cl-two .btn { flex: 1; }
+.set-card .btn.ghost, .cl-ask .btn.ghost { color: var(--ink); border-color: var(--ink); }
+.set-card .row .btn.small { width: auto; min-width: 88px; margin: 0; }
+.cl-two .btn.small { width: auto; }
+.cl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 8px; }

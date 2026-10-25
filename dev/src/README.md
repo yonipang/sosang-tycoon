@@ -8,7 +8,7 @@
 | sim | `events.js` | 사건(emit/onEvent) · 명령(defineCmd/runCmd) |
 | art | `atlas.js` | 그림 한 장 + 자리표 (art_pack.py가 만들어요) |
 | data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` `credits.js` `story.js` `cutscenes.js` | 메뉴·손님·돈과 시간·가게 배치·리뷰 문구·크레딧·이야기(인물·퀘스트·대화 장면)·연출 대본 |
-| save | `migrations.js` `state.js` `storage.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 |
+| save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 · 클라우드 저장(구글 로그인, Firebase) |
 | sim | `story.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 이야기 규칙(퀘스트 세기·메뉴 열기) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | render | `view.js` `cut.js` | 가게 그리기 · 연출(밤 골목) 그리기 |
 | ui | `sfx.js` `icons.js` `hud.js` `story.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 연출 진행 · 준비/영수증 화면 · 사건 받기 · 입력 |

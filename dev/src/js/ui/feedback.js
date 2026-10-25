@@ -4,6 +4,7 @@ import { $ } from '../engine/util.js';
 import { onEvent } from '../sim/events.js';
 import { tileToCss, addMark } from '../render/view.js';
 import { saveGame } from '../save/storage.js';
+import { cloudSaved } from '../save/cloud.js';
 import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
@@ -94,13 +95,13 @@ export function initFeedback() {
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
     if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
-    if (p === 'prep') { saveGame(); renderPrep(); showNextScene(); }
+    if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();
     updateQuestTrack();
   });
-  onEvent('prep', () => { saveGame(); renderPrep(); }); // 준비 화면에서 바뀐 것(이야기 장면·수리비 등)은 바로 저장
+  onEvent('prep', () => { if (saveGame()) cloudSaved(); renderPrep(); }); // 준비 화면에서 바뀐 것(이야기 장면·수리비 등)은 바로 저장
   onEvent('story', showNextScene);
   onEvent('quest', updateQuestTrack);
   onEvent('pause', on => { if (on) renderPause(); else if (G.phase === 'day') hideScreen(); });
