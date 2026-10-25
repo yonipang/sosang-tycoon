@@ -161,7 +161,7 @@ export function tickDay(dt) {
     emit('toast', `${josa(MENUS[m].ing, '이/가')} 떨어졌습니다. 냉장고를 눌러 급구매해 보세요`, 'hint');
   }
   // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
-  if (!r.closing && !r.soldOutHint && !r.rush.length && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length) {
+  if (!r.closing && !r.soldOutHint && !r.rush.length && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length && !r.hands.length) {
     r.soldOutHint = true;
     emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
   }

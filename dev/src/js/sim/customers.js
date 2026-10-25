@@ -162,6 +162,14 @@ function removeTicket(c) {
   if (handsM <= ticketsM) r.stock[m]++;
 }
 
+// 손에 든 음식 중 주문표에 묶이지 않은 몫 = 주문 없이 미리 만든 것 (재료는 만들 때 이미 썼어요)
+export function spareOf(m) {
+  const r = G.run;
+  return Math.max(0, r.hands.filter(d => d.menu === m).length - r.tickets.filter(t => t.menu === m).length);
+}
+// 팔 수 있나: 남은 재료가 있거나, 미리 만든 게 손에 있거나
+export const canSell = m => G.run.stock[m] > 0 || spareOf(m) > 0;
+
 function reaction(c, m) {
   const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1);
   return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
@@ -172,19 +180,19 @@ function decide(c) {
   const w = {};
   for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
-  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && r.stock[x] > 0));
+  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
   if (want && menuOpen(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
-  if (r.stock[m] <= 0) {
-    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && r.stock[x] > 0 && !reaction(c, x).leave);
+  if (!canSell(m)) {
+    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && canSell(x) && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
     else { partyLeaves(c, 'soldout', m); return; }
   }
-  r.stock[m]--;
+  if (!spareOf(m)) r.stock[m]--; // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
   c.menu = m; c.priceSat = re.sat;
   r.tickets.push({ cid: c.id, menu: m, table: SEATS[c.seat].table });
   c.patMax = c.patience = PATIENCE.food * P(c);

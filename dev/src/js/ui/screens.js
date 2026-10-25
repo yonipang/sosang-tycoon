@@ -7,15 +7,17 @@ import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost, invCount } from '../sim/day.js';
-import { hasSave, loadGame, clearSave, saveText } from '../save/storage.js';
-import { CLOUD, cloudLogin, cloudLogout, cloudTake, cloudKeepLocal, summaryLine } from '../save/cloud.js';
+import { hasSave, loadGame, clearSave } from '../save/storage.js';
+import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
+import { cutActive } from './cutscene.js';
+import { toast } from './feedback.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
 import { setMusic, musicWant } from './music.js';
 import { LEVELS, setting, stepSetting, setOption, canVibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
 import { menuOpen } from '../sim/story.js';
-import { questCard, doneCard, incidentCard } from './story.js';
+import { questCard, doneCard, incidentCard, talking } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
 import { INCIDENTS } from '../data/incidents.js';
 import { DEV_JUMPS } from '../sim/dev.js';
@@ -40,12 +42,11 @@ export function renderTitle() {
       <div class="logo-sub">골목 분식집에서 시작하는</div>
       <h1 class="logo">소상공인<br>키우기</h1>
       <div class="hero">${icon('char0', 'big')}${icon('tteok', 'dish')}${icon('kimbap', 'dish')}${icon('twigim', 'dish')}</div>
-      ${CLOUD.st === 'in' && CLOUD.ask ? cloudAskBox() : ''}
       ${save ? `<button class="btn primary" data-act="continue">이어하기</button>` : ''}
-      <button class="btn ${save || CLOUD.ask === 'only' ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
+      <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
-      ${CLOUD.st === 'out' ? '<button class="btn ghost small" data-act="cloudLogin">구글 로그인 · 다른 기기에서 이어하기</button>' : ''}
+      ${CLOUD.st === 'in' ? `<p class="cl-title">☁ ${escName()} · 클라우드에 자동 저장</p>` : CLOUD.st === 'out' || CLOUD.st === 'na' ? '<button class="btn ghost small" data-act="cloudLogin">구글 로그인</button>' : ''}
       <button class="btn ghost small" data-act="settings" data-from="title">설정</button>
     </div>`, 'scr-title');
 }
@@ -240,26 +241,16 @@ function installRow() {
   if (st === 'manual') return '<p class="set-note">브라우저 메뉴(⋮) → 「홈 화면에 추가」 또는 「앱 설치」를 눌러 보세요.</p>';
   return `<p class="set-note">웹앱 주소에서 추가할 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
 }
-// 클라우드 저장 (save/cloud.js)
+// 클라우드 저장 (save/cloud.js): 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브를 저절로 써요
+const escName = () => String(CLOUD.user ? CLOUD.user.name : '').replace(/[&<>"']/g, '');
 function accountRows() {
   const st = CLOUD.st;
-  if (st === 'na') return CLOUD.err === 'load' ? '<p class="set-note">클라우드에 연결하지 못했습니다. 인터넷 연결을 확인해 보세요.</p>'
-    : `<p class="set-note">웹앱 주소(홈 화면 앱)로 연 게임에서 쓸 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
-  if (st === 'out') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div><p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 다른 기기에서도 이어서 할 수 있습니다.</p>';
-  if (st !== 'in') return '<p class="set-note">연결하는 중…</p>';
-  const name = String(CLOUD.user.name).replace(/[&<>"']/g, '');
-  return `<div class="row"><span class="cl-name">${name}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
-    + (CLOUD.ask ? cloudAskBox() : `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>새벽 준비 화면에서 저장할 때마다 자동으로 올라갑니다.</p>`);
-}
-// 클라우드와 이 기기 세이브가 다를 때 고르는 상자 (처음 화면 · 설정)
-function cloudAskBox() {
-  const a = CLOUD.ask, d = CLOUD.doc;
-  if (!d) return '';
-  if (a === 'only') return `<div class="cl-ask"><p>클라우드에 저장된 가게가 있습니다.</p><p class="cl-line">☁ ${summaryLine(d.data)}</p><button type="button" class="btn primary" data-act="cloudTake">클라우드에서 이어하기</button></div>`;
-  const head = a === 'newer' ? '클라우드에 더 최근 세이브가 있습니다.' : '클라우드에 다른 가게 세이브가 있습니다.';
-  return `<div class="cl-ask"><p>${head}<br><small>어느 쪽으로 할까요? 고르지 않은 쪽은 백업해 둡니다.</small></p>
-    <p class="cl-line">☁ 클라우드 · ${summaryLine(d.data)}</p><p class="cl-line">📱 이 기기 · ${summaryLine(saveText())}</p>
-    <div class="cl-two"><button type="button" class="btn small" data-act="cloudTake">클라우드 것</button><button type="button" class="btn ghost small" data-act="cloudKeep">이 기기 것</button></div></div>`;
+  if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
+    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`;
+  if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
+    + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
+      : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
+  return '<p class="set-note">연결하는 중…</p>';
 }
 // 다시 그리기: 처음 화면이나 설정이 떠 있으면 클라우드 상태가 바뀔 때 새로 그려요
 export function refreshCloudUI() {
@@ -350,6 +341,15 @@ export function renderPause() {
 
 // 화면 버튼 → 명령
 export function initScreens(onStart) {
+  // 클라우드에 더 최근 세이브가 있을 때: 처음 화면이나 준비 화면(대화·연출 중 아님)에서만 바꿔 넣어요
+  setCloudApplier({
+    can: () => G.phase === 'title' || (G.phase === 'prep' && !talking() && !cutActive()),
+    load: line => {
+      if (G.phase === 'title') renderTitle();
+      else if (loadGame()) { setMusic(null); onStart(); }
+      toast(`클라우드 세이브를 불러왔습니다 · ${line}`, 'good');
+    },
+  });
   scr().addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -376,13 +376,6 @@ export function initScreens(onStart) {
     else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
-    else if (a === 'cloudKeep') { playSfx('tap'); cloudKeepLocal(); refreshCloudUI(); }
-    else if (a === 'cloudTake') {
-      if (!cloudTake()) return;
-      if (!loadGame()) return;
-      if (G.run) G.run = null; // 영업 중이었으면 그날은 저장하지 않고 불러온 날 준비부터
-      setMusic(null); playSfx('page'); onStart();
-    }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }

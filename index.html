@@ -240,7 +240,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .shelf { margin: 4px 0 0; color: var(--ink-soft); }
 
 /* 냉장고 창 (급구매) — 영업은 계속돼요 */
-#rushUI { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; line-height: 1.5; }
+#rushUI { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; line-height: 1.5; } /* 카드 밖(빈 곳)을 누르면 닫혀요 */
 .rush-card { width: 92%; background: var(--paper); border: 4px solid var(--ink); padding: 6px 10px 8px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
 .rush-head { display: flex; align-items: center; justify-content: space-between; }
 .rush-head b { font-weight: normal; }
@@ -369,7 +369,10 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .talk.in-cut { background: none; }
 
 /* 오 사장님이 짚어 주는 곳 (준비 화면 길잡이) */
-.guide-on { position: relative; z-index: 1; outline: 3px solid var(--mustard); outline-offset: 3px; animation: guidePulse 1s steps(2) infinite; }
+/* 짚은 곳만 밝게, 나머지는 어둡게 (짚은 칸의 큰 그림자가 화면을 덮어요) */
+.guide-on { position: relative; z-index: 3; outline: 3px solid var(--mustard); outline-offset: 3px; box-shadow: 0 0 0 3px var(--paper), 0 0 0 200vmax rgba(12,10,24,.66); animation: guidePulse 1s steps(2) infinite; }
+.guide-on:not(.btn) { background-color: var(--paper); }
+#app.guiding #hud { filter: brightness(.34); }
 @keyframes guidePulse { 50% { outline-color: #fff6d6; } }
 #screen.guiding { padding-bottom: 220px; }
 .talk.guide { background: none; }
@@ -471,17 +474,21 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .set-ver { cursor: default; user-select: none; -webkit-user-select: none; }
 
 /* 클라우드 저장 (처음 화면 · 설정) */
-.cl-ask { background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); padding: 8px 10px; margin: 0 0 12px; text-align: left; word-break: keep-all; }
-.set-card .cl-ask { box-shadow: none; border-width: 2px; margin: 6px 0 4px; }
-.cl-ask p { margin: 0 0 6px; }
-.cl-ask small { color: var(--ink-soft); }
-.cl-ask .cl-line { margin: 2px 0; color: var(--ink-soft); }
-.cl-two { display: flex; gap: 8px; }
-.cl-two .btn { flex: 1; }
-.set-card .btn.ghost, .cl-ask .btn.ghost { color: var(--ink); border-color: var(--ink); }
+.cl-title { color: var(--paper-2); margin: 10px 0 0; font-size: 16px; }
+.set-card .btn.ghost { color: var(--ink); border-color: var(--ink); }
 .set-card .row .btn.small { width: auto; min-width: 88px; margin: 0; }
-.cl-two .btn.small { width: auto; }
 .cl-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; margin-right: 8px; }
+
+/* 퀘스트 버튼 · 퀘스트 창 (영업 중) */
+.qt.qbtn { flex: none; margin-left: auto; padding: 0 8px; color: var(--ink); cursor: pointer; font: inherit; line-height: inherit; min-height: 24px; }
+.qt.qbtn b { color: #fff; background: var(--red); padding: 0 4px; margin-left: 2px; }
+.qt.qbtn.pop { animation: qPop .4s steps(2) 4; }
+@keyframes qPop { 50% { background: var(--mustard); } }
+.qt.inc { cursor: pointer; flex: 0 1 auto; }
+.modal { position: absolute; inset: 0; z-index: 28; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(12,10,24,.6); line-height: 1.5; }
+.qm-card { width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; background: var(--paper); border: 4px solid var(--ink); padding: 8px 10px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+.qm-h { display: block; margin: 8px 0 0; color: var(--ink-soft); font-size: 16px; }
+.qrow.inc .inc-tag { align-self: flex-start; white-space: nowrap; border: 2px solid var(--ink); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -534,6 +541,7 @@ body[data-phase="title"] .gear { visibility: hidden; }
     </div>
   </footer>
   <div id="toasts" aria-live="polite"></div>
+  <div id="qModal" class="modal" hidden></div>
   <section id="screen" hidden></section>
   <div id="cut" hidden><canvas id="cutCv" aria-label="연출"></canvas><div id="cutCap" hidden></div><button id="cutSkip" type="button">건너뛰기 ▶▶</button></div>
   <div id="talk" class="talk" hidden aria-live="polite"></div>
@@ -816,7 +824,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.10';
+const GAME_VERSION = '0.11';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1320,16 +1328,18 @@ function saveSummary(text) {
 }
 // ── js/save/cloud.js ──
 // 클라우드 저장 (구글 로그인 + Firestore). 등불나무와 같은 Firebase 프로젝트(lamp-tree)를 쓰고, 세이브는 따로 'sosang' 모음에 둬요.
-//  - 웹앱 주소(https)에서만 켜져요. Claude 미리보기는 바깥 서버에 닿지 않아서 꺼 둬요.
+//  - 웹앱 주소(https)에서만 켜져요. Claude 미리보기는 바깥 서버에 닿지 않아서 꺼 둬요(로그인 버튼은 보이고, 누르면 웹앱 안내).
+//  - 같은 구글 계정이면 어느 기기에서든 같은 세이브: 로그인할 때·앱으로 돌아올 때 클라우드와 견줘서 더 최근 세이브를 저절로 써요.
+//    진 쪽은 버리지 않고 백업(이 기기 sosang-tycoon-backup · 클라우드 문서 prev)해 둬요.
 //  - 올리는 때: 이 기기에 저장할 때(새벽 준비 화면)마다, 3초 모아서 한 번.
-//  - 클라우드와 이 기기 세이브가 다르면(다른 판이거나 클라우드가 더 최근) 고르기 전까지 올리지 않아요. 고르지 않은 쪽은 백업해 둬요.
+//  - 클라우드 세이브로 바꾸는 건 처음 화면이나 새벽 준비 화면(대화·연출 중이 아닐 때)에서만. 영업 중이면 다음 준비 화면까지 기다려요.
 //  - 시험: window.__cloudMock = { onAuth, google, out, get, put } 을 넣으면 Firebase 대신 써요 (dev/qa)
 
 const FB_CONFIG = { apiKey: 'AIzaSyCsGbKTF6oQiS9_Ow_sAZJBH2XfDfjABYw', authDomain: 'lamp-tree.firebaseapp.com', projectId: 'lamp-tree', storageBucket: 'lamp-tree.firebasestorage.app', messagingSenderId: '614596289531', appId: '1:614596289531:web:161d6a23c5eeb9da3ce15e' };
 const CLOUD_COLLECTION = 'sosang';
 // st: off 시작 전 · na 못 씀 · loading 연결 중 · out 로그인 안 함 · in 로그인함
-// ask: null | 'only'(이 기기엔 없고 클라우드에만) | 'newer'(같은 가게, 클라우드가 더 최근) | 'other'(다른 가게)
-const CLOUD = { st: 'off', err: '', user: null, api: null, doc: null, ask: null, busy: false, lastUp: 0 };
+// pending: 바꿔 넣을 클라우드 세이브 (지금 바꿀 수 없어서 기다리는 중) — 기다리는 동안은 올리지 않아요
+const CLOUD = { st: 'off', err: '', user: null, api: null, doc: null, pending: null, busy: false, lastUp: 0 };
 
 const FB_ERR = {
   'auth/popup-closed-by-user': '로그인 창이 닫혔습니다',
@@ -1345,6 +1355,9 @@ const cloudErr = e => FB_ERR[e && e.code] || '클라우드 작업에 실패했�
 const subs = [];
 function onCloud(fn) { subs.push(fn); }
 const changed = (msg, kind) => { for (const f of subs) f(msg, kind); };
+// 화면 쪽이 넣어 줘요: can() 지금 세이브를 바꿔도 되는지 · load(줄) 바꾼 세이브로 다시 열기
+let applier = null;
+function setCloudApplier(a) { applier = a; }
 
 async function cloudInit() {
   if (window.__cloudMock) CLOUD.api = window.__cloudMock;
@@ -1368,13 +1381,14 @@ async function cloudInit() {
   CLOUD.api.onAuth(u => {
     CLOUD.user = u ? { uid: u.uid, name: u.displayName || u.email || '구글 계정' } : null;
     CLOUD.st = u ? 'in' : 'out';
-    CLOUD.doc = null; CLOUD.ask = null; CLOUD.lastUp = 0;
+    CLOUD.doc = null; CLOUD.pending = null; CLOUD.lastUp = 0;
     changed();
     if (u) cloudCheck();
   });
 }
 
 async function cloudLogin() {
+  if (CLOUD.st === 'na') { changed(CLOUD.err === 'load' ? '클라우드에 연결하지 못했습니다. 인터넷 연결을 확인해 보세요' : 'Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 열어 로그인해 보세요', 'info'); return; }
   if (!CLOUD.api || CLOUD.st !== 'out') return;
   try { await CLOUD.api.google(); changed('구글 계정으로 로그인했습니다', 'good'); } catch (e) { changed(cloudErr(e), 'warn'); }
 }
@@ -1383,45 +1397,53 @@ async function cloudLogout() {
   try { await CLOUD.api.out(); changed('로그아웃했습니다. 이 기기 세이브는 그대로 있습니다', 'info'); } catch (e) { changed(cloudErr(e), 'warn'); }
 }
 
-// 로그인하면 클라우드 세이브와 견줘 봐요
+// 클라우드 세이브와 견줘서 더 최근 쪽을 써요 (로그인할 때 · 앱으로 돌아올 때)
+let checking = false;
 async function cloudCheck() {
-  if (!CLOUD.user) return;
+  if (!CLOUD.user || checking) return;
+  checking = true;
   let doc;
-  try { doc = await CLOUD.api.get(CLOUD.user.uid); } catch (e) { changed(cloudErr(e), 'warn'); return; }
+  try { doc = await CLOUD.api.get(CLOUD.user.uid); } catch (e) { changed(cloudErr(e), 'warn'); return; } finally { checking = false; }
   CLOUD.doc = doc && doc.data ? doc : null;
   const local = saveSummary(saveText());
-  if (!CLOUD.doc) { CLOUD.ask = null; if (local) cloudUpload(true); changed(); return; }
+  const cl = CLOUD.doc && saveSummary(CLOUD.doc.data);
+  if (!cl) { if (local) cloudUpload(true); changed(); return; }
+  if (!local || cl.at > local.at + 2000) { CLOUD.pending = CLOUD.doc; tryApply(); changed(); return; } // 클라우드가 더 최근 (또는 이 기기엔 세이브 없음)
   CLOUD.lastUp = CLOUD.doc.at || 0;
-  const cl = saveSummary(CLOUD.doc.data);
-  if (!local) CLOUD.ask = 'only';
-  else if (!cl || cl.id !== local.id) CLOUD.ask = 'other';
-  else if (cl.at > local.at + 2000) CLOUD.ask = 'newer';
-  else { CLOUD.ask = null; if (local.at > cl.at) cloudUpload(true); }
-  changed(CLOUD.ask === 'newer' ? '클라우드에 더 최근 세이브가 있습니다. 설정에서 골라 보세요'
-    : CLOUD.ask === 'other' ? '클라우드에 다른 가게 세이브가 있습니다. 설정에서 골라 보세요' : '', 'info');
+  if (local.at > cl.at || local.id !== cl.id) cloudUpload(true); // 이 기기가 더 최근
+  changed();
+}
+
+// 기다리던 클라우드 세이브를 지금 넣을 수 있으면 넣어요
+function tryApply() {
+  const d = CLOUD.pending;
+  if (!d || !applier || !applier.can()) return false;
+  if (!replaceSave(d.data)) { changed('이 기기에 저장할 수 없습니다', 'warn'); return false; }
+  CLOUD.pending = null; CLOUD.doc = d; CLOUD.lastUp = d.at || 0;
+  applier.load(summaryLine(d.data));
+  return true;
 }
 
 // 이 기기에 저장한 뒤 불러요 (3초 모아서 한 번)
 let upTimer = 0;
 function cloudSaved() {
   if (CLOUD.st !== 'in') return;
-  if (CLOUD.ask === 'only') { CLOUD.ask = 'other'; changed(); } // 클라우드 것을 두고 새로 시작했어요: 고르기 전까지 덮어쓰지 않아요
-  if (CLOUD.ask) return;
+  if (CLOUD.pending) { setTimeout(tryApply, 0); return; } // 기다리던 클라우드 세이브가 먼저
   clearTimeout(upTimer);
   upTimer = setTimeout(() => cloudUpload(false), 3000);
 }
 function cloudFlush() { if (upTimer) { clearTimeout(upTimer); upTimer = 0; cloudUpload(false); } }
 
-async function cloudUpload(force, keepOld) {
+async function cloudUpload(force) {
   upTimer = 0;
-  if (CLOUD.st !== 'in' || CLOUD.busy || CLOUD.ask) return false;
+  if (CLOUD.st !== 'in' || CLOUD.busy || CLOUD.pending) return false;
   const data = saveText(), sv = saveSummary(data);
   if (!sv) return false;
-  if (!force && sv.at <= CLOUD.lastUp) return true;
+  if (!force && sv.at <= CLOUD.lastUp && (!CLOUD.doc || CLOUD.doc.id === sv.id)) return true; // 이미 올린 것 (새 가게면 올려요)
   const doc = { data, at: sv.at || Date.now(), id: sv.id, day: sv.day, shop: sv.shop, ch: sv.ch, v: 1 };
   // 다른 가게를 덮어쓸 때는 그 세이브를 클라우드 백업으로 남겨요
   const old = CLOUD.doc;
-  if (old && old.data && (keepOld || old.id !== sv.id)) doc.prev = { data: old.data, at: old.at || 0, id: old.id || '', day: old.day || 1, shop: old.shop || '' };
+  if (old && old.data && old.id !== sv.id) doc.prev = { data: old.data, at: old.at || 0, id: old.id || '', day: old.day || 1, shop: old.shop || '' };
   else if (old && old.prev) doc.prev = old.prev;
   if (doc.prev && doc.prev.data.length + data.length > 900000) delete doc.prev; // 문서 한 개 한도(1MB) 안으로
   CLOUD.busy = true;
@@ -1429,16 +1451,6 @@ async function cloudUpload(force, keepOld) {
   catch (e) { changed(cloudErr(e), 'warn'); return false; }
   finally { CLOUD.busy = false; }
 }
-
-// 고르기: 클라우드 것 불러오기 (이 기기 것은 백업) · 이 기기 것 쓰기 (클라우드 것은 클라우드 백업)
-function cloudTake() {
-  const d = CLOUD.doc;
-  if (!d || !saveSummary(d.data)) { changed('클라우드 세이브를 읽지 못했습니다', 'warn'); return false; }
-  if (!replaceSave(d.data)) { changed('이 기기에 저장할 수 없습니다', 'warn'); return false; }
-  CLOUD.ask = null; CLOUD.lastUp = d.at || 0;
-  return true; // 부른 쪽에서 loadGame()으로 이어해요
-}
-function cloudKeepLocal() { CLOUD.ask = null; cloudUpload(true, true); changed('이 기기 세이브를 클라우드에 올립니다', 'info'); }
 
 // 한 줄 요약: 「3일차 · 오가네 분식 · 10월 25일 14:02」
 function summaryLine(text) {
@@ -1819,6 +1831,14 @@ function removeTicket(c) {
   if (handsM <= ticketsM) r.stock[m]++;
 }
 
+// 손에 든 음식 중 주문표에 묶이지 않은 몫 = 주문 없이 미리 만든 것 (재료는 만들 때 이미 썼어요)
+function spareOf(m) {
+  const r = G.run;
+  return Math.max(0, r.hands.filter(d => d.menu === m).length - r.tickets.filter(t => t.menu === m).length);
+}
+// 팔 수 있나: 남은 재료가 있거나, 미리 만든 게 손에 있거나
+const canSell = m => G.run.stock[m] > 0 || spareOf(m) > 0;
+
 function reaction(c, m) {
   const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1);
   return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
@@ -1829,19 +1849,19 @@ function decide(c) {
   const w = {};
   for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
-  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && r.stock[x] > 0));
+  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
   if (want && menuOpen(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
-  if (r.stock[m] <= 0) {
-    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && r.stock[x] > 0 && !reaction(c, x).leave);
+  if (!canSell(m)) {
+    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && canSell(x) && !reaction(c, x).leave);
     if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
     else { partyLeaves(c, 'soldout', m); return; }
   }
-  r.stock[m]--;
+  if (!spareOf(m)) r.stock[m]--; // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
   c.menu = m; c.priceSat = re.sat;
   r.tickets.push({ cid: c.id, menu: m, table: SEATS[c.seat].table });
   c.patMax = c.patience = PATIENCE.food * P(c);
@@ -2058,12 +2078,13 @@ function startIncident(x) {
     x.need = n; x.paid = 0;
     for (let k = 0; k < n; k += 2) spawnParty(chars.slice(k, k + 2), { force: true, tag: x, delay: k });
   } else if (D.kind === 'takeout') {
-    const ms = MENU_IDS.filter(m => menuOpen(m) && r.stock[m] >= 1);
+    const ms = MENU_IDS.filter(m => menuOpen(m) && canSell(m));
     if (!ms.length) { x.state = 'skip'; return; }
     x.menu = ms[Math.floor(rand() * ms.length)];
-    x.qty = Math.min(D.qty, r.stock[x.menu]);
+    const spare = spareOf(x.menu); // 미리 만들어 손에 든 몫은 재료를 다시 쓰지 않아요
+    x.qty = Math.min(D.qty, r.stock[x.menu] + spare);
     x.left = x.qty; x.until = r.min + D.limit;
-    r.stock[x.menu] -= x.qty;
+    r.stock[x.menu] -= Math.max(0, x.qty - spare);
     for (let i = 0; i < x.qty; i++) r.tickets.push({ cid: -1, menu: x.menu, table: 0, takeout: x });
     emit('order', -1, x.menu);
   } else if (D.kind === 'mission') {
@@ -2303,7 +2324,7 @@ function tickDay(dt) {
     emit('toast', `${josa(MENUS[m].ing, '이/가')} 떨어졌습니다. 냉장고를 눌러 급구매해 보세요`, 'hint');
   }
   // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
-  if (!r.closing && !r.soldOutHint && !r.rush.length && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length) {
+  if (!r.closing && !r.soldOutHint && !r.rush.length && openMenus().every(m => r.stock[m] <= 0) && !r.tickets.length && !r.hands.length) {
     r.soldOutHint = true;
     emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
   }
@@ -2482,27 +2503,32 @@ defineCmd('cookTap', () => cookTap());
 defineCmd('cookStop', () => cookTap()); // 옛 이름
 
 // ── 조리 미니게임 ──
+// 주문이 없어도 미리 만들 수 있어요 (손에 들 수 있는 만큼만). 주문 없이 만든 몫은 손에 드는 순간 재료를 써요
 function startCook(st) {
   const r = G.run, m = st.menu;
   if (r.hands.length >= handsMax()) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
-  if (ticketsCount(m) <= handsCount(m)) {
-    emit('toast', ticketsCount(m) ? `${MENUS[m].name} 주문은 이미 손에 들고 있습니다` : `아직 ${MENUS[m].name} 주문이 없습니다`, 'info');
-    return;
-  }
+  const forOrder = ticketsCount(m) > handsCount(m);
+  if (!forOrder && r.stock[m] <= 0) { emit('toast', `${MENUS[m].ing} 재료가 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
   // 보온 통: 새벽에 미리 끓여 둔 그릇이 있으면 미니게임 없이 바로 들어요 (좋은 것부터)
   const rd = r.ready && r.ready[m];
   if (rd && rd.length) {
     rd.sort((a, b) => b - a);
     const q = rd.shift();
-    r.hands.push({ menu: m, q });
+    toHands(m, q);
     emit('float', r.player.x, r.player.y - 1.8, `미리 끓여 둔 ${MENUS[m].name}`, 'good');
     emit('sfx', 'cookDone');
     emit('cook', false, m, MENUS[m].game, q);
     return;
   }
-  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0, ahead: !forOrder };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
+}
+// 손에 들기: 기다리는 주문이 없으면(미리 만든 몫) 재료를 하나 써요 — 주문이 들어오면 그 몫은 재료를 다시 쓰지 않아요 (sim/customers.js spareOf)
+function toHands(m, q) {
+  const r = G.run;
+  if (ticketsCount(m) <= handsCount(m) && r.stock[m] > 0) r.stock[m]--;
+  r.hands.push({ menu: m, q });
 }
 
 // 새벽에 미리 끓이기 (sim/day.js dawnCook) — 주문 없이, 손에 들지 않고 보온 통에 담아요
@@ -2560,9 +2586,11 @@ function finishCook(q, note) {
     emit('dawn', true, q);
     return;
   }
-  r.hands.push({ menu: c.menu, q });
+  const ahead = ticketsCount(c.menu) <= handsCount(c.menu); // 그 사이 주문이 들어왔으면 주문 몫
+  toHands(c.menu, q);
   const p = r.player;
-  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
+  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${ahead ? '미리 만든 ' : ''}${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
+  if (ahead) emit('hint', 'ahead');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });
@@ -3351,6 +3379,7 @@ function initRush() {
     if (b) runCmd('rushBuy', { menu: b.dataset.rush });
   });
   $('rushClose').addEventListener('click', () => { $('rushUI').hidden = true; });
+  $('rushUI').addEventListener('click', e => { if (e.target === $('rushUI')) $('rushUI').hidden = true; }); // 냉장고 창 밖을 누르면 닫혀요
 }
 
 // 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES · 주방 타이머는 data/tools.js COOK_EASE)
@@ -3414,8 +3443,9 @@ function lineHTML(who, text) {
 // 준비 화면의 한 곳을 가리켜요 (오 사장님이 짚어 주는 줄)
 function guide(key) {
   document.querySelectorAll('.guide-on').forEach(e => e.classList.remove('guide-on'));
-  $('screen').classList.toggle('guiding', !!key);
   const el = key && document.querySelector(`[data-guide="${key}"]`);
+  $('screen').classList.toggle('guiding', !!el);
+  $('app').classList.toggle('guiding', !!el); // 위 막대도 어둡게
   if (el) { el.classList.add('guide-on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   return !!el;
 }
@@ -3472,6 +3502,8 @@ function advance() {
 }
 
 function initStory() {
+  $('questTrack').addEventListener('click', e => { if (e.target.closest('[data-qopen]')) openQuests(); });
+  $('qModal').addEventListener('click', e => { if (e.target === $('qModal') || e.target.closest('[data-qclose]')) { closeQuests(); playSfx('tap'); } }); // 창 밖을 눌러도 닫혀요
   const box = $('talk');
   box.addEventListener('click', e => {
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
@@ -3509,24 +3541,53 @@ function questCard() {
   </div>`;
 }
 
-// 영업 중: 위 막대 주문표 아래에 할 일 (2개까지)
-let lastTrack = '';
+// 영업 중: 위 막대 주문표 아래 — 돌발 이벤트(남은 시간·진행도)와 「퀘스트」 버튼. 퀘스트는 눌러서 창으로 한 번에 봐요
+const incProg = (x, D) => D.kind === 'takeout' ? `${x.qty - x.left}/${x.qty}` : D.kind === 'mission' ? `${x.count}/${D.need}` : D.kind === 'group' ? `${x.paid}/${x.need}` : '';
+let lastTrack = '', lastDone = -1, popT = 0;
 function updateQuestTrack() {
   const el = $('questTrack');
-  const S = G.story;
-  // 돌발 이벤트가 먼저 (남은 시간·진행도)
-  const inc = G.phase === 'day' ? activeIncidents().map(x => {
-    const D = incidentInfo(x);
-    const prog = D.kind === 'takeout' ? ` <b>${x.qty - x.left}/${x.qty}</b>` : D.kind === 'mission' ? ` <b>${x.count}/${D.need}</b>` : D.kind === 'group' ? ` <b>${x.paid}/${x.need}</b>` : '';
+  const S = G.story, day = G.phase === 'day';
+  const inc = day ? activeIncidents().map(x => {
+    const D = incidentInfo(x), prog = incProg(x, D);
     const till = x.until !== undefined ? ` · ~${clockText(x.until)}` : '';
-    return `<div class="qt inc"><span class="inc-tag">${D.short}</span><span>${prog.trim() || D.name}${till}</span></div>`;
+    return `<div class="qt inc" data-qopen="1"><span class="inc-tag">${D.short}</span><span>${prog ? `<b>${prog}</b>` : D.name}${till}</span></div>`;
   }).join('') : '';
-  const html = inc + (S && G.phase === 'day' ? S.active.slice(0, inc ? 1 : 2).map(id => {
-    const q = QUESTS[id], [a, b] = questProg(id), wait = questWaiting(id);
-    return `<div class="qt">${face(q.who, 'q-face')}<span>${wait ? q.title : q.goal}${b > 1 && !wait ? ` <b>${a}/${b}</b>` : ''}</span></div>`;
-  }).join('') : '');
+  // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
+  const done = S ? S.done.length : 0;
+  if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;
+  lastDone = done;
+  const n = S ? S.active.length : 0;
+  const pop = performance.now() < popT;
+  const btn = day && S && (n || S.title) ? `<button type="button" class="qt qbtn${pop ? ' pop' : ''}" data-qopen="1" aria-label="퀘스트 보기">퀘스트${n ? ` <b>${n}</b>` : ''}</button>` : '';
+  const html = inc + btn;
   if (html !== lastTrack) { lastTrack = html; el.innerHTML = html; }
   el.hidden = !html;
+}
+
+// 퀘스트 창: 지금 장 · 할 일 전부 · 진행 중인 돌발 이벤트 (영업 중에 열면 가게는 잠깐 멈춰요)
+let qHeld = false;
+function openQuests() {
+  const S = G.story;
+  if (!S) return;
+  const ch = CHAPTERS[S.ch];
+  const inc = G.phase === 'day' ? activeIncidents().map(x => {
+    const D = incidentInfo(x), prog = incProg(x, D);
+    return `<div class="qrow inc"><span class="inc-tag">${D.short}</span><div class="q-txt"><b>${D.name}</b><small>${D.text}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
+  }).join('') : '';
+  $('qModal').innerHTML = `<div class="qm-card" role="dialog" aria-label="퀘스트">
+    <div class="q-head"><small>${ch.name}</small><b>${ch.sub}</b>${S.title ? `<span class="q-title">${S.title}</span>` : ''}</div>
+    ${inc ? `<small class="qm-h">돌발 이벤트</small>${inc}<small class="qm-h">퀘스트</small>` : ''}
+    ${S.active.map(id => questRow(id, false)).join('') || `<p class="q-none">${S.queue.length ? '이야기가 이어집니다…' : '지금은 이어지는 이야기가 없습니다'}</p>`}
+    <button type="button" class="btn" data-qclose="1">닫기</button>
+  </div>`;
+  $('qModal').hidden = false;
+  if (G.phase === 'day' && G.run && !G.run.paused) { runCmd('hold', { on: true }); qHeld = true; }
+  playSfx('page');
+}
+function closeQuests() {
+  if ($('qModal').hidden) return;
+  $('qModal').hidden = true; $('qModal').innerHTML = '';
+  if (qHeld) { qHeld = false; if (G.phase === 'day') runCmd('hold', { on: false }); }
 }
 
 // 영수증: 오늘의 돌발 이벤트
@@ -3684,12 +3745,11 @@ function renderTitle() {
       <div class="logo-sub">골목 분식집에서 시작하는</div>
       <h1 class="logo">소상공인<br>키우기</h1>
       <div class="hero">${icon('char0', 'big')}${icon('tteok', 'dish')}${icon('kimbap', 'dish')}${icon('twigim', 'dish')}</div>
-      ${CLOUD.st === 'in' && CLOUD.ask ? cloudAskBox() : ''}
       ${save ? `<button class="btn primary" data-act="continue">이어하기</button>` : ''}
-      <button class="btn ${save || CLOUD.ask === 'only' ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
+      <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
-      ${CLOUD.st === 'out' ? '<button class="btn ghost small" data-act="cloudLogin">구글 로그인 · 다른 기기에서 이어하기</button>' : ''}
+      ${CLOUD.st === 'in' ? `<p class="cl-title">☁ ${escName()} · 클라우드에 자동 저장</p>` : CLOUD.st === 'out' || CLOUD.st === 'na' ? '<button class="btn ghost small" data-act="cloudLogin">구글 로그인</button>' : ''}
       <button class="btn ghost small" data-act="settings" data-from="title">설정</button>
     </div>`, 'scr-title');
 }
@@ -3884,26 +3944,16 @@ function installRow() {
   if (st === 'manual') return '<p class="set-note">브라우저 메뉴(⋮) → 「홈 화면에 추가」 또는 「앱 설치」를 눌러 보세요.</p>';
   return `<p class="set-note">웹앱 주소에서 추가할 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
 }
-// 클라우드 저장 (save/cloud.js)
+// 클라우드 저장 (save/cloud.js): 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브를 저절로 써요
+const escName = () => String(CLOUD.user ? CLOUD.user.name : '').replace(/[&<>"']/g, '');
 function accountRows() {
   const st = CLOUD.st;
-  if (st === 'na') return CLOUD.err === 'load' ? '<p class="set-note">클라우드에 연결하지 못했습니다. 인터넷 연결을 확인해 보세요.</p>'
-    : `<p class="set-note">웹앱 주소(홈 화면 앱)로 연 게임에서 쓸 수 있습니다.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`;
-  if (st === 'out') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div><p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 다른 기기에서도 이어서 할 수 있습니다.</p>';
-  if (st !== 'in') return '<p class="set-note">연결하는 중…</p>';
-  const name = String(CLOUD.user.name).replace(/[&<>"']/g, '');
-  return `<div class="row"><span class="cl-name">${name}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
-    + (CLOUD.ask ? cloudAskBox() : `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>새벽 준비 화면에서 저장할 때마다 자동으로 올라갑니다.</p>`);
-}
-// 클라우드와 이 기기 세이브가 다를 때 고르는 상자 (처음 화면 · 설정)
-function cloudAskBox() {
-  const a = CLOUD.ask, d = CLOUD.doc;
-  if (!d) return '';
-  if (a === 'only') return `<div class="cl-ask"><p>클라우드에 저장된 가게가 있습니다.</p><p class="cl-line">☁ ${summaryLine(d.data)}</p><button type="button" class="btn primary" data-act="cloudTake">클라우드에서 이어하기</button></div>`;
-  const head = a === 'newer' ? '클라우드에 더 최근 세이브가 있습니다.' : '클라우드에 다른 가게 세이브가 있습니다.';
-  return `<div class="cl-ask"><p>${head}<br><small>어느 쪽으로 할까요? 고르지 않은 쪽은 백업해 둡니다.</small></p>
-    <p class="cl-line">☁ 클라우드 · ${summaryLine(d.data)}</p><p class="cl-line">📱 이 기기 · ${summaryLine(saveText())}</p>
-    <div class="cl-two"><button type="button" class="btn small" data-act="cloudTake">클라우드 것</button><button type="button" class="btn ghost small" data-act="cloudKeep">이 기기 것</button></div></div>`;
+  if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
+    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`;
+  if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
+    + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
+      : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
+  return '<p class="set-note">연결하는 중…</p>';
 }
 // 다시 그리기: 처음 화면이나 설정이 떠 있으면 클라우드 상태가 바뀔 때 새로 그려요
 function refreshCloudUI() {
@@ -3994,6 +4044,15 @@ function renderPause() {
 
 // 화면 버튼 → 명령
 function initScreens(onStart) {
+  // 클라우드에 더 최근 세이브가 있을 때: 처음 화면이나 준비 화면(대화·연출 중 아님)에서만 바꿔 넣어요
+  setCloudApplier({
+    can: () => G.phase === 'title' || (G.phase === 'prep' && !talking() && !cutActive()),
+    load: line => {
+      if (G.phase === 'title') renderTitle();
+      else if (loadGame()) { setMusic(null); onStart(); }
+      toast(`클라우드 세이브를 불러왔습니다 · ${line}`, 'good');
+    },
+  });
   scr().addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -4020,13 +4079,6 @@ function initScreens(onStart) {
     else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
-    else if (a === 'cloudKeep') { playSfx('tap'); cloudKeepLocal(); refreshCloudUI(); }
-    else if (a === 'cloudTake') {
-      if (!cloudTake()) return;
-      if (!loadGame()) return;
-      if (G.run) G.run = null; // 영업 중이었으면 그날은 저장하지 않고 불러온 날 준비부터
-      setMusic(null); playSfx('page'); onStart();
-    }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = '한 번 더 누르면 처음부터 (지금 진행은 지워집니다)'; return; }
@@ -4107,6 +4159,11 @@ function initFeedback() {
   onEvent('float', float);
   onEvent('say', say);
   onEvent('sfx', playSfx);
+  onEvent('hint', key => { // 새 기능 안내: 날짜와 상관없이 처음 한 번
+    if (key !== 'ahead' || shown.has(key)) return;
+    shown.add(key);
+    toast('주문 전에 미리 만들어 손에 들었습니다. 같은 메뉴 주문이 들어오면 바로 내줄 수 있습니다', 'hint');
+  });
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);
@@ -4130,7 +4187,7 @@ function initFeedback() {
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
-    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
+    if (p !== 'day') { closeQuests(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
@@ -4224,7 +4281,7 @@ async function boot() {
   requestAnimationFrame(frame);
   // 클라우드 저장: 상태가 바뀌면 처음 화면·설정을 다시 그리고, 알릴 말은 알림으로
   onCloud((msg, kind) => { refreshCloudUI(); if (msg) toast(msg, kind); });
-  addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); }); // 앱을 내리면 기다리던 업로드를 바로
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
   window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD };

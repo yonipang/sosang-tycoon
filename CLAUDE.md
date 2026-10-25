@@ -14,7 +14,7 @@
 - **무작위**: 게임 결과에 영향 → `rand()`(하루마다 씨앗 `G.baseSeed + G.day*7919`), 보이기만 → `fxRand()`. `Math.random`은 `engine/random.js`에서만.
 - **규칙 코드(`data/`·`sim/`·`save/state`·`save/migrations`)는 화면을 만지지 않아요**: 알림·소리·떠오르는 글자는 `emit('toast'|'float'|'sfx'|…)`, 받는 곳은 `ui/feedback.js`. 화면 → 규칙은 `runCmd('이름', {...})`, 규칙 쪽은 `defineCmd`. (`build.py`가 확인)
 - **세이브**: 키 `sosang-tycoon-save-v1`, `SAVE_V = 1`은 바꾸지 않아요. 새 칸은 `save/state.js`의 `SAVE_ORDER`에 기본값과 함께 추가만, 옛 세이브 보정은 `save/migrations.js`. 저장은 새벽 준비 화면에서만 해요(영업 중에 끄면 그날 준비부터).
-- **클라우드 저장**(`save/cloud.js`): 등불나무와 같은 Firebase 프로젝트 `lamp-tree`, Firestore 모음 `sosang/{uid}`. 구글 로그인만. 웹앱 주소(https)에서만 켜지고 Claude 미리보기에서는 꺼져요. 이 기기에 저장할 때마다 3초 모아서 올리고, 클라우드와 다르면(다른 판 `meta.id` · 더 최근 `meta.at`) 고르기 전까지 올리지 않아요.
+- **클라우드 저장**(`save/cloud.js`): 등불나무와 같은 Firebase 프로젝트 `lamp-tree`, Firestore 모음 `sosang/{uid}`. 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브(`meta.at`)를 저절로 써요(로그인할 때·앱으로 돌아올 때 확인, 바꿔 넣기는 처음 화면·준비 화면에서만, 진 쪽은 백업). 이 기기에 저장할 때마다 3초 모아서 올려요. 웹앱 주소(https)에서만 켜지고 Claude 미리보기에서는 로그인 대신 웹앱 안내.
 - **게임 안 글**: 사실은 합니다체, 해요체는 「~해 보세요」 같은 제안에만. 손님 말·리뷰는 손님 말투 그대로. (코드 주석은 해요체)
 - **「게임이 먼저」**: 나이스비즈맵은 게임 도구로 녹여요. 광고처럼 보이는 문구·강제 이동을 넣지 않아요.
 
@@ -25,7 +25,7 @@
 - 음악: `python3 dev/audio_pack.py <원본>` → `dev/src/js/audio/music.js` (손으로 안 고쳐요, 원본 wav는 커밋하지 않아요). 지금 곡은 lolurio 「Everyday Life」(CC BY 4.0) = 오 사장님 테마 — 크레딧(`js/data/credits.js`)에서 지우지 않아요. 재생은 `ui/music.js`의 `setMusic('이름')`.
 
 ## 확인과 보고
-- 고친 뒤: `python3 dev/build.py && python3 dev/qa/smoke.py` (봇이 연출·대화를 넘기며 9일차까지 돌리고 이야기·도구·새벽·돌발·주간 정산·다시 열기까지 확인, 약 3분, 사진은 `dev/qa/out/`). 저장·클라우드를 고쳤으면 `python3 dev/qa/cloud.py`(가짜 클라우드로 로그인·이어하기·고르기 확인, 약 30초)도. 그다음 `python3 dev/build_web.py`.
+- 고친 뒤: `python3 dev/build.py && python3 dev/qa/smoke.py` (봇이 연출·대화를 넘기며 9일차까지 돌리고 이야기·도구·새벽·돌발·주간 정산·다시 열기까지 확인, 약 3분, 사진은 `dev/qa/out/`). 저장·클라우드를 고쳤으면 `python3 dev/qa/cloud.py`(가짜 클라우드로 로그인·저절로 이어하기·영업 중 기다리기·백업 확인, 약 1분)도. 그다음 `python3 dev/build_web.py`.
 - 올리기: main에 바로 커밋·푸시하고 플레이 링크(아티팩트)도 바로 갱신. 올릴 때마다 버전 하나 — `js/data/version.js`와 프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」를 같이 올려요.
 - 개발자 모드(숨김): 처음 화면 → 설정 → 맨 아래 버전 글자를 7번 누르면 열려요. 원하는 날로 바로 가기 (`js/sim/dev.js` DEV_JUMPS — 새 장·새 기능을 만들면 가 볼 곳을 더해요).
 - 사용자에게는 한국어로 짧게: 무엇이 바뀌었는지, 확인한 것, 남은 것.

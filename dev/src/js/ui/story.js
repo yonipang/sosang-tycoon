@@ -58,8 +58,9 @@ export function lineHTML(who, text) {
 // 준비 화면의 한 곳을 가리켜요 (오 사장님이 짚어 주는 줄)
 function guide(key) {
   document.querySelectorAll('.guide-on').forEach(e => e.classList.remove('guide-on'));
-  $('screen').classList.toggle('guiding', !!key);
   const el = key && document.querySelector(`[data-guide="${key}"]`);
+  $('screen').classList.toggle('guiding', !!el);
+  $('app').classList.toggle('guiding', !!el); // 위 막대도 어둡게
   if (el) { el.classList.add('guide-on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   return !!el;
 }
@@ -116,6 +117,8 @@ function advance() {
 }
 
 export function initStory() {
+  $('questTrack').addEventListener('click', e => { if (e.target.closest('[data-qopen]')) openQuests(); });
+  $('qModal').addEventListener('click', e => { if (e.target === $('qModal') || e.target.closest('[data-qclose]')) { closeQuests(); playSfx('tap'); } }); // 창 밖을 눌러도 닫혀요
   const box = $('talk');
   box.addEventListener('click', e => {
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
@@ -153,24 +156,53 @@ export function questCard() {
   </div>`;
 }
 
-// 영업 중: 위 막대 주문표 아래에 할 일 (2개까지)
-let lastTrack = '';
+// 영업 중: 위 막대 주문표 아래 — 돌발 이벤트(남은 시간·진행도)와 「퀘스트」 버튼. 퀘스트는 눌러서 창으로 한 번에 봐요
+const incProg = (x, D) => D.kind === 'takeout' ? `${x.qty - x.left}/${x.qty}` : D.kind === 'mission' ? `${x.count}/${D.need}` : D.kind === 'group' ? `${x.paid}/${x.need}` : '';
+let lastTrack = '', lastDone = -1, popT = 0;
 export function updateQuestTrack() {
   const el = $('questTrack');
-  const S = G.story;
-  // 돌발 이벤트가 먼저 (남은 시간·진행도)
-  const inc = G.phase === 'day' ? activeIncidents().map(x => {
-    const D = incidentInfo(x);
-    const prog = D.kind === 'takeout' ? ` <b>${x.qty - x.left}/${x.qty}</b>` : D.kind === 'mission' ? ` <b>${x.count}/${D.need}</b>` : D.kind === 'group' ? ` <b>${x.paid}/${x.need}</b>` : '';
+  const S = G.story, day = G.phase === 'day';
+  const inc = day ? activeIncidents().map(x => {
+    const D = incidentInfo(x), prog = incProg(x, D);
     const till = x.until !== undefined ? ` · ~${clockText(x.until)}` : '';
-    return `<div class="qt inc"><span class="inc-tag">${D.short}</span><span>${prog.trim() || D.name}${till}</span></div>`;
+    return `<div class="qt inc" data-qopen="1"><span class="inc-tag">${D.short}</span><span>${prog ? `<b>${prog}</b>` : D.name}${till}</span></div>`;
   }).join('') : '';
-  const html = inc + (S && G.phase === 'day' ? S.active.slice(0, inc ? 1 : 2).map(id => {
-    const q = QUESTS[id], [a, b] = questProg(id), wait = questWaiting(id);
-    return `<div class="qt">${face(q.who, 'q-face')}<span>${wait ? q.title : q.goal}${b > 1 && !wait ? ` <b>${a}/${b}</b>` : ''}</span></div>`;
-  }).join('') : '');
+  // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
+  const done = S ? S.done.length : 0;
+  if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;
+  lastDone = done;
+  const n = S ? S.active.length : 0;
+  const pop = performance.now() < popT;
+  const btn = day && S && (n || S.title) ? `<button type="button" class="qt qbtn${pop ? ' pop' : ''}" data-qopen="1" aria-label="퀘스트 보기">퀘스트${n ? ` <b>${n}</b>` : ''}</button>` : '';
+  const html = inc + btn;
   if (html !== lastTrack) { lastTrack = html; el.innerHTML = html; }
   el.hidden = !html;
+}
+
+// 퀘스트 창: 지금 장 · 할 일 전부 · 진행 중인 돌발 이벤트 (영업 중에 열면 가게는 잠깐 멈춰요)
+let qHeld = false;
+export function openQuests() {
+  const S = G.story;
+  if (!S) return;
+  const ch = CHAPTERS[S.ch];
+  const inc = G.phase === 'day' ? activeIncidents().map(x => {
+    const D = incidentInfo(x), prog = incProg(x, D);
+    return `<div class="qrow inc"><span class="inc-tag">${D.short}</span><div class="q-txt"><b>${D.name}</b><small>${D.text}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
+  }).join('') : '';
+  $('qModal').innerHTML = `<div class="qm-card" role="dialog" aria-label="퀘스트">
+    <div class="q-head"><small>${ch.name}</small><b>${ch.sub}</b>${S.title ? `<span class="q-title">${S.title}</span>` : ''}</div>
+    ${inc ? `<small class="qm-h">돌발 이벤트</small>${inc}<small class="qm-h">퀘스트</small>` : ''}
+    ${S.active.map(id => questRow(id, false)).join('') || `<p class="q-none">${S.queue.length ? '이야기가 이어집니다…' : '지금은 이어지는 이야기가 없습니다'}</p>`}
+    <button type="button" class="btn" data-qclose="1">닫기</button>
+  </div>`;
+  $('qModal').hidden = false;
+  if (G.phase === 'day' && G.run && !G.run.paused) { runCmd('hold', { on: true }); qHeld = true; }
+  playSfx('page');
+}
+export function closeQuests() {
+  if ($('qModal').hidden) return;
+  $('qModal').hidden = true; $('qModal').innerHTML = '';
+  if (qHeld) { qHeld = false; if (G.phase === 'day') runCmd('hold', { on: false }); }
 }
 
 // 영수증: 오늘의 돌발 이벤트

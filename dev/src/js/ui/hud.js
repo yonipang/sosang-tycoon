@@ -100,6 +100,7 @@ export function initRush() {
     if (b) runCmd('rushBuy', { menu: b.dataset.rush });
   });
   $('rushClose').addEventListener('click', () => { $('rushUI').hidden = true; });
+  $('rushUI').addEventListener('click', e => { if (e.target === $('rushUI')) $('rushUI').hidden = true; }); // 냉장고 창 밖을 누르면 닫혀요
 }
 
 // 조리를 시작할 때 미니게임 막대를 그 메뉴에 맞게 바꿔요 (구간은 data/menu.js COOK_GAMES · 주방 타이머는 data/tools.js COOK_EASE)

@@ -10,7 +10,7 @@ import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
 import { setupCook, renderRush, renderDawn } from './hud.js';
-import { showNextScene, updateQuestTrack } from './story.js';
+import { showNextScene, updateQuestTrack, closeQuests } from './story.js';
 import { incidentInfo } from '../sim/incidents.js';
 import { setMusic } from './music.js';
 
@@ -71,6 +71,11 @@ export function initFeedback() {
   onEvent('float', float);
   onEvent('say', say);
   onEvent('sfx', playSfx);
+  onEvent('hint', key => { // 새 기능 안내: 날짜와 상관없이 처음 한 번
+    if (key !== 'ahead' || shown.has(key)) return;
+    shown.add(key);
+    toast('주문 전에 미리 만들어 손에 들었습니다. 같은 메뉴 주문이 들어오면 바로 내줄 수 있습니다', 'hint');
+  });
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);
@@ -94,7 +99,7 @@ export function initFeedback() {
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
-    if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
+    if (p !== 'day') { closeQuests(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();

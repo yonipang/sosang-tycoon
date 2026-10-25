@@ -6,7 +6,7 @@ import { INCIDENTS, INCIDENTS_PER_DAY } from '../data/incidents.js';
 import { rand, weighted } from '../engine/random.js';
 import { emit } from './events.js';
 import { menuOpen } from './story.js';
-import { spawnParty, freeChars } from './customers.js';
+import { spawnParty, freeChars, spareOf, canSell } from './customers.js';
 
 const fillText = (s, d) => s.replace('{menu}', d.menu ? MENUS[d.menu].name : '').replace('{qty}', d.qty || '');
 
@@ -43,12 +43,13 @@ function startIncident(x) {
     x.need = n; x.paid = 0;
     for (let k = 0; k < n; k += 2) spawnParty(chars.slice(k, k + 2), { force: true, tag: x, delay: k });
   } else if (D.kind === 'takeout') {
-    const ms = MENU_IDS.filter(m => menuOpen(m) && r.stock[m] >= 1);
+    const ms = MENU_IDS.filter(m => menuOpen(m) && canSell(m));
     if (!ms.length) { x.state = 'skip'; return; }
     x.menu = ms[Math.floor(rand() * ms.length)];
-    x.qty = Math.min(D.qty, r.stock[x.menu]);
+    const spare = spareOf(x.menu); // 미리 만들어 손에 든 몫은 재료를 다시 쓰지 않아요
+    x.qty = Math.min(D.qty, r.stock[x.menu] + spare);
     x.left = x.qty; x.until = r.min + D.limit;
-    r.stock[x.menu] -= x.qty;
+    r.stock[x.menu] -= Math.max(0, x.qty - spare);
     for (let i = 0; i < x.qty; i++) r.tickets.push({ cid: -1, menu: x.menu, table: 0, takeout: x });
     emit('order', -1, x.menu);
   } else if (D.kind === 'mission') {
