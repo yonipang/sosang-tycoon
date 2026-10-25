@@ -2,7 +2,11 @@
 export const START_CASH = 1500000;   // 개업 비용을 치르고 남은 돈 (자기 돈 300만 + 창업 대출 500만으로 시작)
 export const START_LOAN = 5000000;   // 창업 대출
 export const WEEK_RENT = 350000;     // 주간 임대료 (7일차 밤에 내요)
-export const LOAN_WEEKLY = 100000;   // 주간 대출 상환 (원리금, 1년 분할 초안)
+export const LOAN_WEEKLY = 100000;   // 주간 대출 상환 (원리금: 이자 먼저, 나머지가 원금 — 1년 분할 초안)
+export const LOAN_RATE = 0.05;       // 창업 대출 연이율 (이자 = 남은 대출 × 연이율 ÷ 52)
+// 공과금 (주마다): 기본(수도·전기 기본요금) + 판 그릇마다 가스·전기
+export const UTIL_BASE = 15000;
+export const UTIL_PER_DISH = 60;
 export const DAY_SEC = 360;          // 영업 09:00~21:00이 실제 몇 초인지 (게임 1시간 = 30초)
 export const DAY_MIN = 720;          // 영업 시간 (게임 분)
 export const CLOSE_CAP_MIN = 780;    // 22:00이 되면 남은 손님도 모두 나가요

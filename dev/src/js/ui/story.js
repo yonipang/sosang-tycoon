@@ -25,6 +25,7 @@ export function showNextScene() {
   const id = G.story.queue[0];
   const sc = id && SCENES[id];
   if (!sc || (sc.when !== 'now' && G.phase !== 'prep')) return;
+  if (G.phase === 'day' && G.run && G.run.cook) { setTimeout(showNextScene, 150); return; } // 영업 중 장면은 조리 미니게임이 끝난 뒤에
   if (G.phase === 'day') runCmd('hold', { on: true });
   open = { id, i: 0 };
   // 연출이 붙은 장면은 연출을 먼저 보고, 남은 줄을 이어서 보여 줘요

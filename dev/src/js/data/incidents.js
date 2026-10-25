@@ -59,4 +59,4 @@ export const INCIDENTS = {
   },
 };
 // 하루에 몇 개까지 (그날 중 무작위로 고름)
-export const INCIDENTS_PER_DAY = day => (day <= 1 ? 0 : day <= 3 ? 1 : 2);
+export const INCIDENTS_PER_DAY = day => (day <= 1 ? 0 : 1); // 하루에 하나만

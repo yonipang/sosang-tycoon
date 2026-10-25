@@ -1,12 +1,12 @@
-// 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 주간 정산
+// 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 고정비 내는 날(고지서)
 import { G, newGame } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
-import { WEEK_RENT, LOAN_WEEKLY } from '../data/economy.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
-import { prepCost, invCount } from '../sim/day.js';
+import { prepCost, invCount, weekBills } from '../sim/day.js';
+import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
@@ -102,7 +102,7 @@ export function renderPrep() {
       <div class="sum">
         <div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>
         ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
-        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
+        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비 (임대료·대출·공과금)</span><b>약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
@@ -189,7 +189,7 @@ export function renderReceipt() {
         ${G.story.ch === 0 ? '<div class="rc-foot">오늘 번 돈은 오 사장님 가게 돈입니다</div>' : `<div class="rc-foot">잔고 ${won(G.cash)}</div>`}
       </div>
       </details>
-      <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '주간 정산 보기' : '다음 날 준비'}</button>
+      <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button>
     </div>`, 'scr-receipt');
   countUp(document.querySelector('.hero-num'));
 }
@@ -221,23 +221,29 @@ function weekCostLine() {
   return `<div class="ln note"><span>이번 주 원가율</span><b>${pct(now)}${diff}</b></div>`;
 }
 export function renderWeekly() {
-  const W = G.lastWeekly;
+  const W = G.lastWeekly, B = W.bills, after = G.cash - B.total;
+  const bill = (name, sub, v) => `<div class="bill"><div><b>${name}</b><small>${sub}</small></div><b>${won(v)}</b></div>`;
   showScreen(`
     <div class="weekly">
-      <div class="phase-tag night">일요일 밤</div>
-      <h2>${W.week}주차 정산</h2>
-      ${W.quests && W.quests.length ? `<div class="hls">${doneCard(W.quests)}</div>` : ''}
-      <div class="paper">
-        <div class="ln"><span>이번 주 매출</span><b>${won(W.sales)}</b></div>
-        <div class="ln minus"><span>가게 임대료</span><b>−${won(W.rent)}</b></div>
-        <div class="ln minus"><span>창업 대출 상환</span><b>−${won(W.loanPay)}</b></div>
-        <div class="dash"></div>
-        ${weekCostLine()}
-        <div class="ln total"><span>잔고</span><b class="${G.cash < 0 ? 'neg' : ''}">${won(G.cash)}</b></div>
-        <div class="ln note"><span>남은 대출</span><b>${won(W.loanLeft)}</b></div>
+      <div class="phase-tag night">일요일 밤 · ${W.week}주차</div>
+      <h2>고정비 내는 날</h2>
+      <p class="yday">이번 주 매출 <b>${wonShort(W.sales)}</b></p>
+      <div class="bills">
+        <small class="bills-h">이번 주 고지서</small>
+        ${bill('가게 임대료', '건물주 · 매주', B.rent)}
+        ${bill('대출 이자', `남은 대출 ${wonShort(G.loan)} · 연 ${Math.round(LOAN_RATE * 100)}%`, B.interest)}
+        ${bill('대출 원금', '창업 대출 나눠 갚기', B.principal)}
+        ${bill('공과금', `전기·가스·수도 · 이번 주 ${B.dishes}그릇`, B.util)}
+        <div class="bill total"><b>합계</b><b>${won(B.total)}</b></div>
       </div>
-      ${G.cash < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 주문량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
-      <button class="btn primary big" data-act="afterWeekly">다음 주 시작</button>
+      <div class="paper">
+        ${weekCostLine()}
+        <div class="ln"><span>지금 잔고</span><b>${won(G.cash)}</b></div>
+        <div class="ln total"><span>내고 나면</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>
+        <div class="ln note"><span>남는 대출</span><b>${won(Math.max(0, G.loan - B.principal))}</b></div>
+      </div>
+      ${after < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 주문량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
+      <button class="btn primary big" data-act="afterWeekly">모두 내고 다음 주 시작 · ${won(B.total)}</button>
     </div>`, 'scr-weekly');
 }
 

@@ -1,8 +1,8 @@
-// 하루의 흐름: 준비(prep: 가격·재료 주문) → 아침 재료 도착 → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 주간 정산(weekly) → 다음 날 준비
+// 하루의 흐름: 준비(prep: 가격·재료 주문) → 아침 재료 도착 → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 고정비 내는 날(weekly: 임대료·대출·공과금 고지서) → 다음 날 준비
 // 재료는 유통기한(MENUS.shelf)까지 남겨 두고 다음 날 써요. 먼저 받은 재료부터 써요.
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
-import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul } from '../data/economy.js';
+import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR, FOOT_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
@@ -236,20 +236,38 @@ export function endDay() {
   setPhase('receipt');
 }
 
-// 영수증 다음: 7일째 밤이면 주간 정산, 아니면 다음 날 준비
+// 이번 주 고정비 고지서: 가게 임대료 · 대출 이자 · 대출 원금 · 공과금(전기·가스·수도)
+//  upTo: 이 날까지 판 그릇으로 공과금을 셈 (준비 화면에서는 어제까지로 미리 보여 줘요)
+export function weekBills(upTo = G.day) {
+  const interest = Math.min(LOAN_WEEKLY, Math.round(G.loan * LOAN_RATE / 52 / 100) * 100);
+  const principal = Math.min(LOAN_WEEKLY - interest, Math.max(0, G.loan));
+  const dishes = G.history.filter(h => h.day > G.day - 7 && h.day <= upTo).reduce((s, h) => s + Object.values(h.sold).reduce((a, b) => a + b, 0), 0);
+  const util = Math.round((UTIL_BASE + dishes * UTIL_PER_DISH) / 100) * 100;
+  return { rent: WEEK_RENT, interest, principal, util, dishes, total: WEEK_RENT + interest + principal + util };
+}
+
+// 영수증 다음: 7일째 밤이면 고정비 내는 날(고지서), 아니면 다음 날 준비
 defineCmd('afterReceipt', () => {
   if (isWeeklyNight()) {
-    const loanPay = Math.min(LOAN_WEEKLY, G.loan);
-    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, rent: WEEK_RENT, loanPay, loanLeft: G.loan - loanPay };
-    G.cash -= WEEK_RENT + loanPay;
-    G.loan -= loanPay;
-    G.weekSales = 0;
-    storyNote('weekly');
-    G.lastWeekly.quests = G.story.today.slice();
+    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, bills: weekBills(), paid: false };
     setPhase('weekly');
   } else nextDay();
 });
-defineCmd('afterWeekly', () => nextDay());
+// 고지서를 내 손으로 내요 (잔고가 모자라도 일단 냅니다 — 프로토타입)
+defineCmd('afterWeekly', () => {
+  const W = G.lastWeekly;
+  if (W && !W.paid) {
+    const B = W.bills;
+    G.cash -= B.total;
+    G.loan = Math.max(0, G.loan - B.principal);
+    G.weekSales = 0;
+    W.paid = true;
+    emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
+    emit('sfx', 'coin');
+    storyNote('weekly');
+  }
+  nextDay();
+});
 
 function nextDay() {
   G.day++;

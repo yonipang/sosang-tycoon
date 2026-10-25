@@ -29,7 +29,7 @@ export const CHAPTERS = [
 // 퀘스트
 //  kind: 무엇을 세나 (sim/story.js storyNote) — cook(완벽 조리) · paid(계산한 손님 수) · receipt(마감 영수증) · dayEnd(마친 영업일)
 //        dayServed(하루 받은 손님, 그날 최고) · note(냉장고 뒤 쪽지) · served(그 메뉴를 내준 수) · cleanDay(재료가 안 떨어진 날)
-//        weekly(주간 정산) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기)
+//        weekly(고정비 내기) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기)
 //  menu: 그 메뉴만 셈 · need: 몇 번 · needs: 이 퀘스트들이 끝나면 저절로 시작 · after: 이 퀘스트들이 끝나야 완료
 //  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴)
 export const QUESTS = {
@@ -43,7 +43,7 @@ export const QUESTS = {
   c1_tools: { who: 'oh', title: '도구를 들여라', goal: '장사 도구 하나 사기', kind: 'buyTool', need: 1 },
   c1_fryer: { who: 'oh', title: '튀김기 살리기', goal: '수리비 3만 원 내기', kind: 'pay', cost: 30000, need: 1, give: { scenes: ['fryer'], menuNow: 'twigim' } },
   c1_stock: { who: 'oh', title: '내일 장 보기', goal: '재료가 떨어지지 않은 날', kind: 'cleanDay', need: 1 },
-  c1_week: { who: 'me', title: '첫 주 버티기', goal: '주간 정산 받기', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
+  c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
 // 대화 장면

@@ -127,7 +127,7 @@ function endIncident(x, ok) {
 export function tickIncidents() {
   const r = G.run;
   for (const x of r.incidents) {
-    if (x.state === 'wait' && r.min >= x.at && !r.closing) startIncident(x);
+    if (x.state === 'wait' && r.min >= x.at && !r.closing && !r.cook) startIncident(x); // 조리 미니게임 중이면 끝난 뒤에
     else if (x.state === 'on' && INCIDENTS[x.id].kind === 'group') { groupWaves(x); if (r.min >= x.until) endIncident(x, x.paid >= Math.min(INCIDENTS[x.id].pass, x.need)); }
     else if (x.state === 'on' && x.until !== undefined && r.min >= x.until) endIncident(x, false);
   }

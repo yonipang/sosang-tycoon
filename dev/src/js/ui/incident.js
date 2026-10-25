@@ -10,7 +10,8 @@ import { incidentInfo } from '../sim/incidents.js';
 import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
-import { lineHTML, typeIn, stopTyping } from './story.js';
+import { lineHTML, typeIn, stopTyping, talking } from './story.js';
+import { cutActive } from './cutscene.js';
 
 const incQueue = []; // 보여 줄 차례 [{ kind: 'intro'|'result', x }]
 let incCur = null;   // 지금 보고 있는 것 { kind, x, i: 몇 번째 말 }
@@ -34,6 +35,7 @@ function incHold(on) {
 
 function incNext() {
   if (incCur || !incQueue.length || G.phase !== 'day') return;
+  if (G.run && (G.run.cook || cutActive() || talking())) { setTimeout(incNext, 150); return; } // 미니게임·대화 중이면 끝난 뒤에 띄워요
   incCur = { ...incQueue.shift(), i: 0 };
   incHold(true);
   $('incUI').hidden = false;
