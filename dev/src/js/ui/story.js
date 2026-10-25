@@ -157,16 +157,16 @@ export function questCard() {
 }
 
 // 영업 중: 위 막대 주문표 아래 — 돌발 이벤트(남은 시간·진행도)와 「퀘스트」 버튼. 퀘스트는 눌러서 창으로 한 번에 봐요
-const incProg = (x, D) => D.kind === 'takeout' ? `${x.qty - x.left}/${x.qty}` : D.kind === 'mission' ? `${x.count}/${D.need}` : D.kind === 'group' ? `${x.paid}/${x.need}` : '';
 let lastTrack = '', lastDone = -1, popT = 0;
 export function updateQuestTrack() {
   const el = $('questTrack');
   const S = G.story, day = G.phase === 'day';
-  const inc = day ? activeIncidents().map(x => {
-    const D = incidentInfo(x), prog = incProg(x, D);
-    const till = x.until !== undefined ? ` · ~${clockText(x.until)}` : '';
-    return `<div class="qt inc" data-qopen="1"><span class="inc-tag">${D.short}</span><span>${prog ? `<b>${prog}</b>` : D.name}${till}</span></div>`;
-  }).join('') : '';
+  // 돌발 이벤트: 빨간 띠 (이름 · 진행도 · 남은 시간 막대, 얼마 안 남으면 깜빡) — 둘이면 3초마다 번갈아
+  //  남은 시간 막대 폭은 아래에서 바로 바꿔요 (띠를 다시 그리면 「쿵」 움직임이 다시 나와서, 진행도가 바뀔 때만 다시 그려요)
+  const act = day ? activeIncidents() : [];
+  const cur = act.length ? act[Math.floor(performance.now() / 3000) % act.length] : null;
+  const curD = cur && incidentInfo(cur);
+  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">돌발</span><span class="inc-name">${curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
   // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
   const done = S ? S.done.length : 0;
   if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;
@@ -177,6 +177,8 @@ export function updateQuestTrack() {
   const html = inc + btn;
   if (html !== lastTrack) { lastTrack = html; el.innerHTML = html; }
   el.hidden = !html;
+  const bar = cur && curD.left !== null && el.querySelector('.inc-time > i');
+  if (bar) bar.style.width = (curD.left * 100).toFixed(1) + '%';
 }
 
 // 퀘스트 창: 지금 장 · 할 일 전부 · 진행 중인 돌발 이벤트 (영업 중에 열면 가게는 잠깐 멈춰요)
@@ -186,8 +188,8 @@ export function openQuests() {
   if (!S) return;
   const ch = CHAPTERS[S.ch];
   const inc = G.phase === 'day' ? activeIncidents().map(x => {
-    const D = incidentInfo(x), prog = incProg(x, D);
-    return `<div class="qrow inc"><span class="inc-tag">${D.short}</span><div class="q-txt"><b>${D.name}</b><small>${D.text}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
+    const D = incidentInfo(x), prog = D.prog ? `${D.prog[0]}/${D.prog[1]}` : '';
+    return `<div class="qrow inc"><span class="inc-tag">돌발</span><div class="q-txt"><b>${D.name}</b><small>${D.goal}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
   }).join('') : '';
   $('qModal').innerHTML = `<div class="qm-card" role="dialog" aria-label="퀘스트">
     <div class="q-head"><small>${ch.name}</small><b>${ch.sub}</b>${S.title ? `<span class="q-title">${S.title}</span>` : ''}</div>

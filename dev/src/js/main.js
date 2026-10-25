@@ -14,6 +14,7 @@ import { toast } from './ui/feedback.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
 import { initStory, updateQuestTrack } from './ui/story.js';
+import { initIncidentUI } from './ui/incident.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
 import { initMusic, updateMusic, musicState } from './ui/music.js';
 
@@ -45,6 +46,7 @@ async function boot() {
   initFeedback();
   initInput();
   initStory();
+  initIncidentUI();
   initCutscene();
   initMusic();
   initRush();

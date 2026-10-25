@@ -12,6 +12,7 @@ import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from
 import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack, closeQuests } from './story.js';
 import { incidentInfo } from '../sim/incidents.js';
+import { incidentStart, incidentEnd, incidentReset } from './incident.js';
 import { setMusic } from './music.js';
 
 export function toast(text, kind, who) {
@@ -78,11 +79,12 @@ export function initFeedback() {
     if (on && G.run && G.run.dawn) $('dawnUI').hidden = true; // 새벽에 끓이는 동안은 새벽 창을 잠깐 내려요
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요', '다 됐으면 손님 자리를 눌러서 갖다줘. 식기 전에!');
   });
-  // 돌발 이벤트: 시작하면 알림 (오 사장님 미션은 얼굴과 함께), 진행은 위 막대 (ui/story.js)
+  // 돌발 이벤트: 시작하면 대화·목표 카드, 끝나면 결과 카드 (ui/incident.js) · 진행은 위 막대 빨간 띠 (ui/story.js)
   onEvent('incident', (what, x) => {
     const D = incidentInfo(x);
-    if (what === 'start') toast(D.text, 'event', D.who);
-    if (D.kind === 'mission') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
+    if (what === 'start') incidentStart(x);
+    else if (what === 'end') incidentEnd(x);
+    if (D.kind === 'mission' && what !== 'prog') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
     updateQuestTrack();
   });
   onEvent('dawn', (on, q) => {
@@ -94,7 +96,7 @@ export function initFeedback() {
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
-    if (p !== 'day') { closeQuests(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
+    if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();

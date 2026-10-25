@@ -144,6 +144,12 @@ const SIT_LIFT = 16; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 �
 const SIT_SHIFT = 3; // 탁자 쪽으로 당기는 픽셀: 등받이가 등 뒤로 보이게
 function drawCustomerUI(c) {
   const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 9 - (sittingNow(c) ? SIT_LIFT : 0)); // 머리 바로 위
+  if (c.tag && c.tag.state === 'on' && c.state !== 'leave') { // 돌발 이벤트 손님: 머리 옆 빨간 「!」 (통통)
+    const bx = px + 12, by = top - 12 + Math.round(Math.sin(t * 6 + c.id) * 1.2);
+    ctx.fillStyle = '#3b2a20'; ctx.fillRect(bx - 1, by - 1, 7, 9);
+    ctx.fillStyle = '#e0533a'; ctx.fillRect(bx, by, 5, 7);
+    ctx.fillStyle = '#fff'; ctx.fillRect(bx + 2, by + 1, 1, 3); ctx.fillRect(bx + 2, by + 5, 1, 1);
+  }
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);

@@ -11,7 +11,7 @@
 | save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 · 클라우드 저장(구글 로그인, Firebase) |
 | sim | `story.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 이야기 규칙(퀘스트 세기·메뉴 열기) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | render | `view.js` `cut.js` | 가게 그리기 · 연출(밤 골목) 그리기 |
-| ui | `sfx.js` `icons.js` `hud.js` `story.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 연출 진행 · 준비/영수증 화면 · 사건 받기 · 입력 |
+| ui | `sfx.js` `icons.js` `hud.js` `story.js` `incident.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 돌발 이벤트 대화·목표·결과 카드 · 연출 진행 · 준비/영수증 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
 
 ## 이야기 더하기

@@ -44,6 +44,8 @@ window.__bot = (() => {
   function play(sec) {
     const { G, runFor } = window.__T;
     let t = 0;
+    const ui = document.getElementById('incUI'); // 돌발 이벤트 대화·카드는 넘겨요 (봇은 runFor라 멈춤과 상관없이 돌아요)
+    for (let k = 0; k < 20 && !ui.hidden; k++) { const b = ui.querySelector('[data-inc]'); (b || ui).click(); }
     while (G.phase === 'day' && t < sec) { think(); runFor(0.1); check(); t += 0.1; }
     return G.phase;
   }

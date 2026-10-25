@@ -412,9 +412,8 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .dawn-btns .btn[disabled] { opacity: .55; }
 
 /* 돌발 이벤트 */
-.qt.inc { background: #ffe9d6; border-color: var(--red-dark); padding-left: 0; }
+.qt.inc { background: #ffe9d6; border-color: var(--red-dark); padding-left: 0; position: relative; }
 .inc-tag { background: var(--red); color: #fff; padding: 0 6px; border-right: 2px solid var(--ink); }
-.qt.inc span:last-child { color: var(--ink); }
 .toast.event { background: var(--red); color: #fff; border-color: var(--ink); }
 .toast.event.who { background: #ffe9d6; color: var(--ink); }
 .hl.incident { background: #ffe9d6; border-color: var(--red); }
@@ -491,8 +490,47 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .qt.qbtn b { color: #fff; background: var(--red); padding: 0 4px; margin-left: 2px; }
 .qt.qbtn.pop { animation: qPop .4s steps(2) 4; }
 @keyframes qPop { 50% { background: var(--mustard); } }
-.qt.inc { cursor: pointer; flex: 0 1 auto; }
+.qt.inc { cursor: pointer; flex: 1 1 auto; overflow: hidden; }
 .modal { position: absolute; inset: 0; z-index: 28; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(12,10,24,.6); line-height: 1.5; }
 .qm-card { width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; background: var(--paper); border: 4px solid var(--ink); padding: 8px 10px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
 .qm-h { display: block; margin: 8px 0 0; color: var(--ink-soft); font-size: 16px; }
 .qrow.inc .inc-tag { align-self: flex-start; white-space: nowrap; border: 2px solid var(--ink); }
+
+/* 돌발 이벤트: 위 막대 빨간 띠 (진행도 · 남은 시간) */
+.qt.inc { background: #ffe1cf; border-color: var(--red); box-shadow: 0 0 0 2px var(--red-dark); min-height: 26px; animation: incIn .5s steps(3); }
+.qt.inc .inc-name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; min-width: 0; }
+.qt.inc b { color: #fff; background: var(--red-dark); padding: 0 5px; margin-right: 2px; white-space: nowrap; }
+.inc-time { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0,0,0,.12); }
+.inc-time > i { display: block; height: 100%; background: var(--red); transition: width .3s linear; }
+.inc-more { color: var(--red-dark); padding-right: 2px; }
+.qt.inc.hurry { animation: incHurry .6s steps(2) infinite; }
+@keyframes incHurry { 50% { background: #ffb39b; } }
+@keyframes incIn { 0% { transform: scale(1.15); } }
+
+/* 돌발 이벤트: 시작 대화 · 목표 카드 · 결과 카드 (가게가 멈춘 동안 위에 떠요) */
+.inc-ui { position: absolute; inset: 0; z-index: 29; display: flex; flex-direction: column; justify-content: center; padding: 12px 10px; padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); background: rgba(40,12,8,.55); line-height: 1.5; cursor: pointer; }
+.inc-ui.talking { justify-content: space-between; background: linear-gradient(180deg, rgba(40,12,8,.7), rgba(40,12,8,.35) 45%, rgba(29,35,64,.8)); }
+.inc-banner { align-self: center; text-align: center; background: var(--red); color: #fff; border: 4px solid var(--ink); box-shadow: 0 4px 0 var(--ink); padding: 4px 18px 6px; margin: 6px 0 12px; transform: rotate(-2deg); }
+.inc-banner.pop { animation: incBanner .5s steps(4); }
+.inc-banner small { display: block; color: var(--mustard); letter-spacing: 2px; }
+.inc-banner b { font-weight: normal; font-size: 28px; line-height: 1.2; text-shadow: 0 2px 0 var(--red-dark); }
+@keyframes incBanner { 0% { transform: scale(2.2) rotate(-8deg); opacity: 0; } 60% { transform: scale(.9) rotate(-1deg); } }
+.inc-talk .tk-box { display: flex; align-items: flex-end; gap: 6px; }
+.inc-ui.think .tk-body { background: #efe9fb; border-style: dashed; }
+.inc-ui.think .tk-name { background: #6b5a9a; }
+.inc-ui.narr .tk-body { background: var(--night); color: var(--paper); border-color: var(--paper); }
+.inc-card { background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 8px 12px 12px; max-width: 400px; width: 100%; align-self: center; cursor: default; }
+.inc-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); word-break: keep-all; }
+.inc-row small { flex: none; width: 36px; color: var(--red-dark); }
+.inc-row b { font-weight: normal; }
+.inc-card .btn { margin-top: 12px; }
+.inc-say { display: flex; gap: 8px; align-items: center; padding: 4px 0 8px; border-bottom: 2px dashed var(--line); }
+.inc-say img { width: 32px; height: 64px; flex: none; image-rendering: pixelated; object-fit: cover; object-position: top; }
+.inc-say small { color: var(--ink-soft); }
+.inc-say p { margin: 0; }
+.inc-msg { margin: 8px 0 0; word-break: keep-all; }
+.inc-prog { margin: 4px 0 0; color: var(--ink-soft); }
+.inc-prog b { font-weight: normal; color: var(--ink); }
+.inc-got { margin: 6px 0 0; font-size: 24px; color: var(--green); text-align: center; }
+.inc-ui.result.lose .inc-banner { background: #6b5a6a; }
+.inc-ui.result.win .inc-banner { background: var(--green); }

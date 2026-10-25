@@ -417,9 +417,8 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .dawn-btns .btn[disabled] { opacity: .55; }
 
 /* 돌발 이벤트 */
-.qt.inc { background: #ffe9d6; border-color: var(--red-dark); padding-left: 0; }
+.qt.inc { background: #ffe9d6; border-color: var(--red-dark); padding-left: 0; position: relative; }
 .inc-tag { background: var(--red); color: #fff; padding: 0 6px; border-right: 2px solid var(--ink); }
-.qt.inc span:last-child { color: var(--ink); }
 .toast.event { background: var(--red); color: #fff; border-color: var(--ink); }
 .toast.event.who { background: #ffe9d6; color: var(--ink); }
 .hl.incident { background: #ffe9d6; border-color: var(--red); }
@@ -496,11 +495,50 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .qt.qbtn b { color: #fff; background: var(--red); padding: 0 4px; margin-left: 2px; }
 .qt.qbtn.pop { animation: qPop .4s steps(2) 4; }
 @keyframes qPop { 50% { background: var(--mustard); } }
-.qt.inc { cursor: pointer; flex: 0 1 auto; }
+.qt.inc { cursor: pointer; flex: 1 1 auto; overflow: hidden; }
 .modal { position: absolute; inset: 0; z-index: 28; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(12,10,24,.6); line-height: 1.5; }
 .qm-card { width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; background: var(--paper); border: 4px solid var(--ink); padding: 8px 10px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
 .qm-h { display: block; margin: 8px 0 0; color: var(--ink-soft); font-size: 16px; }
 .qrow.inc .inc-tag { align-self: flex-start; white-space: nowrap; border: 2px solid var(--ink); }
+
+/* 돌발 이벤트: 위 막대 빨간 띠 (진행도 · 남은 시간) */
+.qt.inc { background: #ffe1cf; border-color: var(--red); box-shadow: 0 0 0 2px var(--red-dark); min-height: 26px; animation: incIn .5s steps(3); }
+.qt.inc .inc-name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; min-width: 0; }
+.qt.inc b { color: #fff; background: var(--red-dark); padding: 0 5px; margin-right: 2px; white-space: nowrap; }
+.inc-time { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0,0,0,.12); }
+.inc-time > i { display: block; height: 100%; background: var(--red); transition: width .3s linear; }
+.inc-more { color: var(--red-dark); padding-right: 2px; }
+.qt.inc.hurry { animation: incHurry .6s steps(2) infinite; }
+@keyframes incHurry { 50% { background: #ffb39b; } }
+@keyframes incIn { 0% { transform: scale(1.15); } }
+
+/* 돌발 이벤트: 시작 대화 · 목표 카드 · 결과 카드 (가게가 멈춘 동안 위에 떠요) */
+.inc-ui { position: absolute; inset: 0; z-index: 29; display: flex; flex-direction: column; justify-content: center; padding: 12px 10px; padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); background: rgba(40,12,8,.55); line-height: 1.5; cursor: pointer; }
+.inc-ui.talking { justify-content: space-between; background: linear-gradient(180deg, rgba(40,12,8,.7), rgba(40,12,8,.35) 45%, rgba(29,35,64,.8)); }
+.inc-banner { align-self: center; text-align: center; background: var(--red); color: #fff; border: 4px solid var(--ink); box-shadow: 0 4px 0 var(--ink); padding: 4px 18px 6px; margin: 6px 0 12px; transform: rotate(-2deg); }
+.inc-banner.pop { animation: incBanner .5s steps(4); }
+.inc-banner small { display: block; color: var(--mustard); letter-spacing: 2px; }
+.inc-banner b { font-weight: normal; font-size: 28px; line-height: 1.2; text-shadow: 0 2px 0 var(--red-dark); }
+@keyframes incBanner { 0% { transform: scale(2.2) rotate(-8deg); opacity: 0; } 60% { transform: scale(.9) rotate(-1deg); } }
+.inc-talk .tk-box { display: flex; align-items: flex-end; gap: 6px; }
+.inc-ui.think .tk-body { background: #efe9fb; border-style: dashed; }
+.inc-ui.think .tk-name { background: #6b5a9a; }
+.inc-ui.narr .tk-body { background: var(--night); color: var(--paper); border-color: var(--paper); }
+.inc-card { background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 8px 12px 12px; max-width: 400px; width: 100%; align-self: center; cursor: default; }
+.inc-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); word-break: keep-all; }
+.inc-row small { flex: none; width: 36px; color: var(--red-dark); }
+.inc-row b { font-weight: normal; }
+.inc-card .btn { margin-top: 12px; }
+.inc-say { display: flex; gap: 8px; align-items: center; padding: 4px 0 8px; border-bottom: 2px dashed var(--line); }
+.inc-say img { width: 32px; height: 64px; flex: none; image-rendering: pixelated; object-fit: cover; object-position: top; }
+.inc-say small { color: var(--ink-soft); }
+.inc-say p { margin: 0; }
+.inc-msg { margin: 8px 0 0; word-break: keep-all; }
+.inc-prog { margin: 4px 0 0; color: var(--ink-soft); }
+.inc-prog b { font-weight: normal; color: var(--ink); }
+.inc-got { margin: 6px 0 0; font-size: 24px; color: var(--green); text-align: center; }
+.inc-ui.result.lose .inc-banner { background: #6b5a6a; }
+.inc-ui.result.win .inc-banner { background: var(--green); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -554,6 +592,7 @@ body[data-phase="title"] .gear { visibility: hidden; }
   </footer>
   <div id="toasts" aria-live="polite"></div>
   <div id="qModal" class="modal" hidden></div>
+  <div id="incUI" class="inc-ui" hidden></div>
   <div id="askModal" class="modal ask" hidden></div>
   <section id="screen" hidden></section>
   <div id="cut" hidden><canvas id="cutCv" aria-label="연출"></canvas><div id="cutCap" hidden></div><button id="cutSkip" type="button">건너뛰기 ▶▶</button></div>
@@ -837,7 +876,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.13';
+const GAME_VERSION = '0.14';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -857,6 +896,11 @@ const CAST = {
   oh: { name: '오 사장님', char: 18 },
   ohPhone: { name: '오 사장님 · 전화', char: 18 },
   park: { name: '박 할머니', char: 13 },
+  // 돌발 이벤트 (data/incidents.js)
+  kids: { name: '학원 끝난 아이', char: 2 },
+  kids2: { name: '학원 끝난 아이들', char: 5 },
+  caller: { name: '포장 손님 · 전화', char: 12 },
+  blogger: { name: '카메라 든 손님', char: 16 },
   // 뒤의 장에서 나와요 (1장까지는 오 사장님이 멘토로 거의 다 이끌어요 — 사람이 한꺼번에 많이 나오지 않게)
   choi: { name: '최 사장 · 옆 세탁소', char: 7 },
   miso: { name: '미소 사장 · 맞은편 꽃집', char: 9 },
@@ -1180,25 +1224,58 @@ const COOK_EASE = {
 //  minDay: 이 날부터 · weight: 고르는 무게 · limit: 시작부터 끝까지(게임 분)
 //  kind: group(단체 손님) · takeout(포장 전화) · mission(오 사장님 미션) · guest(깜짝 손님)
 // 새 돌발 이벤트는 여기에 더하고, 처음 보는 kind면 sim/incidents.js에 진행 규칙을 더해요.
+//  눈에 띄게 (데이브 더 다이버처럼): 시작하면 가게가 멈추고 대화(intro) → 목표 카드(goal · 보상 prize) → 「시작!」
+//   진행 중에는 위 막대에 빨간 띠(진행도 · 남은 시간), 끝나면 결과 카드(winSay/loseSay 한마디 + 보상)
+//  intro: [누가, 말] (data/story.js CAST · null이면 설명) · {menu} {qty}는 그때 정해진 것으로 바뀌어요
 const INCIDENTS = {
   group: {
-    kind: 'group', name: '단체 손님', short: '단체', from: 390, to: 450, minDay: 2, weight: 3, size: 4, reward: 5000,
-    text: '학원 끝난 학생 넷이 몰려옵니다! 모두 받아 보세요', who: null,
-    win: '단체 손님이 고맙다며 팁을 남겼습니다', lose: '단체 손님 중 일부가 그냥 나갔습니다',
+    kind: 'group', name: '학원 끝난 아이들', short: '단체', from: 390, to: 450, minDay: 2, weight: 3,
+    size: 8, waves: 4, gap: 10, limit: 130, pass: 6, perKid: 1000, allBonus: 4000,
+    text: '학원 끝난 아이들이 몰려옵니다!',
+    intro: [
+      [null, '골목 끝에서 왁자지껄한 소리가 들려옵니다.'],
+      ['kids', '사장님!! 저희 학원 끝났어요! 여덟 명인데 자리 있어요?'],
+      ['kids2', '나 떡볶이! 나는 튀김! …야, 너 돈 있냐?'],
+      ['meThink', '한꺼번에 몰려온다. 정신 바짝 차려야겠다!'],
+    ],
+    goal: '아이들 8명 계산까지 받기 (두세 명씩 차례로 옵니다)', prize: '한 명마다 팁 1,000원 · 8명 모두 받으면 +4,000원',
+    winSay: ['kids', '사장님 최고! 내일 학원 끝나고 또 올게요!'], loseSay: ['kids', '아 배고픈데… 그냥 편의점 가자.'],
+    win: '아이들이 배부르게 먹고 갔습니다', lose: '아이들을 다 받지 못했습니다. 자리·재료·속도를 챙겨 보세요',
   },
   takeout: {
-    kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 120, tip: 3000,
-    text: '{menu} {qty}인분 포장 주문! 만들어서 계산대에 올려 두세요', who: null,
-    win: '포장 손님이 「빨리 해 주셔서 고마워요」 하고 가져갔습니다', lose: '포장 손님이 기다리다 주문을 취소했습니다',
+    kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 100, tip: 3000,
+    text: '{menu} {qty}인분 포장 주문!',
+    intro: [
+      [null, '따르릉— 가게 전화가 울립니다.'],
+      ['caller', '여보세요, 거기 분식집이죠? {menu} {qty}인분 포장돼요? 금방 찾으러 갈게요.'],
+      ['me', '네! 바로 준비해 두겠습니다.'],
+    ],
+    goal: '{menu} {qty}인분 만들어서 계산대에 올려 두기', prize: '포장 값 + 팁 3,000원',
+    winSay: ['caller', '와, 벌써 다 됐네요? 잘 먹을게요!'], loseSay: ['caller', '아직이에요? …그냥 취소할게요.'],
+    win: '포장 손님이 기분 좋게 가져갔습니다', lose: '포장 손님이 기다리다 주문을 취소했습니다',
   },
   mission: {
     kind: 'mission', name: '오 사장님 미션', short: '미션', from: 150, to: 180, minDay: 4, weight: 2, need: 3, until: 330, reward: 20000,
-    text: '점심 장사 시작이다. 두 시 반까지 완벽하게 세 번 만들어 봐라. 해내면 재료값 보태 주마', who: 'oh',
-    win: '오 사장님: 「제법이다.」 재료값을 보태 줬습니다', lose: '오 사장님: 「아직 멀었다. 내일 또 해 봐라.」',
+    text: '두 시 반까지 완벽하게 세 번!', who: 'oh',
+    intro: [
+      ['ohPhone', '어이, 사장. 점심 장사 시작이지?'],
+      ['ohPhone', '두 시 반까지 완벽하게 세 번 만들어 봐라. 메뉴는 아무거나. 해내면 재료값 보태 주마.'],
+      ['me', '…해 볼게요!'],
+    ],
+    goal: '두 시 반까지 아무 메뉴나 「완벽」 3번', prize: '재료값 20,000원',
+    winSay: ['ohPhone', '제법이다. 재료값은 보내 놨다.'], loseSay: ['ohPhone', '아직 멀었다. 내일 또 해 봐라.'],
+    win: '오 사장님이 재료값을 보태 줬습니다', lose: '오 사장님 미션은 다음 기회에',
   },
   guest: {
     kind: 'guest', name: '맛집 블로거', short: '블로거', from: 300, to: 420, minDay: 4, weight: 1, menu: 'tteok', limit: 150,
-    text: '카메라를 든 손님이 들어옵니다. 동네 맛집 블로거 같습니다! 완벽하게 대접해 보세요', who: null,
+    text: '맛집 블로거가 왔습니다!',
+    intro: [
+      [null, '카메라를 목에 건 손님이 가게 안을 두리번거립니다.'],
+      ['meThink', '저 사람… 동네 맛집 블로거 아닌가? 옆 동네 가게도 올렸던…'],
+      ['blogger', '여기 {menu} 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?'],
+    ],
+    goal: '블로거에게 {menu}을/를 「완벽」하게 내주기', prize: '별 다섯 개 리뷰 · 동네 소문',
+    winSay: ['blogger', '와, 이건 글 써야겠는데요?'], loseSay: ['blogger', '음… 무난하네요.'],
     win: '블로거가 사진을 잔뜩 찍고 갔습니다. 소문이 날 것 같습니다', lose: '블로거가 「무난하네」 하고 갔습니다',
   },
 };
@@ -1868,10 +1945,10 @@ function decide(c) {
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
-  if (re.leave && rand() < re.leave) { partyLeaves(c, 'price', m); return; }
+  if (re.leave && !c.tag && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 이벤트 손님은 가격 때문에 그냥 가지 않아요 (기분은 남아요)
   if (!canSell(m)) {
     const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && canSell(x) && !reaction(c, x).leave);
-    if (alts.length && rand() < 0.5) { m = alts[0]; re = reaction(c, m); }
+    if (alts.length && (c.tag || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님은 다른 메뉴라도 먹어요
     else { partyLeaves(c, 'soldout', m); return; }
   }
   if (!spareOf(m)) r.stock[m]--; // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
@@ -2056,7 +2133,10 @@ function tickRegulars() {
 // 돌발 이벤트 진행 (data/incidents.js): 그날 고르기 · 시작 · 세기 · 성공/실패와 보상.
 // 화면은 만지지 않고 사건만: emit('incident', 'start'|'end', 돌발) · toast
 
-const fillText = (s, d) => s.replace('{menu}', d.menu ? MENUS[d.menu].name : '').replace('{qty}', d.qty || '');
+// {menu} {qty} 채우기 ({menu}을/를처럼 조사가 붙으면 받침에 맞게)
+const fillText = (s, d) => String(s || '')
+  .replace(/\{menu\}(을\/를|이\/가|은\/는|으로\/로)?/g, (_, pair) => { const n = d.menu ? MENUS[d.menu].name : ''; return pair ? josa(n, pair) : n; })
+  .replace(/\{qty\}/g, d.qty || '');
 
 // 영업 시작 때 오늘 일어날 돌발을 정해 둬요 (그날 씨앗 rand라 같은 날은 같은 일이 일어나요)
 function planIncidents(r) {
@@ -2079,17 +2159,29 @@ function forceIncident(id) {
 }
 
 const activeIncidents = () => (G.run ? G.run.incidents.filter(x => x.state === 'on') : []);
-const incidentInfo = x => ({ ...INCIDENTS[x.id], text: fillText(INCIDENTS[x.id].text, x) });
+// 화면에 보여 줄 것: 글은 채워서, 진행도 「3/8」, 남은 시간 비율(0~1)
+function incidentInfo(x) {
+  const D = INCIDENTS[x.id], r = G.run;
+  const prog = D.kind === 'takeout' ? [x.qty - x.left, x.qty] : D.kind === 'mission' ? [x.count, D.need] : D.kind === 'group' ? [x.paid, x.need] : null;
+  const left = x.until !== undefined && r ? Math.max(0, Math.min(1, (x.until - r.min) / Math.max(1, x.until - x.t0))) : null;
+  return {
+    ...D, text: fillText(D.text, x), goal: fillText(D.goal, x), prize: fillText(D.prize, x),
+    intro: (D.intro || []).map(([who, t]) => [who, fillText(t, x)]),
+    say: x.state === 'win' ? D.winSay : D.loseSay,
+    prog, left,
+  };
+}
 
 function startIncident(x) {
   const r = G.run, D = INCIDENTS[x.id];
   x.state = 'on'; x.t0 = r.min;
-  if (D.kind === 'group') {
-    const chars = freeChars('student');
-    if (chars.length < 2) { x.state = 'skip'; return; }
-    const n = Math.min(D.size, chars.length - (chars.length % 2));
-    x.need = n; x.paid = 0;
-    for (let k = 0; k < n; k += 2) spawnParty(chars.slice(k, k + 2), { force: true, tag: x, delay: k });
+  if (D.kind === 'group') { // 두세 명씩 몇 번에 나눠서 와요 (gap 분마다)
+    if (freeChars('student').length < 2) { x.state = 'skip'; return; }
+    x.need = D.size; x.paid = 0; x.gone = 0; x.came = 0;
+    x.until = r.min + D.limit;
+    const per = Math.ceil(D.size / D.waves);
+    x.waves = Array.from({ length: D.waves }, (_, k) => ({ at: r.min + k * D.gap, n: Math.min(per, D.size - k * per) })).filter(w => w.n > 0);
+    groupWaves(x);
   } else if (D.kind === 'takeout') {
     const ms = MENU_IDS.filter(m => menuOpen(m) && canSell(m));
     if (!ms.length) { x.state = 'skip'; return; }
@@ -2113,12 +2205,30 @@ function startIncident(x) {
   emit('sfx', 'surprise');
 }
 
+// 차례가 된 아이들을 들여보내요 (빈 학생 그림이 모자라면 조금 뒤에 다시)
+function groupWaves(x) {
+  const r = G.run;
+  for (const w of x.waves) {
+    if (w.done || r.min < w.at) continue;
+    const chars = freeChars('student').slice(0, w.n);
+    if (!chars.length) { w.at = r.min + 3; continue; }
+    w.done = true; x.came += chars.length;
+    if (chars.length < w.n) x.need -= w.n - chars.length; // 그림이 모자라 덜 온 만큼은 목표에서 빼요
+    spawnParty(chars, { force: true, tag: x, type: 'student' });
+  }
+}
+// 단체: 모두 끝났나 (계산했거나 나갔거나)
+function groupCheck(x) {
+  const D = INCIDENTS[x.id];
+  if (x.paid + x.gone >= x.need && x.waves.every(w => w.done)) endIncident(x, x.paid >= Math.min(D.pass, x.need));
+}
+
 function endIncident(x, ok) {
   const r = G.run, D = INCIDENTS[x.id];
   if (x.state !== 'on') return;
   x.state = ok ? 'win' : 'lose';
   if (ok) {
-    const bonus = D.reward || D.tip || 0;
+    const bonus = D.kind === 'group' ? 0 : (D.reward || D.tip || 0); // 단체는 아래에서 (낸 아이 수만큼)
     if (bonus) { G.cash += bonus; r.log.tips += bonus; }
     if (D.kind === 'guest') { for (let i = 0; i < 3; i++) r.log.sats.push(5); r.log.events.push({ kind: 'blogger', menu: x.menu, who: '블로거' }); }
   }
@@ -2129,9 +2239,11 @@ function endIncident(x, ok) {
     r.stock[x.menu] += Math.max(0, left.length - Math.max(0, handsM - others));
     r.log.sats.push(2);
   }
-  (r.log.incidents = r.log.incidents || []).push({ name: D.name, ok, bonus: ok ? (D.reward || D.tip || 0) : 0 });
-  emit('incident', 'end', x);
-  emit('toast', ok ? D.win : D.lose, ok ? 'good' : 'warn');
+  // 단체: 계산한 아이마다 팁, 모두 받으면 덤 (성공·실패와 상관없이 받은 만큼은 받아요)
+  if (D.kind === 'group') { x.bonus = x.paid * D.perKid + (x.paid >= x.need ? D.allBonus : 0); if (x.bonus) { G.cash += x.bonus; r.log.tips += x.bonus; } }
+  else x.bonus = ok ? (D.reward || D.tip || 0) : 0;
+  (r.log.incidents = r.log.incidents || []).push({ name: D.name, ok, bonus: x.bonus });
+  emit('incident', 'end', x); // 결과 카드 (ui/incident.js)
   emit('sfx', ok ? 'perfect' : 'angry');
 }
 
@@ -2140,11 +2252,12 @@ function tickIncidents() {
   const r = G.run;
   for (const x of r.incidents) {
     if (x.state === 'wait' && r.min >= x.at && !r.closing) startIncident(x);
+    else if (x.state === 'on' && INCIDENTS[x.id].kind === 'group') { groupWaves(x); if (r.min >= x.until) endIncident(x, x.paid >= Math.min(INCIDENTS[x.id].pass, x.need)); }
     else if (x.state === 'on' && x.until !== undefined && r.min >= x.until) endIncident(x, false);
   }
 }
 // 마감: 아직 진행 중인 것은 실패로
-function closeIncidents() { for (const x of G.run.incidents) if (x.state === 'on') endIncident(x, false); }
+function closeIncidents() { for (const x of G.run.incidents) if (x.state === 'on') endIncident(x, INCIDENTS[x.id].kind === 'group' && x.paid >= Math.min(INCIDENTS[x.id].pass, x.need)); }
 
 // 규칙 코드가 알려 주는 일
 //  paid(손님) · missed(손님) · served(손님, 품질) · cook(품질)
@@ -2152,15 +2265,16 @@ function incidentNote(kind, c, q) {
   const r = G.run;
   if (!r) return;
   if (kind === 'cook') {
-    for (const x of activeIncidents()) if (INCIDENTS[x.id].kind === 'mission' && q === 2 && ++x.count >= INCIDENTS[x.id].need) endIncident(x, true);
+    for (const x of activeIncidents()) if (INCIDENTS[x.id].kind === 'mission' && q === 2) { x.count++; emit('incident', 'prog', x); if (x.count >= INCIDENTS[x.id].need) endIncident(x, true); }
     return;
   }
   const x = c && c.tag;
   if (!x || x.state !== 'on') return;
   const D = INCIDENTS[x.id];
   if (D.kind === 'group') {
-    if (kind === 'paid' && ++x.paid >= x.need) endIncident(x, true);
-    if (kind === 'missed') endIncident(x, false);
+    if (kind === 'paid') { x.paid++; emit('incident', 'prog', x); }
+    if (kind === 'missed') x.gone++;
+    groupCheck(x);
   } else if (D.kind === 'guest') {
     if (kind === 'served') endIncident(x, q === 2);
     if (kind === 'missed') endIncident(x, false);
@@ -2177,7 +2291,7 @@ function handTakeout() {
       r.hands.splice(i, 1);
       const ti = r.tickets.findIndex(t => t.takeout === x);
       if (ti >= 0) r.tickets.splice(ti, 1);
-      x.left--;
+      x.left--; emit('incident', 'prog', x);
       const price = G.prices[x.menu];
       G.cash += price; G.weekSales += price;
       r.log.sales[x.menu].n++; r.log.sales[x.menu].rev += price;
@@ -2881,6 +2995,12 @@ const SIT_LIFT = 16; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 �
 const SIT_SHIFT = 3; // 탁자 쪽으로 당기는 픽셀: 등받이가 등 뒤로 보이게
 function drawCustomerUI(c) {
   const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 9 - (sittingNow(c) ? SIT_LIFT : 0)); // 머리 바로 위
+  if (c.tag && c.tag.state === 'on' && c.state !== 'leave') { // 돌발 이벤트 손님: 머리 옆 빨간 「!」 (통통)
+    const bx = px + 12, by = top - 12 + Math.round(Math.sin(t * 6 + c.id) * 1.2);
+    ctx.fillStyle = '#3b2a20'; ctx.fillRect(bx - 1, by - 1, 7, 9);
+    ctx.fillStyle = '#e0533a'; ctx.fillRect(bx, by, 5, 7);
+    ctx.fillStyle = '#fff'; ctx.fillRect(bx + 2, by + 1, 1, 3); ctx.fillRect(bx + 2, by + 5, 1, 1);
+  }
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);
@@ -3578,16 +3698,16 @@ function questCard() {
 }
 
 // 영업 중: 위 막대 주문표 아래 — 돌발 이벤트(남은 시간·진행도)와 「퀘스트」 버튼. 퀘스트는 눌러서 창으로 한 번에 봐요
-const incProg = (x, D) => D.kind === 'takeout' ? `${x.qty - x.left}/${x.qty}` : D.kind === 'mission' ? `${x.count}/${D.need}` : D.kind === 'group' ? `${x.paid}/${x.need}` : '';
 let lastTrack = '', lastDone = -1, popT = 0;
 function updateQuestTrack() {
   const el = $('questTrack');
   const S = G.story, day = G.phase === 'day';
-  const inc = day ? activeIncidents().map(x => {
-    const D = incidentInfo(x), prog = incProg(x, D);
-    const till = x.until !== undefined ? ` · ~${clockText(x.until)}` : '';
-    return `<div class="qt inc" data-qopen="1"><span class="inc-tag">${D.short}</span><span>${prog ? `<b>${prog}</b>` : D.name}${till}</span></div>`;
-  }).join('') : '';
+  // 돌발 이벤트: 빨간 띠 (이름 · 진행도 · 남은 시간 막대, 얼마 안 남으면 깜빡) — 둘이면 3초마다 번갈아
+  //  남은 시간 막대 폭은 아래에서 바로 바꿔요 (띠를 다시 그리면 「쿵」 움직임이 다시 나와서, 진행도가 바뀔 때만 다시 그려요)
+  const act = day ? activeIncidents() : [];
+  const cur = act.length ? act[Math.floor(performance.now() / 3000) % act.length] : null;
+  const curD = cur && incidentInfo(cur);
+  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">돌발</span><span class="inc-name">${curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
   // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
   const done = S ? S.done.length : 0;
   if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;
@@ -3598,6 +3718,8 @@ function updateQuestTrack() {
   const html = inc + btn;
   if (html !== lastTrack) { lastTrack = html; el.innerHTML = html; }
   el.hidden = !html;
+  const bar = cur && curD.left !== null && el.querySelector('.inc-time > i');
+  if (bar) bar.style.width = (curD.left * 100).toFixed(1) + '%';
 }
 
 // 퀘스트 창: 지금 장 · 할 일 전부 · 진행 중인 돌발 이벤트 (영업 중에 열면 가게는 잠깐 멈춰요)
@@ -3607,8 +3729,8 @@ function openQuests() {
   if (!S) return;
   const ch = CHAPTERS[S.ch];
   const inc = G.phase === 'day' ? activeIncidents().map(x => {
-    const D = incidentInfo(x), prog = incProg(x, D);
-    return `<div class="qrow inc"><span class="inc-tag">${D.short}</span><div class="q-txt"><b>${D.name}</b><small>${D.text}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
+    const D = incidentInfo(x), prog = D.prog ? `${D.prog[0]}/${D.prog[1]}` : '';
+    return `<div class="qrow inc"><span class="inc-tag">돌발</span><div class="q-txt"><b>${D.name}</b><small>${D.goal}${prog ? ` · ${prog}` : ''}${x.until !== undefined ? ` · ${clockText(x.until)}까지` : ''}</small></div></div>`;
   }).join('') : '';
   $('qModal').innerHTML = `<div class="qm-card" role="dialog" aria-label="퀘스트">
     <div class="q-head"><small>${ch.name}</small><b>${ch.sub}</b>${S.title ? `<span class="q-title">${S.title}</span>` : ''}</div>
@@ -3637,6 +3759,97 @@ function doneCard(ids) {
   if (!ids || !ids.length) return '';
   return `<div class="hl wide quest"><small>퀘스트 완료</small><b>${ids.map(id => QUESTS[id].title).join(' · ')}</b></div>`;
 }
+// ── js/ui/incident.js ──
+// 돌발 이벤트 화면 (데이브 더 다이버처럼 눈에 띄게):
+//  시작 → 가게가 멈추고 「돌발 이벤트!」 띠 + 대화(intro, 누르면 다음) → 목표 카드(목표 · 시간 · 보상) → 「시작!」
+//  진행 중 → 위 막대 빨간 띠 (ui/story.js updateQuestTrack · incidentBar)
+//  끝 → 결과 카드 (한마디 + 받은 것) → 누르면 이어서
+// 규칙 쪽은 sim/incidents.js (emit('incident', 'start'|'prog'|'end', x))
+
+const incQueue = []; // 보여 줄 차례 [{ kind: 'intro'|'result', x }]
+let incCur = null;   // 지금 보고 있는 것 { kind, x, i: 몇 번째 말 }
+let incHeld = false;
+
+const incidentShowing = () => !!incCur;
+
+function incidentStart(x) { incQueue.push({ kind: 'intro', x }); setTimeout(incNext, 0); }
+function incidentEnd(x) {
+  // 아직 시작 화면을 보는 중에 끝났으면 (거의 없지만) 시작 화면은 빼요
+  const qi = incQueue.findIndex(q => q.x === x && q.kind === 'intro');
+  if (qi >= 0) incQueue.splice(qi, 1);
+  incQueue.push({ kind: 'result', x }); setTimeout(incNext, 0); // 마감 때 끝난 것은 영수증으로 넘어가서 안 보여요
+}
+
+function incHold(on) {
+  if (G.phase !== 'day' || !G.run) return;
+  if (on && !G.run.paused) { runCmd('hold', { on: true }); incHeld = true; }
+  if (!on && incHeld) { incHeld = false; runCmd('hold', { on: false }); }
+}
+
+function incNext() {
+  if (incCur || !incQueue.length || G.phase !== 'day') return;
+  incCur = { ...incQueue.shift(), i: 0 };
+  incHold(true);
+  $('incUI').hidden = false;
+  playSfx(incCur.kind === 'intro' ? 'surprise' : incCur.x.state === 'win' ? 'perfect' : 'page');
+  incDraw();
+}
+
+function incClose() {
+  stopTyping();
+  incCur = null;
+  $('incUI').hidden = true; $('incUI').innerHTML = '';
+  incHold(false);
+  incNext();
+}
+
+// 띠는 처음 나올 때만 쾅 하고 (대화를 넘길 때마다 다시 움직이지 않게)
+const incBanner = (D, sub) => `<div class="inc-banner${incCur.i === 0 ? ' pop' : ''}"><small>${sub}</small><b>${D.name}</b></div>`;
+
+function incDraw() {
+  const x = incCur.x, D = incidentInfo(x), el = $('incUI');
+  if (incCur.kind === 'intro') {
+    if (incCur.i < D.intro.length) { // 대화
+      const [who, text] = D.intro[incCur.i];
+      el.className = 'inc-ui talking' + (who && CAST[who].think ? ' think' : '') + (who ? '' : ' narr');
+      el.innerHTML = incBanner(D, '돌발 이벤트!') + `<div class="inc-talk">${lineHTML(who, text)}</div>`;
+      typeIn(el);
+      return;
+    }
+    // 목표 카드
+    const till = x.until !== undefined ? `${clockText(x.until)}까지` : '오늘 영업 중';
+    el.className = 'inc-ui card';
+    el.innerHTML = incBanner(D, '돌발 이벤트!') + `<div class="inc-card">
+      <div class="inc-row"><small>목표</small><b>${D.goal}</b></div>
+      <div class="inc-row"><small>시간</small><b>${till}</b></div>
+      <div class="inc-row"><small>보상</small><b>${D.prize}</b></div>
+      <button type="button" class="btn primary big" data-inc="go">시작!</button></div>`;
+    return;
+  }
+  // 결과 카드
+  const ok = x.state === 'win';
+  const [who, say] = D.say || [null, ''];
+  const got = x.bonus ? `+${x.bonus.toLocaleString('ko-KR')}원` : D.kind === 'guest' && ok ? '별 다섯 개 리뷰' : '';
+  const prog = D.prog ? `<p class="inc-prog">${D.kind === 'group' ? '받은 아이' : '진행'} <b>${D.prog[0]}/${D.prog[1]}</b></p>` : '';
+  el.className = 'inc-ui card result ' + (ok ? 'win' : 'lose');
+  el.innerHTML = incBanner(D, ok ? '성공!' : '아쉽게도…') + `<div class="inc-card">
+    ${who ? `<div class="inc-say">${icon('char' + CAST[who].char)}<div><small>${CAST[who].name}</small><p>${say}</p></div></div>` : ''}
+    <p class="inc-msg">${ok ? D.win : D.lose}</p>${prog}
+    ${got ? `<p class="inc-got">${got}</p>` : ''}
+    <button type="button" class="btn ${ok ? 'primary' : ''} big" data-inc="ok">계속하기</button></div>`;
+}
+
+function initIncidentUI() {
+  $('incUI').addEventListener('click', e => {
+    if (!incCur) return;
+    if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
+    const b = e.target.closest('[data-inc]');
+    if (incCur.kind === 'intro' && incCur.i < incidentInfo(incCur.x).intro.length) { incCur.i++; playSfx('tap'); incDraw(); return; }
+    if (b) { playSfx(b.dataset.inc === 'go' ? 'open' : 'tap'); incClose(); }
+  });
+}
+// 영업이 끝나면 남은 화면은 치워요 (결과는 영수증에도 나와요)
+function incidentReset() { incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
 // ── js/ui/cutscene.js ──
 // 연출 진행: data/cutscenes.js의 차례(steps)를 하나씩 돌려요. 대화 줄은 #talk 창에, 그림은 render/cut.js가 #cutCv에.
 // 화면만의 일이라 게임 규칙(G)은 바꾸지 않아요. 끝나면 done()을 불러요 (이야기 장면이 이어서 진행해요).
@@ -4220,11 +4433,12 @@ function initFeedback() {
     if (on && G.run && G.run.dawn) $('dawnUI').hidden = true; // 새벽에 끓이는 동안은 새벽 창을 잠깐 내려요
     if (!on) hint('serve', '음식을 든 채로 손님 자리를 눌러 보세요', '다 됐으면 손님 자리를 눌러서 갖다줘. 식기 전에!');
   });
-  // 돌발 이벤트: 시작하면 알림 (오 사장님 미션은 얼굴과 함께), 진행은 위 막대 (ui/story.js)
+  // 돌발 이벤트: 시작하면 대화·목표 카드, 끝나면 결과 카드 (ui/incident.js) · 진행은 위 막대 빨간 띠 (ui/story.js)
   onEvent('incident', (what, x) => {
     const D = incidentInfo(x);
-    if (what === 'start') toast(D.text, 'event', D.who);
-    if (D.kind === 'mission') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
+    if (what === 'start') incidentStart(x);
+    else if (what === 'end') incidentEnd(x);
+    if (D.kind === 'mission' && what !== 'prog') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
     updateQuestTrack();
   });
   onEvent('dawn', (on, q) => {
@@ -4236,7 +4450,7 @@ function initFeedback() {
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
-    if (p !== 'day') { closeQuests(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
+    if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
@@ -4319,6 +4533,7 @@ async function boot() {
   initFeedback();
   initInput();
   initStory();
+  initIncidentUI();
   initCutscene();
   initMusic();
   initRush();
