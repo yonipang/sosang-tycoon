@@ -11,6 +11,7 @@ import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from
 import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack } from './story.js';
 import { incidentInfo } from '../sim/incidents.js';
+import { setMusic } from './music.js';
 
 export function toast(text, kind, who) {
   const box = $('toasts');
@@ -78,7 +79,9 @@ export function initFeedback() {
   });
   // 돌발 이벤트: 시작하면 알림 (오 사장님 미션은 얼굴과 함께), 진행은 위 막대 (ui/story.js)
   onEvent('incident', (what, x) => {
-    if (what === 'start') { const D = incidentInfo(x); toast(D.text, 'event', D.who); }
+    const D = incidentInfo(x);
+    if (what === 'start') toast(D.text, 'event', D.who);
+    if (D.kind === 'mission') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
     updateQuestTrack();
   });
   onEvent('dawn', (on, q) => {
@@ -89,6 +92,7 @@ export function initFeedback() {
   onEvent('fridge', open => { if (open) $('rushUI').hidden = false; if (!$('rushUI').hidden) renderRush(); });
   onEvent('order', () => hint('order', '주문이 들어왔습니다! 말풍선이 뜬 조리대를 눌러 보세요', '주문 들어왔다! 말풍선 뜬 화구를 눌러.'));
   onEvent('phase', p => {
+    if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
     if (p !== 'day') { $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p === 'prep') { saveGame(); renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();

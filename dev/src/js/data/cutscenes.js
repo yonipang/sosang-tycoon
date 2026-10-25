@@ -9,9 +9,11 @@
 //   show 누가 (나타남) · hide 누가 (가게 안으로 들어가 사라짐) · walk [누가, x, y] 걸어가기 (pan과 같이 쓰면 같이 움직여요)
 //   face [누가, 방향] · carry [누가, 물건] · drop 누가 (든 물건 내려놓기) · stand 누가 (의자에서 일어남) · door true|false (가게 문 열림)
 //   night true|false (밤/낮) · cam [x, y] (카메라 바로 옮기기) · unprop '그림' (물건 치우기)
+//  music: 연출 동안 틀 곡 (ui/music.js · js/audio/music.js)
 // 게임 안 글: 설명(caption)은 합니다체, 사람 말은 그 사람 말투 그대로
 export const CUTS = {
   opening: {
+    music: 'oh', // 오 사장님 테마 (ui/music.js)
     night: false,
     cam: { x: 40, y: 14 },
     actors: {
@@ -89,6 +91,7 @@ export const CUTS = {
   },
   // 사흘째 밤: 결심하기까지 (프롤로그 끝 → 가게 이름 짓기)
   handover: {
+    music: 'oh',
     night: true,
     cam: { x: 72, y: 14 },
     actors: {

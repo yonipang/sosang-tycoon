@@ -6,6 +6,7 @@ import { CAST } from '../data/story.js';
 import { initCut, fitCut, drawCut } from '../render/cut.js';
 import { lineHTML } from './story.js';
 import { playSfx } from './sfx.js';
+import { setMusic } from './music.js';
 
 const WALK_PX = 34; // 걷는 빠르기 (연출 픽셀/초)
 let C = null;
@@ -29,6 +30,7 @@ export function playCut(id, done) {
     door: false, fade: 1, emotes: {}, night: !!def.night,
   };
   $('cut').hidden = false;
+  if (def.music) setMusic(def.music);
   layoutCut();
   next();
 }
@@ -112,6 +114,7 @@ function end() {
   C = null;
   caption('');
   $('cut').hidden = true;
+  setMusic(null);
   done();
 }
 export function skipCut() {

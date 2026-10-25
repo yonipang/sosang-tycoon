@@ -13,6 +13,7 @@ import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
 import { initStory, updateQuestTrack } from './ui/story.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
+import { initMusic, updateMusic, musicState } from './ui/music.js';
 
 function layout() {
   const st = $('stage');
@@ -28,6 +29,7 @@ function frame(now) {
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
   updateSpeech(dt);
   updateCut(dt);
+  updateMusic(dt);
   if (G.phase === 'day') updateQuestTrack(); // 돌발 이벤트 진행도 (바뀐 것만 다시 그려요)
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
@@ -42,6 +44,7 @@ async function boot() {
   initInput();
   initStory();
   initCutscene();
+  initMusic();
   initRush();
   initDawn();
   initScreens(() => setPhase('prep'));
@@ -50,6 +53,6 @@ async function boot() {
   renderTitle();
   requestAnimationFrame(frame);
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady };
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState };
 }
 boot();

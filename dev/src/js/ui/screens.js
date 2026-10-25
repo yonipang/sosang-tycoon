@@ -11,6 +11,7 @@ import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
+import { musicOff, toggleMusic } from './music.js';
 import { menuOpen } from '../sim/story.js';
 import { questCard, doneCard, incidentCard } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
@@ -41,6 +42,7 @@ export function renderTitle() {
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
+      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
       <button class="btn ghost small" data-act="credits">크레딧</button>
       <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
     </div>`, 'scr-title');
@@ -242,6 +244,7 @@ export function renderPause() {
     <div class="pause">
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
+      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button></div>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
@@ -266,6 +269,7 @@ export function initScreens(onStart) {
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
     else if (a === 'dev') { playSfx('page'); renderDev(); }
+    else if (a === 'music') { b.textContent = toggleMusic() ? '음악 켜기' : '음악 끄기'; }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }

@@ -8,6 +8,7 @@ import { activeIncidents, incidentInfo } from '../sim/incidents.js';
 import { clockText } from '../engine/util.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
+import { setMusic } from './music.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
@@ -51,6 +52,7 @@ function drawScene() {
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
     const [who, text, at] = sc.lines[open.i];
+    if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
     return;
@@ -76,6 +78,7 @@ function paperHTML(sc) {
 function finish(name) {
   open = null;
   guide(null);
+  setMusic(null);
   $('talk').hidden = true; $('talk').innerHTML = '';
   runCmd('sceneDone', { name });
   if (G.phase === 'day') runCmd('hold', { on: false });
