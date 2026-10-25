@@ -1,4 +1,4 @@
-// 클라우드 저장 (구글 로그인 + Firestore). 등불나무와 같은 Firebase 프로젝트(lamp-tree)를 쓰고, 세이브는 따로 'sosang' 모음에 둬요.
+// 클라우드 저장 (구글 로그인 + Firestore). 소상공인 전용 Firebase 프로젝트(sosang-tycoon), 세이브는 Firestore 'sosang' 모음에 계정마다 하나.
 //  - 웹앱 주소(https)에서만 켜져요. Claude 미리보기는 바깥 서버에 닿지 않아서 꺼 둬요(로그인 버튼은 보이고, 누르면 웹앱 안내).
 //  - 같은 구글 계정이면 어느 기기에서든 같은 세이브: 로그인할 때·앱으로 돌아올 때 클라우드와 견줘서 더 최근 세이브를 저절로 써요.
 //    진 쪽은 버리지 않고 백업(이 기기 sosang-tycoon-backup · 클라우드 문서 prev)해 둬요.
@@ -7,7 +7,7 @@
 //  - 시험: window.__cloudMock = { onAuth, google, out, get, put } 을 넣으면 Firebase 대신 써요 (dev/qa)
 import { saveText, replaceSave, saveSummary } from './storage.js';
 
-export const FB_CONFIG = { apiKey: 'AIzaSyCsGbKTF6oQiS9_Ow_sAZJBH2XfDfjABYw', authDomain: 'lamp-tree.firebaseapp.com', projectId: 'lamp-tree', storageBucket: 'lamp-tree.firebasestorage.app', messagingSenderId: '614596289531', appId: '1:614596289531:web:161d6a23c5eeb9da3ce15e' };
+export const FB_CONFIG = { apiKey: 'AIzaSyDiLpLEkW4-CTe0Mp5OgTu3kRzAjiKlDSo', authDomain: 'sosang-tycoon.firebaseapp.com', projectId: 'sosang-tycoon', storageBucket: 'sosang-tycoon.firebasestorage.app', messagingSenderId: '32704081306', appId: '1:32704081306:web:2fb54eb19c8af90cbd1e23' };
 export const CLOUD_COLLECTION = 'sosang';
 // st: off 시작 전 · na 못 씀 · loading 연결 중 · out 로그인 안 함 · in 로그인함
 // pending: 바꿔 넣을 클라우드 세이브 (지금 바꿀 수 없어서 기다리는 중) — 기다리는 동안은 올리지 않아요
