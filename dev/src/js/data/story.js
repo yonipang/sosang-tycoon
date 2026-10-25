@@ -14,6 +14,10 @@ export const CAST = {
   kids2: { name: '학원 끝난 아이들', char: 5 },
   caller: { name: '포장 손님 · 전화', char: 12 },
   blogger: { name: '카메라 든 손님', char: 16 },
+  rainy: { name: '비 맞은 손님', char: 12 },
+  foreman: { name: '공사장 반장님', char: 4 },
+  inspector: { name: '구청 위생과', char: 8 },
+  youtuber: { name: '먹방 유튜버', char: 10 },
   // 뒤의 장에서 나와요 (1장까지는 오 사장님이 멘토로 거의 다 이끌어요 — 사람이 한꺼번에 많이 나오지 않게)
   choi: { name: '최 사장 · 옆 세탁소', char: 7 },
   miso: { name: '미소 사장 · 맞은편 꽃집', char: 9 },

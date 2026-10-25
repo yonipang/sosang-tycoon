@@ -132,7 +132,7 @@ const MISS_SAT = { full: 3, wait: 1, price: 1.5, soldout: 2 };
 const MISS_TEXT = { full: '자리 없음', wait: '너무 늦어요', price: '비싸요', soldout: '품절' };
 function miss(c, reason, menu, quiet) {
   const L = G.run.log;
-  incidentNote('missed', c);
+  incidentNote('missed', c, reason);
   L.missed[reason]++;
   L.sats.push(MISS_SAT[reason]);
   if (!quiet) {

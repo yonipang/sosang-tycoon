@@ -17,7 +17,8 @@ const fillText = (s, d) => String(s || '')
 // 영업 시작 때 오늘 일어날 돌발을 정해 둬요 (그날 씨앗 rand라 같은 날은 같은 일이 일어나요)
 export function planIncidents(r) {
   r.incidents = [];
-  const pool = Object.keys(INCIDENTS).filter(id => G.day >= INCIDENTS[id].minDay);
+  const yday = (G.history[G.history.length - 1] || {}).inc || []; // 어제 일어난 건 오늘 빼요
+  const pool = Object.keys(INCIDENTS).filter(id => G.day >= INCIDENTS[id].minDay && !yday.includes(id) && (!INCIDENTS[id].needMenu || menuOpen(INCIDENTS[id].needMenu)));
   let n = INCIDENTS_PER_DAY(G.day);
   while (n-- > 0 && pool.length) {
     const id = weighted(Object.fromEntries(pool.map(k => [k, INCIDENTS[k].weight])));
@@ -52,7 +53,7 @@ function startIncident(x) {
   const r = G.run, D = INCIDENTS[x.id];
   x.state = 'on'; x.t0 = r.min;
   if (D.kind === 'group') { // 두세 명씩 몇 번에 나눠서 와요 (gap 분마다)
-    if (freeChars('student').length < 2) { x.state = 'skip'; return; }
+    if (freeChars(D.ptype).length < 2) { x.state = 'skip'; return; }
     x.need = D.size; x.paid = 0; x.gone = 0; x.came = 0;
     x.until = r.min + D.limit;
     const per = Math.ceil(D.size / D.waves);
@@ -60,8 +61,8 @@ function startIncident(x) {
     groupWaves(x);
   } else if (D.kind === 'takeout') {
     const ms = MENU_IDS.filter(m => menuOpen(m) && canSell(m));
-    if (!ms.length) { x.state = 'skip'; return; }
-    x.menu = ms[Math.floor(rand() * ms.length)];
+    if (!ms.length || (D.menu && !ms.includes(D.menu))) { x.state = 'skip'; return; }
+    x.menu = D.menu || ms[Math.floor(rand() * ms.length)];
     const spare = spareOf(x.menu); // 미리 만들어 손에 든 몫은 재료를 다시 쓰지 않아요
     x.qty = Math.min(D.qty, r.stock[x.menu] + spare);
     x.left = x.qty; x.until = r.min + D.limit;
@@ -70,6 +71,10 @@ function startIncident(x) {
     emit('order', -1, x.menu);
   } else if (D.kind === 'mission') {
     x.count = 0; x.until = D.until;
+  } else if (D.kind === 'inspect') { // 점검원도 손님처럼 앉아서 먹어요 (머리 옆 「!」)
+    x.until = r.min + D.limit;
+    const chars = freeChars('worker');
+    if (chars.length) spawnParty([chars[0]], { force: true, tag: x });
   } else if (D.kind === 'guest') {
     const chars = freeChars('worker');
     if (!chars.length) { x.state = 'skip'; return; }
@@ -86,11 +91,11 @@ function groupWaves(x) {
   const r = G.run;
   for (const w of x.waves) {
     if (w.done || r.min < w.at) continue;
-    const chars = freeChars('student').slice(0, w.n);
+    const chars = freeChars(INCIDENTS[x.id].ptype).slice(0, w.n);
     if (!chars.length) { w.at = r.min + 3; continue; }
     w.done = true; x.came += chars.length;
     if (chars.length < w.n) x.need -= w.n - chars.length; // 그림이 모자라 덜 온 만큼은 목표에서 빼요
-    spawnParty(chars, { force: true, tag: x, type: 'student' });
+    spawnParty(chars, { force: true, tag: x, type: INCIDENTS[x.id].ptype || undefined });
   }
 }
 // 단체: 모두 끝났나 (계산했거나 나갔거나)
@@ -106,7 +111,7 @@ function endIncident(x, ok) {
   if (ok) {
     const bonus = D.kind === 'group' ? 0 : (D.reward || D.tip || 0); // 단체는 아래에서 (낸 아이 수만큼)
     if (bonus) { G.cash += bonus; r.log.tips += bonus; }
-    if (D.kind === 'guest') { for (let i = 0; i < 3; i++) r.log.sats.push(5); r.log.events.push({ kind: 'blogger', menu: x.menu, who: '블로거' }); }
+    if (D.kind === 'guest') { for (let i = 0; i < 3; i++) r.log.sats.push(5); r.log.events.push({ kind: D.review || 'blogger', menu: x.menu, who: D.review === 'youtuber' ? '유튜버' : '블로거' }); }
   }
   if (D.kind === 'takeout' && !ok) { // 못 만든 몫은 재료를 돌려놔요 (이미 만든 건 손에 남아요)
     const left = r.tickets.filter(t => t.takeout === x);
@@ -116,7 +121,8 @@ function endIncident(x, ok) {
     r.log.sats.push(2);
   }
   // 단체: 계산한 아이마다 팁, 모두 받으면 덤 (성공·실패와 상관없이 받은 만큼은 받아요)
-  if (D.kind === 'group') { x.bonus = x.paid * D.perKid + (x.paid >= x.need ? D.allBonus : 0); if (x.bonus) { G.cash += x.bonus; r.log.tips += x.bonus; } }
+  if (D.kind === 'inspect' && ok) { G.rating = Math.min(5, G.rating + D.rating); x.bonus = 0; }
+  if (D.kind === 'group') { x.bonus = x.paid * D.perHead + (x.paid >= x.need ? D.allBonus : 0); if (x.bonus) { G.cash += x.bonus; r.log.tips += x.bonus; } }
   else x.bonus = ok ? (D.reward || D.tip || 0) : 0;
   (r.log.incidents = r.log.incidents || []).push({ name: D.name, ok, bonus: x.bonus });
   emit('incident', 'end', x); // 결과 카드 (ui/incident.js)
@@ -129,19 +135,20 @@ export function tickIncidents() {
   for (const x of r.incidents) {
     if (x.state === 'wait' && r.min >= x.at && !r.closing && !r.cook) startIncident(x); // 조리 미니게임 중이면 끝난 뒤에
     else if (x.state === 'on' && INCIDENTS[x.id].kind === 'group') { groupWaves(x); if (r.min >= x.until) endIncident(x, x.paid >= Math.min(INCIDENTS[x.id].pass, x.need)); }
-    else if (x.state === 'on' && x.until !== undefined && r.min >= x.until) endIncident(x, false);
+    else if (x.state === 'on' && x.until !== undefined && r.min >= x.until) endIncident(x, INCIDENTS[x.id].kind === 'inspect'); // 점검은 끝까지 버티면 성공
   }
 }
 // 마감: 아직 진행 중인 것은 실패로
-export function closeIncidents() { for (const x of G.run.incidents) if (x.state === 'on') endIncident(x, INCIDENTS[x.id].kind === 'group' && x.paid >= Math.min(INCIDENTS[x.id].pass, x.need)); }
+export function closeIncidents() { for (const x of G.run.incidents) if (x.state === 'on') { const D = INCIDENTS[x.id]; endIncident(x, D.kind === 'inspect' || (D.kind === 'group' && x.paid >= Math.min(D.pass, x.need))); } }
 
 // 규칙 코드가 알려 주는 일
-//  paid(손님) · missed(손님) · served(손님, 품질) · cook(품질)
+//  paid(손님) · missed(손님, 까닭) · served(손님, 품질) · cook({ menu }, 품질)
 export function incidentNote(kind, c, q) {
   const r = G.run;
   if (!r) return;
+  if (kind === 'missed' && q !== 'price') for (const x of activeIncidents()) if (INCIDENTS[x.id].kind === 'inspect') endIncident(x, false); // 점검 중 놓친 손님 (가격 보고 그냥 간 건 빼요)
   if (kind === 'cook') {
-    for (const x of activeIncidents()) if (INCIDENTS[x.id].kind === 'mission' && q === 2) { x.count++; emit('incident', 'prog', x); if (x.count >= INCIDENTS[x.id].need) endIncident(x, true); }
+    for (const x of activeIncidents()) if (INCIDENTS[x.id].kind === 'mission' && q === 2 && (!INCIDENTS[x.id].menu || (c && c.menu === INCIDENTS[x.id].menu))) { x.count++; emit('incident', 'prog', x); if (x.count >= INCIDENTS[x.id].need) endIncident(x, true); }
     return;
   }
   const x = c && c.tag;
