@@ -824,7 +824,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.11';
+const GAME_VERSION = '0.12';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2520,7 +2520,7 @@ function startCook(st) {
     emit('cook', false, m, MENUS[m].game, q);
     return;
   }
-  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0, ahead: !forOrder };
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
 }
@@ -2586,11 +2586,9 @@ function finishCook(q, note) {
     emit('dawn', true, q);
     return;
   }
-  const ahead = ticketsCount(c.menu) <= handsCount(c.menu); // 그 사이 주문이 들어왔으면 주문 몫
   toHands(c.menu, q);
   const p = r.player;
-  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${ahead ? '미리 만든 ' : ''}${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
-  if (ahead) emit('hint', 'ahead');
+  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });
@@ -3144,9 +3142,34 @@ const levelVol = k => LEVELS[Math.max(0, Math.min(4, S[k] | 0))];
 function stepSetting(k, d) { S[k] = Math.max(0, Math.min(4, (S[k] | 0) + d)); save(); return S[k]; }
 function setOption(k, v) { S[k] = v; save(); }
 
-// 진동 (안드로이드 브라우저만 돼요. 아이폰 사파리는 진동 기능을 열어 주지 않아요)
-const canVibrate = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
-function vibrate(pattern) { if (S.vibe && canVibrate()) { try { navigator.vibrate(pattern); } catch (e) { /* 무시 */ } } }
+// 진동: 안드로이드는 navigator.vibrate. 아이폰 사파리는 진동 기능을 열어 주지 않아서,
+//  설정 앱 같은 「스위치」 체크박스(iOS 18~)를 누르면 나는 짧은 「톡」을 빌려 써요 — 숨긴 스위치를 대신 눌러요 (세기·길이는 못 바꾸고 한 번에 톡 한 번)
+const IOS = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+const IOS_SWITCH = IOS && typeof HTMLInputElement !== 'undefined' && 'switch' in HTMLInputElement.prototype;
+let tick = null;
+function iosTick() {
+  if (!tick) {
+    const box = document.createElement('label');
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden';
+    box.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+    document.body.appendChild(box);
+    tick = box;
+  }
+  tick.click();
+}
+const vibeKind = () => (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' ? 'android' : IOS_SWITCH ? 'ios' : '');
+const canVibrate = () => !!vibeKind();
+function vibrate(pattern) {
+  if (!S.vibe) return;
+  const k = vibeKind();
+  if (k === 'android') { try { navigator.vibrate(pattern); } catch (e) { /* 무시 */ } return; }
+  if (k === 'ios') { // [울림, 쉼, 울림 …] → 울림마다 톡 한 번
+    const p = Array.isArray(pattern) ? pattern : [pattern];
+    let at = 0;
+    for (let i = 0; i < p.length; i += 2) { if (at) setTimeout(iosTick, at); else iosTick(); at += Math.max(70, (p[i] || 0) + (p[i + 1] || 0)); }
+  }
+}
 
 // 홈 화면에 추가 (웹앱 설치)
 //  installed: 이미 홈 화면에서 열림 · prompt: 바로 설치 창을 띄울 수 있음(안드로이드 크롬) · ios: 사파리 공유 버튼으로 · web: 웹앱 주소에서만
@@ -3974,7 +3997,7 @@ function renderSettings(from) {
         ${step('music', '배경음악')}
         ${step('sfx', '효과음')}
         <div class="row"><span>진동</span>${seg('vibe', [[1, '켬'], [0, '끔']])}</div>
-        ${canVibrate() ? '' : '<p class="set-note">이 기기는 진동을 지원하지 않습니다 (아이폰 등)</p>'}
+        ${!canVibrate() ? '<p class="set-note">이 기기(브라우저)는 진동을 지원하지 않습니다</p>' : vibeKind() === 'ios' ? '<p class="set-note">아이폰은 짧게 「톡」 한 번씩만 울립니다</p>' : ''}
       </div>
       <div class="set-card">
         <small class="set-h">대화</small>
@@ -4076,7 +4099,7 @@ function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
-    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
@@ -4159,11 +4182,6 @@ function initFeedback() {
   onEvent('float', float);
   onEvent('say', say);
   onEvent('sfx', playSfx);
-  onEvent('hint', key => { // 새 기능 안내: 날짜와 상관없이 처음 한 번
-    if (key !== 'ahead' || shown.has(key)) return;
-    shown.add(key);
-    toast('주문 전에 미리 만들어 손에 들었습니다. 같은 메뉴 주문이 들어오면 바로 내줄 수 있습니다', 'hint');
-  });
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);

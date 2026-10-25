@@ -71,11 +71,6 @@ export function initFeedback() {
   onEvent('float', float);
   onEvent('say', say);
   onEvent('sfx', playSfx);
-  onEvent('hint', key => { // 새 기능 안내: 날짜와 상관없이 처음 한 번
-    if (key !== 'ahead' || shown.has(key)) return;
-    shown.add(key);
-    toast('주문 전에 미리 만들어 손에 들었습니다. 같은 메뉴 주문이 들어오면 바로 내줄 수 있습니다', 'hint');
-  });
   onEvent('tapMark', (x, y) => { addMark(x, y); playSfx('tap'); });
   onEvent('cook', (on, menu, game) => {
     if (on) setupCook(menu, game);

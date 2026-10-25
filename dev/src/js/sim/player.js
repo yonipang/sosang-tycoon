@@ -106,7 +106,7 @@ function startCook(st) {
     emit('cook', false, m, MENUS[m].game, q);
     return;
   }
-  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0, ahead: !forOrder };
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
 }
@@ -172,11 +172,9 @@ function finishCook(q, note) {
     emit('dawn', true, q);
     return;
   }
-  const ahead = ticketsCount(c.menu) <= handsCount(c.menu); // 그 사이 주문이 들어왔으면 주문 몫
   toHands(c.menu, q);
   const p = r.player;
-  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${ahead ? '미리 만든 ' : ''}${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
-  if (ahead) emit('hint', 'ahead');
+  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });

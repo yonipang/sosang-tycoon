@@ -15,7 +15,7 @@ import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
 import { setMusic, musicWant } from './music.js';
-import { LEVELS, setting, stepSetting, setOption, canVibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
+import { LEVELS, setting, stepSetting, setOption, canVibrate, vibeKind, vibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
 import { menuOpen } from '../sim/story.js';
 import { questCard, doneCard, incidentCard, talking } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
@@ -271,7 +271,7 @@ export function renderSettings(from) {
         ${step('music', '배경음악')}
         ${step('sfx', '효과음')}
         <div class="row"><span>진동</span>${seg('vibe', [[1, '켬'], [0, '끔']])}</div>
-        ${canVibrate() ? '' : '<p class="set-note">이 기기는 진동을 지원하지 않습니다 (아이폰 등)</p>'}
+        ${!canVibrate() ? '<p class="set-note">이 기기(브라우저)는 진동을 지원하지 않습니다</p>' : vibeKind() === 'ios' ? '<p class="set-note">아이폰은 짧게 「톡」 한 번씩만 울립니다</p>' : ''}
       </div>
       <div class="set-card">
         <small class="set-h">대화</small>
@@ -373,7 +373,7 @@ export function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
-    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); renderSettings(); }
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
