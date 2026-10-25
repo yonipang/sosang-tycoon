@@ -434,6 +434,16 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .qt { flex: 1 1 0; }
 #stockMini > span { white-space: nowrap; }
 #stockMini .ready { display: inline-block; background: var(--green); color: #fff; padding: 0 3px; line-height: 1.2; margin-left: 2px; }
+
+/* 설정 */
+#screen.scr-settings { background: linear-gradient(180deg, rgba(29,35,64,.95), rgba(43,29,22,.95)); }
+.settings h2 { color: var(--paper); font-weight: normal; font-size: 32px; margin: 8px 0 12px; }
+.set-card { background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.set-card .row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.set-note { margin: 6px 0 0; color: var(--ink-soft); word-break: keep-all; }
+.set-ver { color: var(--paper); opacity: .6; text-align: center; margin: 14px 0 0; }
+.btn-pair { display: flex; gap: 8px; }
+.btn-pair .btn { flex: 1; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -767,7 +777,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.7';
+const GAME_VERSION = '0.8';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2880,8 +2890,27 @@ function nightLights(S, t) {
   for (let i = 0; i < 4; i++) { const w = 18 + i * 8; cx.fillRect(LAMP_X + 7 - w / 2, 150 + i * 6, w, 6); } // 가로등 불빛 웅덩이
   glow(LAMP_X + 3, 118, 8, 7, 0.45 * fl); // 가로등 머리
 }
+// ── js/ui/settings.js ──
+// 설정 (이 기기에만 기억해요 — 브라우저 저장소. 막혀 있으면 기본값으로)
+//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%)
+const KEY = 'sosang-settings';
+const LEVELS = [0, 0.25, 0.5, 0.75, 1];
+const S = { music: 4, sfx: 4 };
+try {
+  Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}'));
+  if (localStorage.getItem('sosang-music') === 'off') S.music = 0; // 옛 「음악 끄기」 버튼 설정
+} catch (e) { /* 저장소를 못 쓰는 환경 */ }
+
+const setting = k => S[k];
+const levelVol = k => LEVELS[Math.max(0, Math.min(4, S[k] | 0))];
+function stepSetting(k, d) {
+  S[k] = Math.max(0, Math.min(4, (S[k] | 0) + d));
+  try { localStorage.setItem(KEY, JSON.stringify(S)); localStorage.removeItem('sosang-music'); } catch (e) { /* 그대로 */ }
+  return S[k];
+}
 // ── js/ui/sfx.js ──
 // 효과음: 파일 없이 짧은 소리를 만들어요. 첫 터치 뒤에만 소리가 나요(브라우저 규칙).
+
 let ac = null, muted = false;
 function unlockAudio() {
   if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -2891,13 +2920,14 @@ function setMuted(m) { muted = m; }
 const isMuted = () => muted;
 
 function tone(freq, dur, type, vol, slide, delay) {
-  if (!ac || muted) return;
+  const lv = levelVol('sfx'); // 설정: 효과음 크기
+  if (!ac || muted || !lv) return;
   const t0 = ac.currentTime + (delay || 0);
   const o = ac.createOscillator(), g = ac.createGain();
   o.type = type || 'square';
   o.frequency.setValueAtTime(freq, t0);
   if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
-  g.gain.setValueAtTime(vol || 0.06, t0);
+  g.gain.setValueAtTime((vol || 0.06) * lv, t0);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.connect(g); g.connect(ac.destination);
   o.start(t0); o.stop(t0 + dur + 0.02);
@@ -2923,8 +2953,7 @@ function playSfx(name) { const f = SOUNDS[name]; if (f) f(); }
 // 휴대폰 브라우저는 사람이 화면을 누른 뒤에만 소리를 낼 수 있어서, 첫 터치 때 한 번 「깨워」 둬요.
 
 const MAX_VOL = 0.38, FADE_SEC = 0.8;
-let el = null, cur = null, want = null, vol = 0, primed = false, off = false;
-try { off = localStorage.getItem('sosang-music') === 'off'; } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+let el = null, cur = null, want = null, vol = 0, primed = false;
 
 function audio() {
   if (!el) { el = new Audio(); el.loop = true; el.preload = 'auto'; el.volume = 0; }
@@ -2938,7 +2967,7 @@ function prime() {
   if (!a.src) a.src = MUSIC.oh;
   a.muted = true;
   const p = a.play();
-  const done = () => { a.muted = false; if (!want || off) a.pause(); };
+  const done = () => { a.muted = false; if (!want || !levelVol('music')) a.pause(); };
   if (p && p.then) p.then(done, () => { primed = false; a.muted = false; }); else done();
 }
 function initMusic() {
@@ -2948,19 +2977,14 @@ function initMusic() {
 
 // name: 곡 이름 (없으면 null = 조용히)
 function setMusic(name) { want = name && MUSIC[name] ? name : null; }
-const musicOff = () => off;
+const musicWant = () => want;
 // 시험용: 지금 틀고 있는 곡
 const musicState = () => ({ cur, want, vol: +vol.toFixed(2), paused: el ? el.paused : true, time: el ? +el.currentTime.toFixed(1) : 0 });
-function toggleMusic() {
-  off = !off;
-  try { localStorage.setItem('sosang-music', off ? 'off' : 'on'); } catch (e) { /* 그대로 */ }
-  return off;
-}
 
 // 매 프레임 (main.js): 소리를 줄였다 키우며 곡을 바꿔요
 function updateMusic(dt) {
-  const a = el;
-  const target = off ? null : want;
+  const a = el, max = MAX_VOL * levelVol('music'); // 설정: 배경음악 크기
+  const target = max > 0 ? want : null;
   if (!a && !target) return;
   const step = dt * MAX_VOL / FADE_SEC;
   if (cur !== target) {
@@ -2974,7 +2998,7 @@ function updateMusic(dt) {
     const p = b.play(); if (p && p.catch) p.catch(() => {});
     return;
   }
-  if (cur && vol < MAX_VOL) { vol = Math.min(MAX_VOL, vol + step); a.volume = vol; } // 다음에 키워요
+  if (cur && vol !== max) { vol = vol < max ? Math.min(max, vol + step) : Math.max(max, vol - step); a.volume = vol; } // 다음에 키워요 (크기를 바꾸면 그쪽으로)
 }
 // ── js/ui/icons.js ──
 // 화면(HTML)에 쓰는 작은 그림: 아틀라스에서 잘라 그림 주소로 만들어 둬요.
@@ -3408,9 +3432,7 @@ function renderTitle() {
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
-      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
-      <button class="btn ghost small" data-act="credits">크레딧</button>
-      <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
+      <button class="btn ghost small" data-act="settings" data-from="title">설정</button>
     </div>`, 'scr-title');
 }
 
@@ -3464,7 +3486,7 @@ function renderPrep() {
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
+      <div class="btn-pair"><button class="btn ghost small" data-act="settings" data-from="prep">설정</button><button class="btn ghost small" data-act="toTitle">처음 화면</button></div>
     </div>`, 'scr-prep');
 }
 
@@ -3590,6 +3612,35 @@ function renderDev() {
     </div>`, 'scr-dev');
 }
 
+// ── 설정: 소리 크기 · 크레딧 · (처음 화면에서만) 개발자 모드 · 버전 ──
+// from: 어디서 열었는지 (title · prep · pause) — 「돌아가기」로 그 화면에 돌아가요
+let settingsFrom = 'title', musicBefore = null, previewing = false;
+const lvText = k => setting(k) ? `${LEVELS[setting(k)] * 100}%` : '끔';
+function renderSettings(from) {
+  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; }
+  const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
+  showScreen(`
+    <div class="settings">
+      <h2>설정</h2>
+      <div class="set-card">
+        ${step('music', '배경음악')}
+        ${step('sfx', '효과음')}
+        <p class="set-note">배경음악은 오 사장님이 나오는 장면에서 흐릅니다. 이 기기에만 기억합니다.</p>
+      </div>
+      <button class="btn" data-act="credits">크레딧</button>
+      ${settingsFrom === 'title' ? '<button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>' : ''}
+      <p class="set-ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
+      <button class="btn primary big" data-act="settingsClose">돌아가기</button>
+    </div>`, 'scr-settings');
+}
+function closeSettings() {
+  if (previewing) setMusic(musicBefore); // 미리 듣기를 끝내요
+  previewing = false;
+  if (settingsFrom === 'prep' && G.phase === 'prep') renderPrep();
+  else if (settingsFrom === 'pause' && G.run) renderPause();
+  else renderTitle();
+}
+
 // ── 엔딩 크레딧 ──
 // 게임 엔딩(3년 기한)이 끝나면 올라가요. 엔딩이 생기기 전에는 처음 화면 「크레딧」 버튼으로 같은 화면을 봐요.
 function renderCredits() {
@@ -3601,7 +3652,7 @@ function renderCredits() {
         ${blocks}
         <p class="cr-thanks">${CREDITS_THANKS}</p>
       </div>
-      <button class="btn ghost small cr-close" data-act="toTitle">처음 화면</button>
+      <button class="btn ghost small cr-close" data-act="settings">돌아가기</button>
     </div>`, 'scr-credits');
 }
 
@@ -3610,7 +3661,7 @@ function renderPause() {
     <div class="pause">
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
-      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
+      <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button></div>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
@@ -3635,7 +3686,13 @@ function initScreens(onStart) {
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
     else if (a === 'dev') { playSfx('page'); renderDev(); }
-    else if (a === 'music') { b.textContent = toggleMusic() ? '음악 켜기' : '음악 끄기'; }
+    else if (a === 'settings') { playSfx('page'); renderSettings(b.dataset.from); }
+    else if (a === 'settingsClose') { playSfx('page'); closeSettings(); }
+    else if (a === 'setLv') {
+      stepSetting(b.dataset.k, d);
+      if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
+      playSfx('tap'); renderSettings();
+    }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }

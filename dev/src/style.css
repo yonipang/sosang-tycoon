@@ -429,3 +429,13 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .qt { flex: 1 1 0; }
 #stockMini > span { white-space: nowrap; }
 #stockMini .ready { display: inline-block; background: var(--green); color: #fff; padding: 0 3px; line-height: 1.2; margin-left: 2px; }
+
+/* 설정 */
+#screen.scr-settings { background: linear-gradient(180deg, rgba(29,35,64,.95), rgba(43,29,22,.95)); }
+.settings h2 { color: var(--paper); font-weight: normal; font-size: 32px; margin: 8px 0 12px; }
+.set-card { background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.set-card .row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.set-note { margin: 6px 0 0; color: var(--ink-soft); word-break: keep-all; }
+.set-ver { color: var(--paper); opacity: .6; text-align: center; margin: 14px 0 0; }
+.btn-pair { display: flex; gap: 8px; }
+.btn-pair .btn { flex: 1; }

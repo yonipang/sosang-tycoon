@@ -1,4 +1,6 @@
 // 효과음: 파일 없이 짧은 소리를 만들어요. 첫 터치 뒤에만 소리가 나요(브라우저 규칙).
+import { levelVol } from './settings.js';
+
 let ac = null, muted = false;
 export function unlockAudio() {
   if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -8,13 +10,14 @@ export function setMuted(m) { muted = m; }
 export const isMuted = () => muted;
 
 function tone(freq, dur, type, vol, slide, delay) {
-  if (!ac || muted) return;
+  const lv = levelVol('sfx'); // 설정: 효과음 크기
+  if (!ac || muted || !lv) return;
   const t0 = ac.currentTime + (delay || 0);
   const o = ac.createOscillator(), g = ac.createGain();
   o.type = type || 'square';
   o.frequency.setValueAtTime(freq, t0);
   if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
-  g.gain.setValueAtTime(vol || 0.06, t0);
+  g.gain.setValueAtTime((vol || 0.06) * lv, t0);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.connect(g); g.connect(ac.destination);
   o.start(t0); o.stop(t0 + dur + 0.02);

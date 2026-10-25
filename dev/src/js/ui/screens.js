@@ -11,7 +11,8 @@ import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
 import { playSfx, unlockAudio } from './sfx.js';
-import { musicOff, toggleMusic } from './music.js';
+import { setMusic, musicWant } from './music.js';
+import { LEVELS, setting, stepSetting } from './settings.js';
 import { menuOpen } from '../sim/story.js';
 import { questCard, doneCard, incidentCard } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
@@ -42,9 +43,7 @@ export function renderTitle() {
       <button class="btn ${save ? '' : 'primary'}" data-act="new">${save ? '새로 시작' : '가게 열기'}</button>
       <p class="howto">칸을 눌러 움직입니다. 조리대에서 요리하고, 손님 자리에 내주고, 계산대 뒤에 서면 계산합니다.</p>
       <p class="proto">프로토타입 v${GAME_VERSION} · 프롤로그와 1장</p>
-      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
-      <button class="btn ghost small" data-act="credits">크레딧</button>
-      <button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>
+      <button class="btn ghost small" data-act="settings" data-from="title">설정</button>
     </div>`, 'scr-title');
 }
 
@@ -98,7 +97,7 @@ export function renderPrep() {
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 주간 정산</span><b>−${wonShort(WEEK_RENT + Math.min(LOAN_WEEKLY, G.loan))}</b></div>` : ''}
       </div>
       <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
+      <div class="btn-pair"><button class="btn ghost small" data-act="settings" data-from="prep">설정</button><button class="btn ghost small" data-act="toTitle">처음 화면</button></div>
     </div>`, 'scr-prep');
 }
 
@@ -224,6 +223,35 @@ export function renderDev() {
     </div>`, 'scr-dev');
 }
 
+// ── 설정: 소리 크기 · 크레딧 · (처음 화면에서만) 개발자 모드 · 버전 ──
+// from: 어디서 열었는지 (title · prep · pause) — 「돌아가기」로 그 화면에 돌아가요
+let settingsFrom = 'title', musicBefore = null, previewing = false;
+const lvText = k => setting(k) ? `${LEVELS[setting(k)] * 100}%` : '끔';
+export function renderSettings(from) {
+  if (from) { settingsFrom = from; musicBefore = musicWant(); previewing = false; }
+  const step = (k, label) => `<div class="row"><span>${label}</span><div class="step"><button data-act="setLv" data-k="${k}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${lvText(k)}</b><button data-act="setLv" data-k="${k}" data-d="1" aria-label="${label} 키우기">+</button></div></div>`;
+  showScreen(`
+    <div class="settings">
+      <h2>설정</h2>
+      <div class="set-card">
+        ${step('music', '배경음악')}
+        ${step('sfx', '효과음')}
+        <p class="set-note">배경음악은 오 사장님이 나오는 장면에서 흐릅니다. 이 기기에만 기억합니다.</p>
+      </div>
+      <button class="btn" data-act="credits">크레딧</button>
+      ${settingsFrom === 'title' ? '<button class="btn ghost small dev-btn" data-act="dev">개발자 모드</button>' : ''}
+      <p class="set-ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
+      <button class="btn primary big" data-act="settingsClose">돌아가기</button>
+    </div>`, 'scr-settings');
+}
+function closeSettings() {
+  if (previewing) setMusic(musicBefore); // 미리 듣기를 끝내요
+  previewing = false;
+  if (settingsFrom === 'prep' && G.phase === 'prep') renderPrep();
+  else if (settingsFrom === 'pause' && G.run) renderPause();
+  else renderTitle();
+}
+
 // ── 엔딩 크레딧 ──
 // 게임 엔딩(3년 기한)이 끝나면 올라가요. 엔딩이 생기기 전에는 처음 화면 「크레딧」 버튼으로 같은 화면을 봐요.
 export function renderCredits() {
@@ -235,7 +263,7 @@ export function renderCredits() {
         ${blocks}
         <p class="cr-thanks">${CREDITS_THANKS}</p>
       </div>
-      <button class="btn ghost small cr-close" data-act="toTitle">처음 화면</button>
+      <button class="btn ghost small cr-close" data-act="settings">돌아가기</button>
     </div>`, 'scr-credits');
 }
 
@@ -244,7 +272,7 @@ export function renderPause() {
     <div class="pause">
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
-      <button class="btn ghost small" data-act="music">${musicOff() ? '음악 켜기' : '음악 끄기'}</button>
+      <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button></div>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
@@ -269,7 +297,13 @@ export function initScreens(onStart) {
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
     else if (a === 'dev') { playSfx('page'); renderDev(); }
-    else if (a === 'music') { b.textContent = toggleMusic() ? '음악 켜기' : '음악 끄기'; }
+    else if (a === 'settings') { playSfx('page'); renderSettings(b.dataset.from); }
+    else if (a === 'settingsClose') { playSfx('page'); closeSettings(); }
+    else if (a === 'setLv') {
+      stepSetting(b.dataset.k, d);
+      if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
+      playSfx('tap'); renderSettings();
+    }
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }

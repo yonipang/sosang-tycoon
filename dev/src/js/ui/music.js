@@ -2,10 +2,10 @@
 // 지금 곡: oh = 오 사장님 테마 (오 사장님이 나오는 연출·대화·미션 전화)
 // 휴대폰 브라우저는 사람이 화면을 누른 뒤에만 소리를 낼 수 있어서, 첫 터치 때 한 번 「깨워」 둬요.
 import { MUSIC } from '../audio/music.js';
+import { levelVol } from './settings.js';
 
 const MAX_VOL = 0.38, FADE_SEC = 0.8;
-let el = null, cur = null, want = null, vol = 0, primed = false, off = false;
-try { off = localStorage.getItem('sosang-music') === 'off'; } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+let el = null, cur = null, want = null, vol = 0, primed = false;
 
 function audio() {
   if (!el) { el = new Audio(); el.loop = true; el.preload = 'auto'; el.volume = 0; }
@@ -19,7 +19,7 @@ function prime() {
   if (!a.src) a.src = MUSIC.oh;
   a.muted = true;
   const p = a.play();
-  const done = () => { a.muted = false; if (!want || off) a.pause(); };
+  const done = () => { a.muted = false; if (!want || !levelVol('music')) a.pause(); };
   if (p && p.then) p.then(done, () => { primed = false; a.muted = false; }); else done();
 }
 export function initMusic() {
@@ -29,19 +29,14 @@ export function initMusic() {
 
 // name: 곡 이름 (없으면 null = 조용히)
 export function setMusic(name) { want = name && MUSIC[name] ? name : null; }
-export const musicOff = () => off;
+export const musicWant = () => want;
 // 시험용: 지금 틀고 있는 곡
 export const musicState = () => ({ cur, want, vol: +vol.toFixed(2), paused: el ? el.paused : true, time: el ? +el.currentTime.toFixed(1) : 0 });
-export function toggleMusic() {
-  off = !off;
-  try { localStorage.setItem('sosang-music', off ? 'off' : 'on'); } catch (e) { /* 그대로 */ }
-  return off;
-}
 
 // 매 프레임 (main.js): 소리를 줄였다 키우며 곡을 바꿔요
 export function updateMusic(dt) {
-  const a = el;
-  const target = off ? null : want;
+  const a = el, max = MAX_VOL * levelVol('music'); // 설정: 배경음악 크기
+  const target = max > 0 ? want : null;
   if (!a && !target) return;
   const step = dt * MAX_VOL / FADE_SEC;
   if (cur !== target) {
@@ -55,5 +50,5 @@ export function updateMusic(dt) {
     const p = b.play(); if (p && p.catch) p.catch(() => {});
     return;
   }
-  if (cur && vol < MAX_VOL) { vol = Math.min(MAX_VOL, vol + step); a.volume = vol; } // 다음에 키워요
+  if (cur && vol !== max) { vol = vol < max ? Math.min(max, vol + step) : Math.max(max, vol - step); a.volume = vol; } // 다음에 키워요 (크기를 바꾸면 그쪽으로)
 }
