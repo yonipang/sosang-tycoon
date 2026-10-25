@@ -1,5 +1,6 @@
 // 옛 세이브 보정은 모두 여기에 둬요. 세이브 구조를 바꾸면 기본값을 채우는 줄을 아래에 더해요.
 import { newStory } from '../data/story.js';
+import { newTown } from '../sim/town.js';
 
 export function migrate(o) {
   if (!o || typeof o !== 'object') throw new Error('세이브 형식이 아니에요');
@@ -17,6 +18,7 @@ export function migrate(o) {
     o.story = st;
   }
   if (!o.story.tools) { o.story.tools = []; o.story.toolsOpen = o.story.ch >= 2 || o.story.done.includes('c1_kimbap'); } // 장사 도구 이전 세이브
+  if (!o.town) o.town = newTown(); // 마을 이전 세이브: 다음 밤부터 1장이면 골목으로
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

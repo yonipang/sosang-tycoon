@@ -12,6 +12,8 @@ import { emit } from './events.js';
 import { findPath, walk } from './path.js';
 import { menuOpen, storyNote } from './story.js';
 import { incidentNote } from './incidents.js';
+import { dirty } from './town.js';
+import { HYGIENE_SAT } from '../data/town.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -219,6 +221,7 @@ function satisfaction(c) {
   let s = 3.5 + c.priceSat + [-0.2, 0.3, 0.8][Math.max(0, c.quality)];
   if (c.foodWaitFrac > 0.6) s -= 0.7;
   if (c.payWaited) s -= 0.6;
+  if (dirty()) s -= HYGIENE_SAT; // 위생이 낮으면 (data/town.js)
   return Math.max(1, Math.min(5, s));
 }
 

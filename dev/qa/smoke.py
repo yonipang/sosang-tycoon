@@ -39,6 +39,8 @@ def to_prep(pg):
     if pg.locator('[data-act=afterWeekly]').count():
         shot(pg, '7-weekly'); pg.click('[data-act=afterWeekly]')
     talk(pg)
+    town = pg.evaluate('__T.town().on')
+    if town: town_night_dawn(pg)
     if pg.locator('[data-act=questPay]').count():
         shot(pg, '8-prep-pay'); pg.click('[data-act=questPay]'); talk(pg)
     if pg.locator('[data-act=buyTool]').count():  # 장사 도구는 보이면 다 사요
@@ -50,8 +52,29 @@ def to_prep(pg):
     if pg.locator('[data-act=buyTool]').count():  # 장사 도구는 보이면 다 사요
         shot(pg, '8b-prep-tools')
         while pg.locator('[data-act=buyTool]').count(): pg.locator('[data-act=buyTool]').first.click()
-    # 봇은 재료를 넉넉히 시켜요 (「재료가 떨어지지 않은 날」 퀘스트가 운에 맡겨지지 않게)
-    for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
+    # 봇은 재료를 넉넉히 시켜요 (「재료가 떨어지지 않은 날」 퀘스트가 운에 맡겨지지 않게) — 마을에서는 새벽 시장에서 샀어요
+    if not town:
+        for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
+def town_chat(pg):
+    for _ in range(10):
+        if pg.evaluate("document.getElementById('townSheet').hidden || !document.getElementById('townSheet').classList.contains('chat')"): return
+        pg.click('#townSheet'); pg.wait_for_timeout(30)
+def town_night_dawn(pg):
+    """마을: 밤에 청소·이웃 이야기 → 자기 → 새벽 시장에서 (어제 판 만큼 + 넉넉히) 사기 → 가게 장부 열기"""
+    R = lambda c, a: pg.evaluate("__T.runCmd('%s', %s)" % (c, a))
+    if 'town' not in seen:
+        seen.append('town'); pg.click('[data-act=toTown]') if pg.locator('[data-act=toTown]').count() else None
+        pg.wait_for_timeout(300); shot(pg, '9-town-night')
+    R('townAct', "{place:'shop',act:'clean'}")
+    R('townAct', "{place:'laundry',act:'talk'}"); town_chat(pg)
+    R('townAct', "{place:'home',act:'sleep'}"); talk(pg)
+    R('townAct', "{place:'market',act:'market'}"); town_chat(pg)
+    if 'market' not in seen: seen.append('market'); pg.wait_for_timeout(200); shot(pg, '9b-market')
+    for m in pg.evaluate("__T.G.story.menus"):
+        want = pg.evaluate("(m=>{const h=__T.G.history[__T.G.history.length-1]; const inv=(__T.G.inv[m]||[]).reduce((s,b)=>s+b.n,0); return Math.max(0, Math.ceil(((h&&h.sold[m]||10)+10-inv)/5));})('%s')" % m)
+        for _ in range(want): R('marketBuy', "{menu:'%s',packs:1}" % m)
+    R('townAct', "{place:'shop',act:'setup'}")
+    R('townAct', "{place:'shop',act:'open'}"); talk(pg)
 def open_shop(pg):
     """가게 열기 → 보온 통이 있으면 새벽에 미리 끓이기(봇이 미니게임) → 문 열기"""
     pg.click('[data-act=open]')

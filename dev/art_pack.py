@@ -223,18 +223,48 @@ def own_doormat():
 HANGUL = {
     '분': ['..#...#..', '..#####..', '..#...#..', '..#####..', '#########', '....#....', '.#.......', '.#.......', '.#######.'],
     '식': ['..#....#.', '..#....#.', '.#.#...#.', '#...#..#.', '.......#.', '.........', '.######..', '......#..', '......#..'],
+    '세': ['..#..#.#.', '..#..#.#.', '.#.#.###.', '#...##.#.', '.....#.#.', '.....#.#.', '.....#.#.', '.....#.#.', '.....#.#.'],
+    '탁': ['####.#...', '#....#...', '####.##..', '#....#...', '####.#...', '.........', '#######..', '......#..', '......#..'],
+    '꽃': ['###.###..', '..#...#..', '..#...#..', '....#....', '#########', '...###...', '..#####..', '...#.#...', '..#...#..'],
+    '집': ['#####.#..', '..#...#..', '.#.#..#..', '#...#.#..', '.........', '.#...#...', '.#####...', '.#...#...', '.#####...'],
+    '자': ['#####..#.', '..#....#.', '..#....#.', '.#.#...##', '#...#..#.', '.......#.', '.......#.', '.......#.', '.......#.'],
+    '재': ['####.#.#.', '.#...#.#.', '.#...###.', '#.#..#.#.', '#..#.#.#.', '.....#.#.', '.....#.#.', '.....#.#.', '.....#.#.'],
 }
 
 
-def own_sign():
+def own_sign(text='분식', bg=(200, 56, 42, 255), hi=(232, 104, 80, 255)):
     im = Image.new('RGBA', (30, 12), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    d.rectangle((0, 0, 29, 11), fill=(200, 56, 42, 255), outline=INK)
-    d.line((1, 1, 28, 1), fill=(232, 104, 80, 255))
-    for k, ch in enumerate('분식'):
+    d.rectangle((0, 0, 29, 11), fill=bg, outline=INK)
+    d.line((1, 1, 28, 1), fill=hi)
+    for k, ch in enumerate(text):
         for y, row in enumerate(HANGUL[ch]):
             for x, c in enumerate(row):
                 if c == '#':
                     im.putpixel((5 + k * 11 + x, 2 + y), (255, 248, 230, 255))
+    return im
+
+
+# 「식자재」 간판 (48x20) — 골목 끝 정 사장 식자재 마트 (그림의 MARKET 판 자리를 덮어요: 판 왼쪽 위 x32 · y70)
+def own_sign_mart():
+    im = Image.new('RGBA', (48, 20), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((0, 0, 47, 19), fill=(46, 120, 80, 255), outline=INK)
+    d.line((1, 1, 46, 1), fill=(90, 170, 120, 255)); d.line((1, 18, 46, 18), fill=(30, 84, 56, 255))
+    for k, ch in enumerate('식자재'):
+        for y, row in enumerate(HANGUL[ch]):
+            for x, c in enumerate(row):
+                if c == '#':
+                    im.putpixel((8 + k * 11 + x, 5 + y), (255, 248, 230, 255))
+    return im
+
+
+# 골목 게시판 (20x26) — 전단지 붙이는 곳
+def own_board():
+    im = Image.new('RGBA', (20, 26), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((2, 12, 3, 25), fill=(110, 72, 44, 255)); d.rectangle((16, 12, 17, 25), fill=(110, 72, 44, 255))  # 다리
+    d.rectangle((0, 0, 19, 15), fill=(196, 150, 96, 255), outline=(96, 60, 36, 255))   # 코르크 판
+    d.rectangle((2, 2, 8, 8), fill=(252, 250, 240, 255)); d.line((3, 4, 7, 4), fill=(216, 69, 47, 255))
+    d.rectangle((10, 3, 17, 10), fill=(240, 236, 200, 255)); d.line((11, 5, 16, 5), fill=(80, 110, 170, 255)); d.line((11, 7, 15, 7), fill=(150, 140, 120, 255))
+    d.rectangle((4, 10, 9, 13), fill=(250, 220, 120, 255))
     return im
 
 
@@ -278,6 +308,13 @@ def collect():
     s['bag'] = crop(EXT, PROPS, 355, 324, 11, 11)
     s['stool'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 1, 284, 13, 13)
     s['sign'] = own_sign()
+    s['sign_laundry'] = own_sign('세탁', (52, 96, 170, 255), (96, 140, 210, 255))  # 옆 세탁소 STORE 판 자리
+    s['sign_flower'] = own_sign('꽃집', (56, 130, 70, 255), (100, 176, 110, 255))   # 맞은편 꽃집
+    # 마을(밤·새벽 골목): 우리 집 빌라 · 정 사장 식자재 마트 · 게시판
+    s['st_home'] = crop(EXT, 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/4_Generic_Buildings_16x16.png', 368, 573, 96, 113)
+    s['st_market'] = crop(EXT, STORE, 240, 553, 112, 133)
+    s['sign_mart'] = own_sign_mart()
+    s['board'] = own_board()
     s['notice'] = own_notice()
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())

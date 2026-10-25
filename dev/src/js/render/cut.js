@@ -4,16 +4,32 @@ import { fxRand } from '../engine/random.js';
 
 export const CUT_W = 128;  // 게임 화면보다 좁게 잘라 크게 보여요 (휴대폰에서 3배)
 export const CUT_H = 176;
-const WORLD_W = 272, GROUND = 144, ROAD = 176;
-const STORES = [['st_flower', 16], ['st_bunsik', 96], ['st_laundry', 176]];
-const SHOP_X = 96, SHOP_TOP = GROUND - 118; // 오가네 분식 그림 왼쪽 위
-const LAMP_X = 84; // data/cutscenes.js opening props의 가로등 x와 같게
+const GROUND = 144, ROAD = 176;
+export const CUT_GROUND = GROUND;
+// 연출 골목 (기본). 마을(ui/town.js)은 S.world로 더 넓은 골목을 줘요: { w, stores: [[그림, x, 바닥 기준 위로 높이?]], shopX, lamps: [x] }
+const CUT_WORLD = { w: 272, stores: [['st_flower', 16], ['st_bunsik', 96], ['st_laundry', 176]], signs: [['sign_flower', 25, 94], ['sign_laundry', 185, 94]], shopX: 96, lamps: [84] };
+const SHOP_TOP = GROUND - 118; // 가게 그림 위쪽 (그림 높이 118)
+let WORLD_W = 272, SHOP_X = 96, LAMPS = [84];
 let cutCanvas, cx, cutAtlas, cutStars = null;
 
 export function initCut(canvas) {
   cutCanvas = canvas; cx = cutCanvas.getContext('2d');
   cutCanvas.width = CUT_W; cutCanvas.height = CUT_H;
   cutAtlas = new Image(); cutAtlas.src = ATLAS_URL;
+}
+// 다른 캔버스(마을)에 같은 방법으로 그려요
+export function drawCutOn(canvas, S) {
+  const keep = [cutCanvas, cx];
+  if (canvas.width !== CUT_W) { canvas.width = CUT_W; canvas.height = CUT_H; }
+  cutCanvas = canvas; cx = canvas.getContext('2d');
+  drawCut(S);
+  [cutCanvas, cx] = keep;
+}
+export function fitCanvas(canvas, availW, availH) {
+  const dpr = window.devicePixelRatio || 1;
+  const s = Math.max(1, Math.floor(Math.min(availW / CUT_W, availH / CUT_H) * dpr)) / dpr;
+  canvas.style.width = CUT_W * s + 'px'; canvas.style.height = CUT_H * s + 'px';
+  return s;
 }
 // 그림 1픽셀이 기기 화면 픽셀 정수 개가 되게 키워요 (render/view.js fitView와 같은 방법)
 export function fitCut(availW, availH) {
@@ -60,7 +76,14 @@ function emote(a, kind, k) {
   else if (kind === 'heart') { cx.fillStyle = '#e0533a'; cx.fillRect(x + 3, y + 3, 2, 2); cx.fillRect(x + 6, y + 3, 2, 2); cx.fillRect(x + 3, y + 4, 5, 2); cx.fillRect(x + 4, y + 6, 3, 1); cx.fillRect(x + 5, y + 7, 1, 1); }
 }
 
-function sky(t, night) {
+function sky(t, night, dawn) {
+  if (dawn) { // 새벽: 푸르스름하고 지평선만 살짝 밝아요
+    const g = cx.createLinearGradient(0, -220, 0, GROUND);
+    g.addColorStop(0, '#2a3566'); g.addColorStop(0.7, '#6f7fae'); g.addColorStop(1, '#e9b9a4');
+    cx.fillStyle = g; cx.fillRect(0, -220, WORLD_W, GROUND + 220);
+    cx.fillStyle = 'rgba(255,250,235,.7)'; cx.beginPath(); cx.arc(40 + WORLD_W * 0.7, -60, 5, 0, Math.PI * 2); cx.fill(); // 지는 새벽달
+    return;
+  }
   if (!night) { // 낮: 맑은 하늘 + 구름 두 점
     const g = cx.createLinearGradient(0, -220, 0, GROUND);
     g.addColorStop(0, '#5aa6e8'); g.addColorStop(1, '#bfe3f7');
@@ -105,11 +128,15 @@ export function drawCut(S) {
   cx.save();
   cx.translate(ox, oy);
   // 1) 배경: 하늘 · 가게 · 보도 (밤이면 밤빛과 불빛까지 — 불빛은 배경에만 비춰요)
-  sky(t, S.night);
-  for (const [n, x] of STORES) cspr(n, x, SHOP_TOP);
+  const W = S.world || CUT_WORLD;
+  WORLD_W = W.w; SHOP_X = W.shopX; LAMPS = W.lamps;
+  sky(t, S.night, S.dawn);
+  for (const [n, x, h] of W.stores) cspr(n, x, GROUND - (h || SPR[n][3]));
   cspr('sign', SHOP_X + 9, SHOP_TOP + 68);
+  for (const [n, x, y] of W.signs || []) cspr(n, x, y);
   ground();
   if (S.night) nightLights(S, t);
+  else if (S.dawn) { cx.fillStyle = 'rgba(70,90,150,.28)'; cx.fillRect(0, -220, WORLD_W, 440); }
   else if (S.door) { cx.fillStyle = 'rgba(40,28,20,.45)'; cx.fillRect(SHOP_X + 18, SHOP_TOP + 92, 12, 23); } // 낮: 열린 문 안쪽은 살짝 어둡게
   cx.restore();
   // 2) 물건·사람을 발끝 순서로 따로 그리고, 밤이면 옅은 밤빛만
@@ -119,12 +146,13 @@ export function drawCut(S) {
   for (const id in S.actors) { const a = S.actors[id]; if (!a.hidden) items.push({ y: a.y, d: () => person(a, t + a.char) }); }
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   cx = main;
-  if (S.night) { L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-atop'; L.fillStyle = 'rgba(22,26,70,.3)'; L.fillRect(0, 0, CUT_W, CUT_H); L.globalCompositeOperation = 'source-over'; }
+  if (S.night || S.dawn) { L.setTransform(1, 0, 0, 1, 0, 0); L.globalCompositeOperation = 'source-atop'; L.fillStyle = S.night ? 'rgba(22,26,70,.3)' : 'rgba(70,90,150,.18)'; L.fillRect(0, 0, CUT_W, CUT_H); L.globalCompositeOperation = 'source-over'; }
   cx.drawImage(layer, 0, 0);
   // 3) 감정 표시 (밝게)
   cx.save();
   cx.translate(ox, oy);
   for (const id in S.emotes) { const e = S.emotes[id], a = S.actors[id]; if (a && !a.hidden) emote(a, e.kind, e.t); }
+  if (S.marks) for (const m of S.marks) { cbubble(m.x - 5, m.y + Math.round(Math.sin(t * 5 + m.x) * 1.5), 11, 10); cx.fillStyle = m.col || '#e0533a'; cx.fillRect(m.x, m.y + 2 + Math.round(Math.sin(t * 5 + m.x) * 1.5), 2, 4); cx.fillRect(m.x, m.y + 7 + Math.round(Math.sin(t * 5 + m.x) * 1.5), 2, 1); } // 할 일이 있는 곳 「!」
   cx.restore();
   if (S.fade > 0) { cx.fillStyle = `rgba(8,8,16,${S.fade})`; cx.fillRect(0, 0, CUT_W, CUT_H); }
 }
@@ -146,6 +174,8 @@ function nightLights(S, t) {
   radial(SHOP_X + 56, GROUND + 4, 26, 0.18, 0.4);           // 창 아래 보도
   radial(SHOP_X + 24, SHOP_TOP + 76, 20, 0.16);             // 간판
   if (S.door) { radial(SHOP_X + 24, SHOP_TOP + 104, 15, 0.5); radial(SHOP_X + 24, GROUND + 4, 18, 0.22, 0.45); }
-  radial(LAMP_X + 7, 160, 34, 0.24 * fl, 0.45);             // 가로등 불빛 웅덩이
-  radial(LAMP_X + 7, 121, 10, 0.55 * fl);                   // 가로등 머리
+  for (const lx of LAMPS) {
+    radial(lx + 7, 160, 34, 0.24 * fl, 0.45);               // 가로등 불빛 웅덩이
+    radial(lx + 7, 121, 10, 0.55 * fl);                     // 가로등 머리
+  }
 }

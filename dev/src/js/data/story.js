@@ -8,6 +8,7 @@ export const CAST = {
   meThink: { name: '나 · 속마음', char: 0, think: true },
   oh: { name: '오 사장님', char: 18 },
   ohPhone: { name: '오 사장님 · 전화', char: 18 },
+  jung: { name: '정 사장 · 식자재', char: 19 },
   park: { name: '박 할머니', char: 13 },
   // 돌발 이벤트 (data/incidents.js)
   kids: { name: '학원 끝난 아이', char: 2 },
@@ -91,7 +92,7 @@ export const SCENES = {
       ['me', '김밥이요? 레시피를 모르는데…'],
       ['park', '오 사장 그 양반, 중요한 건 다 냉장고 뒤에 붙여 놨었어.'],
       [null, '전화가 울립니다.'],
-      ['ohPhone', '첫날이다. 긴장되지? 하나만 기억해라. 재료는 밤마다 시켜. 모자라면 손님 그냥 돌아간다.'],
+      ['ohPhone', '첫날이다. 긴장되지? 오늘 재료는 내가 마지막으로 거래처에 시켜 놨다. 모자라면 손님 그냥 돌아가니까 잘 봐 둬.'],
       ['ohPhone', '당분간은 내가 전화로 봐 줄게. 할 일은 준비 화면에 적어 둬라.', 'quest'],
     ],
     start: ['c1_first', 'c1_note', 'c1_stock'],
@@ -140,6 +141,7 @@ export const SCENES = {
     ],
   },
   paper1: {
+    at: 'dawn', // 마을에서는 아침 신문 (새벽에)
     alt: { cond: 'rating35', else: 'paper1b' },
     paper: {
       no: 2, head: '{shop}, 주인 바뀌었다… 맛은 그대로!', sub: '알바생 출신 새 사장의 첫 주',
@@ -148,11 +150,23 @@ export const SCENES = {
     title: '초보 사장', ch: 2,
   },
   paper1b: {
+    at: 'dawn',
     paper: {
       no: 2, head: '{shop}, 주인 바뀌었다… 맛은 글쎄?', sub: '알바생 출신 새 사장의 첫 주',
       body: '김밥과 튀김이 다시 메뉴판에 올랐지만 「아직은 오 사장 맛이 그립다」는 말도 나온다. 새 사장은 「다음 주는 다르다」고 짧게 답했다.',
     },
     title: '초보 사장', ch: 2,
+  },
+  // 마을 첫 밤 (sim/town.js townEnterNight)
+  town1: {
+    lines: [
+      ['ohPhone', '장사 끝났냐? 이제부터 밤이랑 새벽도 니 시간이다.'],
+      ['ohPhone', '밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 주고 그런다.'],
+      ['ohPhone', '재료는 이제 니가 직접 사. 새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
+      [null, '밤에는 네 가지, 새벽에는 세 가지 일을 할 수 있습니다. 더 하면 피로가 쌓여 다음 날 걸음이 느려집니다.'],
+      [null, '바닥을 누르면 걸어갑니다. 가게나 사람을 누르면 그곳에서 할 수 있는 일이 나옵니다.'],
+      ['ohPhone', '일 다 했으면 집에 가서 자. 새벽에 장 보고, 가게 가서 문 열고.'],
+    ],
   },
   ch2soon: {
     lines: [
@@ -174,5 +188,5 @@ export function newStory() {
 // 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요
 for (const id in MARKET_NEWS) {
   const n = MARKET_NEWS[id];
-  SCENES['mk_' + id] = { paper: { tag: '시세 소식', head: n.head, sub: n.sub, body: n.body, market: id } };
+  SCENES['mk_' + id] = { at: 'dawn', paper: { tag: '시세 소식', head: n.head, sub: n.sub, body: n.body, market: id } };
 }

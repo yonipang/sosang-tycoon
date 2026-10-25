@@ -4,15 +4,17 @@ import { MENUS, MENU_IDS, PREP_FIRST_DAY } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
 import { newStory } from '../data/story.js';
 import { migrate } from './migrations.js';
+import { newTown } from '../sim/town.js';
 
 export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
 // 저장하는 칸 (순서대로 직렬화)
 // story = 이야기 진행 (data/story.js newStory)
+// town = 마을(밤·새벽) 상태 (sim/town.js newTown)
 // market = 재료 시세 소식 { id: 지금 소식, until: 이 날까지, rest: 이 날 전에는 새 소식 없음, last: 지난 소식 } (sim/market.js)
 // meta = 세이브 꼬리표 { id: 이 가게(판) 번호, at: 마지막 저장 시각 } — 클라우드 저장에서 같은 판인지·어느 쪽이 최근인지 봐요
 // prep = 오늘 아침 도착할 재료 주문량(인분) · inv = 가게 재료 { 메뉴: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] }
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town'];
 
 export const G = { phase: 'title', run: null };
 
@@ -36,6 +38,7 @@ export function newGame(shopName) {
     story: newStory(),
     meta: { id: Date.now().toString(36), at: 0 }, // 새 판마다 새 번호
     market: { id: null, until: 0 },
+    town: newTown(),
     phase: 'prep',
     run: null,
   });

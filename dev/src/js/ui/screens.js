@@ -10,6 +10,8 @@ import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
+import { townMode } from '../sim/town.js';
+import { showTown } from './town.js';
 import { toast } from './feedback.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
@@ -74,6 +76,7 @@ export function renderPrep() {
   const cost = prepCost();
   const after = G.cash - cost;
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
+  const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 재료는 새벽 시장에서 사고, 가게는 새벽에 열어요
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
   const cards = MENU_IDS.map(m => {
     if (!menuOpen(m)) return ''; // 아직 안 연 메뉴는 보여 주지 않아요 (이야기로 열리면 「새 메뉴」로 등장)
@@ -90,7 +93,7 @@ export function renderPrep() {
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
-      <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
+      ${town ? `<div class="row"><span>재고</span><b class="stock-n">${inv}인분${inv ? '' : ' · 새벽 시장에서 사 보세요'}</b></div>` : `<div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>`}
       <details class="more"><summary>자세히</summary>
         <p>원가 ${won(costOf(m))}${costOf(m) !== M.cost ? ` (평소 ${won(M.cost)})` : ''} · 원가율 ${Math.round(costRatio(m) * 100)}% · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
       </details>
@@ -98,18 +101,19 @@ export function renderPrep() {
   }).join('');
   showScreen(`
     <div class="prep">
-      <div class="phase-tag night">전날 밤 22:00 · ${G.shop}</div>
-      <h2>${dayLabel(G.day)} 준비</h2>
+      <div class="phase-tag night">${dawn ? '새벽 · ' : town ? '밤 · 가게 장부 · ' : '전날 밤 22:00 · '}${G.shop}</div>
+      <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '준비'}</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
       ${questCard()}
       ${toolsCard()}
       ${cards}
       <div class="sum">
-        <div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>
+        ${town ? '' : `<div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>`}
         ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
-      <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
+      ${!town || dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다. 집에서 자고 일어나 보세요</p>'}
+      ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
@@ -332,7 +336,7 @@ function closeSettings() {
   if (previewing) setMusic(musicBefore); // 미리 듣기를 끝내요
   previewing = false;
   const f = settingsFrom;
-  if (f === 'prep' && G.phase === 'prep') renderPrep();
+  if (f === 'prep' && G.phase === 'prep') { if (townMode()) { hideScreen(); showTown(); } else renderPrep(); } // 마을이면 골목으로
   else if (f === 'receipt' && G.phase === 'receipt') renderReceipt();
   else if (f === 'weekly' && G.phase === 'weekly') renderWeekly();
   else if (f === 'pause' && G.run) renderPause();
@@ -426,6 +430,7 @@ export function initScreens(onStart) {
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
     else if (a === 'devMarket') { runCmd('devMarket'); }
+    else if (a === 'toTown') { playSfx('page'); hideScreen(); showTown(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }

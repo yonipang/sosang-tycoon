@@ -9,13 +9,14 @@ import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
-import { spawnPasser, shopCustomers, planRegulars, tickRegulars } from './customers.js';
+import { spawnPasser, shopCustomers, planRegulars, tickRegulars, spawnParty, freeChars } from './customers.js';
 import { planIncidents, tickIncidents, closeIncidents } from './incidents.js';
 import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 import { readyCap } from './tools.js';
 import { costOf, marketNextDay, costBreakdown } from './market.js';
+import { townEnterNight, townSpeedMul, setupUntil, flyerMul, referralPlan, townEndDay, dirty } from './town.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * costOf(m), 0); // 주문 금액 (아침 도착 때 결제)
@@ -71,6 +72,9 @@ defineCmd('openShop', () => {
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startStock = { ...G.run.stock };
   G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
+  // 마을(밤·새벽)에서 한 일: 피로·오픈 준비 → 사장 걸음, 이웃 소개 손님
+  G.run.player.speed = PLAYER_SPEED * townSpeedMul(); G.run.setupUntil = setupUntil();
+  G.run.referral = referralPlan();
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
   setPhase('day');
@@ -141,11 +145,19 @@ export function tickDay(dt) {
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
   // 들어올 손님 = 시간대 기대값 × 별점 × 개업 초기 × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) * districtVisitMul(openMenus());
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) * districtVisitMul(openMenus()) * flyerMul();
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
   tickRegulars(); tickIncidents();
+  // 오픈 준비 효과가 끝나요 (11시) · 이웃이 소개한 손님이 와요
+  if (r.setupUntil >= 0 && r.min >= r.setupUntil) { r.setupUntil = -1; r.player.speed = PLAYER_SPEED * townSpeedMul(); }
+  for (const f of r.referral || []) {
+    if (f.done || r.closing || r.min < f.at) continue;
+    const chars = freeChars().slice(0, 2);
+    f.done = true;
+    if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? '미소 꽃집' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+  }
   // 급구매한 재료 도착 (실제 초 기준)
   for (const o of r.rush.slice()) {
     o.t -= dt;
@@ -185,6 +197,8 @@ function pickReviews(events) {
 export function endDay() {
   const r = G.run, L = r.log;
   closeIncidents(); // 끝나지 않은 돌발은 실패로
+  if (dirty()) L.events.push({ kind: 'dirty', who: '손님' }); // 위생이 낮으면 리뷰에 나와요
+  townEndDay();
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
   for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, r.stock[m])); r.stock[m] -= k; readyLeft += k * costOf(m); }
@@ -277,6 +291,7 @@ function nextDay() {
     if (last && menuOpen(m)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invCount(m)) / 5) * 5));
   }
   storyNextDay(); // 예약한 메뉴는 처음 주문량으로 열려요
+  townEnterNight(); // 1장부터는 밤 골목으로 (재료는 새벽 시장에서)
   const mk = marketNextDay(); // 재료 시세: 새 소식은 골목 신문으로, 끝난 소식은 알림으로
   if (mk && mk.scene) G.story.queue.push(mk.scene);
   setPhase('prep');

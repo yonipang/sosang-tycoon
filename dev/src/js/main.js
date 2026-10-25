@@ -15,6 +15,7 @@ import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
 import { initStory, updateQuestTrack } from './ui/story.js';
 import { initIncidentUI } from './ui/incident.js';
+import { initTown, updateTown, townView } from './ui/town.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
 import { initMusic, updateMusic, musicState } from './ui/music.js';
 
@@ -32,6 +33,7 @@ function frame(now) {
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
   updateSpeech(dt);
   updateCut(dt);
+  updateTown(dt);
   updateMusic(dt);
   if (G.phase === 'day') updateQuestTrack(); // 돌발 이벤트 진행도 (바뀐 것만 다시 그려요)
   document.body.dataset.phase = G.phase;
@@ -47,6 +49,7 @@ async function boot() {
   initInput();
   initStory();
   initIncidentUI();
+  initTown();
   initCutscene();
   initMusic();
   initRush();
@@ -54,6 +57,7 @@ async function boot() {
   initScreens(() => setPhase('prep'));
   layout();
   addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe($('stage')); // 마을에서 아래 막대가 숨었다 나타나면 가게 화면 크기를 다시
   renderTitle();
   requestAnimationFrame(frame);
   // 클라우드 저장: 상태가 바뀌면 처음 화면·설정을 다시 그리고, 알릴 말은 알림으로
@@ -61,6 +65,6 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD };
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView };
 }
 boot();

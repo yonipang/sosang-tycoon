@@ -13,6 +13,9 @@ import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack, closeQuests } from './story.js';
 import { incidentInfo } from '../sim/incidents.js';
 import { incidentStart, incidentEnd, incidentReset } from './incident.js';
+import { showTown, hideTown, townShown, refreshTown } from './town.js';
+import { townMode } from '../sim/town.js';
+import { SCENES } from '../data/story.js';
 import { setMusic } from './music.js';
 
 export function toast(text, kind, who) {
@@ -57,6 +60,12 @@ export function updateSpeech(dt) {
   }
 }
 
+// 줄 서 있는 장면이 준비 화면의 한 곳을 짚으면(장사 도구·가격 …) 마을 대신 장부를 먼저 열어요
+function sceneWantsLedger() {
+  const sc = SCENES[G.story && G.story.queue[0]];
+  return !!(sc && sc.lines && sc.lines.some(l => l[2]));
+}
+const renderBarSoon = () => refreshTown();
 // 첫날 길잡이: 처음 겪는 일마다 한 번씩만
 const shown = new Set();
 // oh: 프롤로그(알바 사흘) 동안은 오 사장님이 옆에서 말해 줘요
@@ -98,13 +107,25 @@ export function initFeedback() {
   onEvent('phase', p => {
     if (p !== 'day') setMusic(null); // 영업이 끝나면 미션 음악도 멈춰요
     if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
-    if (p === 'prep') { if (saveGame()) cloudSaved(); renderPrep(); showNextScene(); }
+    if (p !== 'prep') hideTown();
+    document.body.classList.toggle('in-town', p === 'prep' && townMode());
+    if (p === 'prep') { if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();
     updateQuestTrack();
   });
-  onEvent('prep', () => { if (saveGame()) cloudSaved(); renderPrep(); }); // 준비 화면에서 바뀐 것(이야기 장면·수리비 등)은 바로 저장
+  onEvent('prep', () => { // 준비 화면·마을에서 바뀐 것(이야기 장면·수리비·장보기 등)은 바로 저장
+    if (saveGame()) cloudSaved();
+    if (townMode() && townShown() && $('screen').hidden) refreshTown(); else renderPrep();
+  });
+  // 마을: 가게 장부(준비 화면)를 열어요 · 새벽에 장면이 기다리고 있으면
+  onEvent('town', what => {
+    if (what === 'ledger' || what === 'open') { playSfx('page'); renderPrep(); return; }
+    if (!$('screen').hidden && $('screen').classList.contains('scr-prep')) hideScreen(); // 장부를 보다가 골목 일을 하면 골목으로
+    if (!townShown()) showTown();
+    if (what === 'dawn') renderBarSoon();
+  });
   onEvent('story', showNextScene);
   onEvent('quest', updateQuestTrack);
   onEvent('pause', on => { if (on) renderPause(); else if (G.phase === 'day') hideScreen(); });

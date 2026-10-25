@@ -25,6 +25,7 @@ export function showNextScene() {
   const id = G.story.queue[0];
   const sc = id && SCENES[id];
   if (!sc || (sc.when !== 'now' && G.phase !== 'prep')) return;
+  if (sc.at === 'dawn' && G.town && G.town.on && G.town.part !== 'dawn') return; // 아침 신문은 새벽에 (sim/town.js goDawn이 다시 불러요)
   if (G.phase === 'day' && G.run && G.run.cook) { setTimeout(showNextScene, 150); return; } // 영업 중 장면은 조리 미니게임이 끝난 뒤에
   if (G.phase === 'day') runCmd('hold', { on: true });
   open = { id, i: 0 };
