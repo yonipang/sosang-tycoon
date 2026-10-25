@@ -32,7 +32,8 @@ export function updateHud() {
     const c = r.customers.find(q => q.id === t.cid);
     const f = c ? c.patience / c.patMax : 1;
     const ready = handLeft[t.menu] > 0 && (handLeft[t.menu]--, true);
-    return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}">${icon(t.menu)}<b>${t.table ? t.table + '번' : '포장'}</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
+    const ev = t.takeout || (c && c.tag && c.tag.state === 'on'); // 돌발 이벤트 주문은 빨간 표
+    return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}${ev ? ' ev' : ''}">${icon(t.menu)}<b>${t.table ? t.table + '번' : '포장'}</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
   }).join('') + (r.tickets.length > 7 ? `<div class="tk more">+${r.tickets.length - 7}</div>` : '');
   setHTML('tickets', tk || '<div class="tk-empty">주문이 들어오면 여기에 쌓입니다</div>');
   // 손

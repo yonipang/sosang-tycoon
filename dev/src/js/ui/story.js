@@ -3,6 +3,9 @@ import { G } from '../save/state.js';
 import { $, won } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { CAST, CHAPTERS, QUESTS, SCENES } from '../data/story.js';
+import { MARKET_NEWS } from '../data/market.js';
+import { MENUS } from '../data/menu.js';
+import { costOf } from '../sim/market.js';
 import { questProg, questWaiting } from '../sim/story.js';
 import { activeIncidents, incidentInfo } from '../sim/incidents.js';
 import { clockText } from '../engine/util.js';
@@ -56,13 +59,25 @@ export function lineHTML(who, text) {
 }
 
 // 준비 화면의 한 곳을 가리켜요 (오 사장님이 짚어 주는 줄)
+//  짚은 곳만 구멍을 낸 어두운 막(#guideDim)을 화면 전체(위 막대 포함)에 덮어요. 스크롤하면 구멍도 따라가요
+//  (큰 box-shadow는 아이폰 사파리에서 안 그려질 때가 있어서 clip-path 구멍으로 해요)
+let guideEl = null, guideRaf = 0;
 function guide(key) {
   document.querySelectorAll('.guide-on').forEach(e => e.classList.remove('guide-on'));
   const el = key && document.querySelector(`[data-guide="${key}"]`);
   $('screen').classList.toggle('guiding', !!el);
-  $('app').classList.toggle('guiding', !!el); // 위 막대도 어둡게
-  if (el) { el.classList.add('guide-on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  guideEl = el || null;
+  $('guideDim').hidden = !el;
+  if (el) { el.classList.add('guide-on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (!guideRaf) guideRaf = requestAnimationFrame(guideHole); }
   return !!el;
+}
+function guideHole() {
+  guideRaf = 0;
+  if (!guideEl || !guideEl.isConnected) { $('guideDim').hidden = true; return; }
+  const a = $('app').getBoundingClientRect(), r = guideEl.getBoundingClientRect(), p = 6;
+  const L = r.left - a.left - p, T = r.top - a.top - p, R = r.right - a.left + p, B = r.bottom - a.top + p;
+  $('guideDim').style.clipPath = `polygon(0 0, 0 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0)`;
+  guideRaf = requestAnimationFrame(guideHole);
 }
 
 function drawScene() {
@@ -82,14 +97,23 @@ function drawScene() {
     <div class="ask-row"><input id="talkName" maxlength="8" value="골목분식" autocomplete="off" aria-label="가게 이름"><button type="button" class="btn primary" data-talk="name">간판 걸기</button></div></div></div>`;
 }
 
+// 시세 소식: 우리 가게에 무엇이 바뀌는지 (재료값 · 원가율 · 며칠)
+function marketEffect(id) {
+  const n = MARKET_NEWS[id], m = n.menu, base = MENUS[m].cost, now = costOf(m), up = n.mul > 1;
+  return `<div class="np-effect ${up ? 'up' : 'down'}"><small>{shop} ${MENUS[m].name}</small>
+    <b>재료값 1인분 ${won(base)} → ${won(now)}</b>
+    <span>지금 가격이면 원가율 ${Math.round(base / G.prices[m] * 100)}% → ${Math.round(now / G.prices[m] * 100)}% · ${n.days}일 동안</span></div>`.replace('{shop}', G.shop);
+}
+
 function paperHTML(sc) {
   const P = sc.paper;
   return `<div class="np">
-    <div class="np-mast"><b>골목 신문</b><small>제${P.no}호 · ${G.day}일차</small></div>
-    <div class="np-pic">${icon('char0')}${icon('tteok')}</div>
+    <div class="np-mast"><b>골목 신문</b><small>${P.tag || `제${P.no}호`} · ${G.day}일차</small></div>
+    <div class="np-pic">${P.market ? icon(MARKET_NEWS[P.market].menu) : `${icon('char0')}${icon('tteok')}`}</div>
     <h3 class="np-head">${fill(P.head)}</h3>
     <p class="np-sub">${fill(P.sub)}</p>
     <p class="np-body">${fill(P.body)}</p>
+    ${P.market ? marketEffect(P.market) : ''}
     ${sc.title ? `<div class="np-title"><small>칭호</small><b>${sc.title}</b></div>` : ''}
     <small class="np-tap">눌러서 넘기기</small>
   </div>`;

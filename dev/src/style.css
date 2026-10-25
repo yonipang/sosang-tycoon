@@ -365,9 +365,8 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 
 /* 오 사장님이 짚어 주는 곳 (준비 화면 길잡이) */
 /* 짚은 곳만 밝게, 나머지는 어둡게 (짚은 칸의 큰 그림자가 화면을 덮어요) */
-.guide-on { position: relative; z-index: 3; outline: 3px solid var(--mustard); outline-offset: 3px; box-shadow: 0 0 0 3px var(--paper), 0 0 0 200vmax rgba(12,10,24,.66); animation: guidePulse 1s steps(2) infinite; }
-.guide-on:not(.btn) { background-color: var(--paper); }
-#app.guiding #hud { filter: brightness(.34); }
+.guide-on { position: relative; z-index: 3; outline: 3px solid var(--mustard); outline-offset: 3px; animation: guidePulse 1s steps(2) infinite; }
+#guideDim { position: absolute; inset: 0; z-index: 20; background: rgba(12,10,24,.66); pointer-events: none; } /* 짚은 곳만 구멍 (ui/story.js guideHole) */
 @keyframes guidePulse { 50% { outline-color: #fff6d6; } }
 #screen.guiding { padding-bottom: 220px; }
 .talk.guide { background: none; }
@@ -534,3 +533,28 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .inc-got { margin: 6px 0 0; font-size: 24px; color: var(--green); text-align: center; }
 .inc-ui.result.lose .inc-banner { background: #6b5a6a; }
 .inc-ui.result.win .inc-banner { background: var(--green); }
+
+/* 원가율 (준비 화면 · 영수증) · 시세 소식 신문 */
+.ledger { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.ledger .lg { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.cr { font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
+.cr.good { color: var(--green); }
+.cr.bad { color: var(--red); }
+.cr i { font-style: normal; margin-left: 4px; padding: 0 4px; border: 2px solid currentColor; }
+.cr i.up { color: var(--red); }
+.cr i.down { color: var(--green); }
+.hl.cost b { font-size: 28px; line-height: 1.2; }
+.hl.cost span { display: block; color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
+.hl.cost.good b { color: var(--green); }
+.hl.cost.bad b { color: var(--red); }
+.hl.cost small { color: var(--ink-soft) !important; }
+.np-effect { margin-top: 8px; padding: 6px 8px; border: 2px dashed var(--ink); background: #fff6d6; text-align: left; }
+.np-effect small { display: block; color: var(--ink-soft); }
+.np-effect b { font-weight: normal; display: block; }
+.np-effect.up b { color: var(--red); }
+.np-effect.down b { color: var(--green); }
+.np-effect span { display: block; color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
+
+/* 돌발 이벤트 주문표 (빨간 테두리 + 「!」) */
+.tk.ev { border-color: var(--red); box-shadow: 0 0 0 2px var(--red); }
+.tk.ev::after { content: '!'; position: absolute; right: -4px; top: -6px; width: 12px; height: 14px; line-height: 14px; text-align: center; font-size: 12px; color: #fff; background: var(--red); border: 2px solid var(--ink); }

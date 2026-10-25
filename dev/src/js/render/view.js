@@ -1,6 +1,7 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR } from '../data/layout.js';
+import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER } from '../data/layout.js';
+import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount } from '../sim/player.js';
@@ -168,6 +169,14 @@ function drawCustomerUI(c) {
 const decorNow = () => (G.story ? G.story.decor : []).map(k => DECOR[k]).filter(Boolean);
 function drawDecor(d) { const r = SPR[d.spr]; if (r) spr(d.spr, d.x * TILE + 8 - Math.floor(r[2] / 2), (d.y + 1) * TILE - r[3]); }
 // 이야기 단서: 냉장고 뒤 쪽지 (찾을 때까지 「!」 말풍선이 통통)
+// 포장 전화: 계산대 위에 빨간 「!」 (만든 포장을 여기에 올려 둬요)
+function takeoutHint() {
+  if (!takeoutWaiting()) return;
+  const [tx, ty] = REGISTER.tiles[0], bob = Math.round(Math.sin(t * 5) * 1.5);
+  const x = tx * TILE + 11, y = ty * TILE - 18 + bob;
+  bubble(x, y, 9, 12);
+  ctx.fillStyle = '#e0533a'; ctx.fillRect(x + 4, y + 2, 2, 5); ctx.fillRect(x + 4, y + 8, 2, 2);
+}
 function clueHint() {
   if (!questActive('c1_note')) return;
   const bob = Math.round(Math.sin(t * 5) * 1.5), x = 8, y = 4 + bob;
@@ -227,6 +236,7 @@ export function drawFrame(dt) {
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   stationHint();
   clueHint();
+  takeoutHint();
   if (r) {
     for (const c of r.customers) drawCustomerUI(c);
     // 사장 손에 든 음식

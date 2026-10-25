@@ -11,6 +11,7 @@ import { findPath, standAround, walk } from './path.js';
 import { custById, serve, pay } from './customers.js';
 import { menuOpen, storyNote, storyFridge } from './story.js';
 import { handsMax, cookRule } from './tools.js';
+import { costOf } from './market.js';
 import { incidentNote, handTakeout } from './incidents.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
@@ -206,7 +207,7 @@ function trash() {
   const r = G.run;
   if (!r.hands.length) { emit('toast', '퇴식대입니다. 남는 음식을 여기에 버릴 수 있습니다', 'info'); return; }
   const d = r.hands.pop();
-  r.log.wasteDishes += MENUS[d.menu].cost;
+  r.log.wasteDishes += costOf(d.menu);
   emit('float', r.player.x, r.player.y - 1.6, `${MENUS[d.menu].name} 버림`, 'bad');
   emit('sfx', 'trash');
 }

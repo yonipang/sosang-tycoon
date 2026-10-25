@@ -1,3 +1,4 @@
+import { MARKET_NEWS } from './market.js';
 // 메인 이야기 — 프로토타입에는 프롤로그와 1장만 넣어요 (기획서 「메인 퀘스트 라인」 탭).
 // 게임 안 글: 사실(설명)은 합니다체, 사람 말은 그 사람 말투 그대로. {shop}은 가게 이름으로 바뀌어요.
 
@@ -164,4 +165,10 @@ export const SCENES = {
 //  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js)
 export function newStory() {
   return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [] };
+}
+
+// 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요
+for (const id in MARKET_NEWS) {
+  const n = MARKET_NEWS[id];
+  SCENES['mk_' + id] = { paper: { tag: '시세 소식', head: n.head, sub: n.sub, body: n.body, market: id } };
 }

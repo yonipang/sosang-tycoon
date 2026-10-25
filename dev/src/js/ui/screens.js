@@ -17,6 +17,7 @@ import { playSfx, unlockAudio } from './sfx.js';
 import { setMusic, musicWant } from './music.js';
 import { LEVELS, setting, stepSetting, setOption, canVibrate, vibeKind, vibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
 import { menuOpen } from '../sim/story.js';
+import { costOf, costRatio, marketOn } from '../sim/market.js';
 import { questCard, doneCard, incidentCard, talking } from './story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
 import { INCIDENTS } from '../data/incidents.js';
@@ -54,10 +55,13 @@ export function renderTitle() {
 // ── 준비: 가격 · 재료 주문 (주문한 재료는 아침에 도착) ──
 // 가격 장부: 지금 가격에 손님들이 지었던 얼굴 (문라이터식). 가격을 바꾸면 그 가격의 기록이 보여요
 const FACE_ORDER = ['love', 'happy', 'meh', 'angry'];
+// 원가율: 가격을 바꾸면 바로 바뀌어요 (30% 이하 초록 · 40% 넘으면 빨강) · 시세 소식이 걸리면 ▲/▼
+const crClass = r => (r <= 0.3 ? 'good' : r > 0.4 ? 'bad' : '');
 function ledgerLine(m) {
   const e = (G.ledger[m] || {})[G.prices[m]];
   const faces = e ? FACE_ORDER.filter(f => e[f]).map(f => `<span class="lf">${icon('face_' + f, 'face')}${e[f]}</span>`).join('') : '';
-  return `<div class="ledger"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</div>`;
+  const cr = costRatio(m), mk = marketOn(m);
+  return `<div class="ledger"><span class="cr ${crClass(cr)}">원가율 ${Math.round(cr * 100)}%${mk ? `<i class="${mk.mul > 1 ? 'up' : 'down'}">${mk.mul > 1 ? '▲' : '▼'}시세</i>` : ''}</span><span class="lg"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</span></div>`;
 }
 
 export function renderPrep() {
@@ -83,7 +87,7 @@ export function renderPrep() {
       ${ledgerLine(m)}
       <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
       <details class="more"><summary>자세히</summary>
-        <p>원가 ${won(M.cost)} · 한 그릇 남는 돈 ${won(G.prices[m] - M.cost)}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
+        <p>원가 ${won(costOf(m))}${costOf(m) !== M.cost ? ` (평소 ${won(M.cost)})` : ''} · 원가율 ${Math.round(costRatio(m) * 100)}% · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}<br>${josa(M.ing, '은/는')} ${M.shelf > 1 ? `${M.shelf}일 동안` : '받은 날만'} 쓸 수 있습니다<br>오늘 쓸 수 있는 양 ${inv + G.prep[m]}인분${last ? ` · 어제 ${last.sold[m]}인분 판매` : ''}</p>
       </details>
     </div>`;
   }).join('');
@@ -122,6 +126,14 @@ function leftLine(R) {
   const left = MENU_IDS.filter(m => R.leftover && R.leftover[m]).map(m => `${MENUS[m].name} ${R.leftover[m]}`).join(' · ');
   return left ? `<div class="ln note"><span>내일 쓸 재료</span><b>${left}인분</b></div>` : '';
 }
+// 오늘 원가율: 팔린 음식 재료 + 버린 것 + 급구매 웃돈 (메뉴 원가율보다 얼마나 더 들었는지 보여 줘요)
+const pct = r => `${Math.round(r * 100)}%`;
+function costCard(c) {
+  if (!c) return '';
+  const P = r => Math.round(r * 100), w = P(c.waste), ru = P(c.rush); // 더해서 맞도록 팔린 몫은 나머지로
+  const extra = [w ? `버린 음식·재료 +${w}%` : '', ru ? `급구매 +${ru}%` : ''].filter(Boolean).join(' · ');
+  return `<div class="hl wide cost ${crClass(c.total)}"><small>오늘 원가율</small><b>${pct(c.total)}</b><span>팔린 음식 재료 ${P(c.total) - w - ru}%${extra ? ` · ${extra}` : ' · 버린 것 없음!'}</span></div>`;
+}
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 export function renderReceipt() {
   const R = G.lastReceipt;
@@ -137,6 +149,7 @@ export function renderReceipt() {
     doneCard(R.quests),
     incidentCard(R.incidents),
     best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
+    costCard(R.cost),
     R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
     R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
     R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '',
@@ -160,6 +173,7 @@ export function renderReceipt() {
         <div class="ln minus"><span>오늘 쓴 재료값</span><b>−${won(R.usedCost)}</b></div>
         ${R.expiredCost ? `<div class="ln minus"><span>유통기한 지나 버린 재료</span><b>−${won(R.expiredCost)}</b></div>` : ''}
         ${R.rushExtra ? `<div class="ln minus"><span>급구매 웃돈</span><b>−${won(R.rushExtra)}</b></div>` : ''}
+        ${R.cost ? `<div class="ln note"><span>원가율 (재료값 ÷ 매출)</span><b>${pct(R.cost.total)}</b></div>` : ''}
         <div class="ln total"><span>오늘 남은 돈</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>
         ${R.dishWaste ? `<div class="ln note"><span>만들고 못 판 음식</span><b>${won(R.dishWaste)}</b></div>` : ''}
         ${leftLine(R)}
@@ -194,6 +208,18 @@ function countUp(el) {
 }
 
 // ── 주간 정산 ──
+// 이번 주(최근 7일) 원가율 · 지난주와 견주기
+function weekCost(from, to) {
+  const days = G.history.filter(h => h.day >= from && h.day <= to && h.cost !== undefined && h.revenue);
+  const rev = days.reduce((s, h) => s + h.revenue, 0);
+  return rev ? days.reduce((s, h) => s + h.cost, 0) / rev : null;
+}
+function weekCostLine() {
+  const now = weekCost(G.day - 6, G.day), before = weekCost(G.day - 13, G.day - 7);
+  if (now === null) return '';
+  const diff = before === null ? '' : Math.round(now * 100) === Math.round(before * 100) ? ' <small>지난주와 같음</small>' : ` <small class="${now < before ? 'up' : 'down'}">지난주 ${pct(before)}</small>`;
+  return `<div class="ln note"><span>이번 주 원가율</span><b>${pct(now)}${diff}</b></div>`;
+}
 export function renderWeekly() {
   const W = G.lastWeekly;
   showScreen(`
@@ -206,6 +232,7 @@ export function renderWeekly() {
         <div class="ln minus"><span>가게 임대료</span><b>−${won(W.rent)}</b></div>
         <div class="ln minus"><span>창업 대출 상환</span><b>−${won(W.loanPay)}</b></div>
         <div class="dash"></div>
+        ${weekCostLine()}
         <div class="ln total"><span>잔고</span><b class="${G.cash < 0 ? 'neg' : ''}">${won(G.cash)}</b></div>
         <div class="ln note"><span>남은 대출</span><b>${won(W.loanLeft)}</b></div>
       </div>
@@ -333,7 +360,7 @@ export function renderPause() {
       <button class="btn primary big" data-act="resume">계속하기</button>
       <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
-      ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button></div>` : ''}
+      ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button><button class="btn small" data-act="devMarket">시세 소식 (다음 날)</button></div>` : ''}
       <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
@@ -387,6 +414,7 @@ export function initScreens(onStart) {
     else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
+    else if (a === 'devMarket') { runCmd('devMarket'); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }

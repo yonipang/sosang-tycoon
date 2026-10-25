@@ -15,12 +15,13 @@ import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 import { readyCap } from './tools.js';
+import { costOf, marketNextDay, costBreakdown } from './market.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
-export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * MENUS[m].cost, 0); // 주문 금액 (아침 도착 때 결제)
+export const prepCost = () => openMenus().reduce((s, m) => s + G.prep[m] * costOf(m), 0); // 주문 금액 (아침 도착 때 결제)
 export const invCount = m => (G.inv[m] || []).reduce((s, b) => s + b.n, 0);
 const zeros = () => Object.fromEntries(MENU_IDS.map(m => [m, 0]));
-export const rushCost = m => Math.round(MENUS[m].cost * RUSH_QTY * RUSH_MUL / 100) * 100;
+export const rushCost = m => Math.round(costOf(m) * RUSH_QTY * RUSH_MUL / 100) * 100;
 // 재료를 n인분 들여놓아요 (오늘부터 shelf일 동안 쓸 수 있어요)
 function stockIn(m, n) { if (n > 0) G.inv[m].push({ n, exp: G.day + MENUS[m].shelf - 1 }); }
 // 먼저 받은 재료부터 n인분 써요
@@ -109,7 +110,7 @@ defineCmd('rushBuy', ({ menu }) => {
   const cost = rushCost(menu);
   if (cost > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return; }
   G.cash -= cost;
-  r.rushExtra += cost - MENUS[menu].cost * RUSH_QTY;
+  r.rushExtra += cost - costOf(menu) * RUSH_QTY;
   r.rush.push({ menu, n: RUSH_QTY, t: RUSH_SEC });
   emit('toast', `${MENUS[menu].ing} ${RUSH_QTY}인분을 급하게 주문했습니다. 곧 도착합니다`, 'info');
   emit('fridge');
@@ -186,21 +187,21 @@ export function endDay() {
   closeIncidents(); // 끝나지 않은 돌발은 실패로
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
-  for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, r.stock[m])); r.stock[m] -= k; readyLeft += k * MENUS[m].cost; }
+  for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, r.stock[m])); r.stock[m] -= k; readyLeft += k * costOf(m); }
   const revenue = MENU_IDS.reduce((s, m) => s + L.sales[m].rev, 0);
   // 오늘 쓴 재료: 처음 재고 + 급구매 − 남은 재고 (먼저 받은 것부터). 그다음 유통기한이 오늘까지인 재료는 버려요
   const used = {}, expired = {};
   let usedCost = 0, expiredCost = 0;
   for (const m of MENU_IDS) {
     used[m] = Math.max(0, r.startStock[m] + r.added[m] - r.stock[m]);
-    useFifo(m, used[m]); usedCost += used[m] * MENUS[m].cost;
+    useFifo(m, used[m]); usedCost += used[m] * costOf(m);
     expired[m] = G.inv[m].filter(b => b.exp <= G.day).reduce((s, b) => s + b.n, 0);
     G.inv[m] = G.inv[m].filter(b => b.exp > G.day);
-    expiredCost += expired[m] * MENUS[m].cost;
+    expiredCost += expired[m] * costOf(m);
   }
-  r.rush.forEach(o => { G.cash += rushCost(o.menu); r.rushExtra -= rushCost(o.menu) - MENUS[o.menu].cost * o.n; }); // 도착 전 마감한 급구매는 취소
+  r.rush.forEach(o => { G.cash += rushCost(o.menu); r.rushExtra -= rushCost(o.menu) - costOf(o.menu) * o.n; }); // 도착 전 마감한 급구매는 취소
   const leftover = Object.fromEntries(MENU_IDS.map(m => [m, invCount(m)]));
-  const dishWaste = r.hands.reduce((s, d) => s + MENUS[d.menu].cost, 0) + L.wasteDishes + readyLeft; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
+  const dishWaste = r.hands.reduce((s, d) => s + costOf(d.menu), 0) + L.wasteDishes + readyLeft; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;
   const before = G.rating;
@@ -214,9 +215,10 @@ export function endDay() {
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
+    cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
-  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])) });
+  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
   // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
@@ -257,5 +259,8 @@ function nextDay() {
     if (last && menuOpen(m)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invCount(m)) / 5) * 5));
   }
   storyNextDay(); // 예약한 메뉴는 처음 주문량으로 열려요
+  const mk = marketNextDay(); // 재료 시세: 새 소식은 골목 신문으로, 끝난 소식은 알림으로
+  if (mk && mk.scene) G.story.queue.push(mk.scene);
   setPhase('prep');
+  if (mk && mk.back) emit('toast', mk.back, 'info');
 }

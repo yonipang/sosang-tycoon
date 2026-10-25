@@ -84,6 +84,7 @@ export function initFeedback() {
     const D = incidentInfo(x);
     if (what === 'start') incidentStart(x);
     else if (what === 'end') incidentEnd(x);
+    else if (what === 'prog' && G.run && D.prog) float(G.run.player.x, G.run.player.y - 2.2, `${D.name} ${D.prog[0]}/${D.prog[1]}`, 'great'); // 이벤트 진행도는 빨간 띠와 함께 사장 머리 위에도
     if (D.kind === 'mission' && what !== 'prog') setMusic(what === 'start' ? 'oh' : null); // 오 사장님 미션 동안 테마곡
     updateQuestTrack();
   });
