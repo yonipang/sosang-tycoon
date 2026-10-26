@@ -132,17 +132,31 @@ function goPlace(id) {
 
 // ── 가게 안 (밤·새벽): 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
 const IN_WALK = 6; // 걷는 빠르기 (칸/초)
+// 문을 지날 때: 화면이 까맣게 닫혔다가 열려요 (들어가기 · 나오기 연출, v0.43)
+const FADE_MS = 220;
+function doorFade(swap) {
+  if (T.fading) return;
+  const f = $('townFade');
+  T.fading = true; closeSheet(); playSfx('door');
+  f.hidden = false; f.classList.remove('out'); void f.offsetWidth; f.classList.add('in');
+  setTimeout(() => {
+    swap();
+    f.classList.remove('in'); f.classList.add('out');
+    setTimeout(() => { f.hidden = true; f.classList.remove('out'); T.fading = false; }, FADE_MS + 40);
+  }, FADE_MS);
+}
 function enterShop() {
-  closeSheet();
-  T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
-  playSfx('page');
-  renderNav(); layoutTown();
+  doorFade(() => {
+    T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+    renderNav(); layoutTown();
+  });
 }
 function leaveShop() {
-  T.inside = null; closeSheet();
-  placeMe('shop'); T.me.dir = 3;
-  playSfx('page');
-  renderNav(); layoutTown();
+  doorFade(() => {
+    T.inside = null;
+    placeMe('shop'); T.me.dir = 3;
+    renderNav(); layoutTown();
+  });
 }
 // 물건의 칸 · 서는 칸
 function spotTiles(S) {
@@ -298,7 +312,7 @@ function joyMove(dt, vx, vy) {
   const npc = Object.keys(TOWN_NPC).find(id => TOWN_NPC[id].open === G.town.part && TOWN_NPC[id].at[0] === bx && TOWN_NPC[id].at[1] === by);
   let place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : null;
   if (!place && hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) { T.bumped = key; me.moving = false; facePlace(place); openPlace(place); playSfx('tap'); return; }
+  if (place) { T.bumped = key; me.moving = false; facePlace(place); if (place === 'shop') enterShop(); else { openPlace(place); playSfx('tap'); } return; } // 우리 가게 문은 걸어 들어가요
   if (hitUp && vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) { T.bumped = key; me.moving = false; showVacant(); }
 }
 
@@ -465,8 +479,13 @@ export function initTown() {
   // 누르기·끌기 (조이스틱)
   const cv = $('townCv'), joyEl = $('townJoy');
   cv.addEventListener('pointerdown', e => {
-    if (!T || talking()) return;
+    if (!T || talking() || T.fading) return;
     e.preventDefault();
+    const sh = $('townSheet');
+    if (!sh.hidden) { // 창이 떠 있으면 바깥을 누를 때 걷지 않아요: 이웃 대화는 넘기고, 다른 창은 닫아요
+      if (chatQ) sh.click(); else { closeSheet(); playSfx('tap'); }
+      return;
+    }
     cv.setPointerCapture(e.pointerId);
     T.joy = { id: e.pointerId, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, on: false, ev: e };
   });

@@ -13,8 +13,10 @@
       <span class="pill star">★ <b id="hStar">3.0</b></span>
       <button id="bSet" type="button" class="gear" aria-label="설정"><svg viewBox="0 0 12 12" width="20" height="20" shape-rendering="crispEdges" aria-hidden="true"><g fill="currentColor"><rect x="5" y="0" width="2" height="2"/><rect x="5" y="10" width="2" height="2"/><rect x="0" y="5" width="2" height="2"/><rect x="10" y="5" width="2" height="2"/><rect x="1" y="1" width="2" height="2"/><rect x="9" y="1" width="2" height="2"/><rect x="1" y="9" width="2" height="2"/><rect x="9" y="9" width="2" height="2"/><rect x="2" y="3" width="8" height="6"/><rect x="3" y="2" width="6" height="8"/></g><rect x="5" y="5" width="2" height="2" fill="var(--paper)"/></svg></button>
     </div>
-    <div id="tickets" aria-label="주문표"></div>
-    <div id="questTrack" hidden aria-label="할 일"></div>
+    <div class="hud-row2">
+      <div id="tickets" aria-label="주문표"></div>
+      <div id="questTrack" hidden aria-label="할 일"></div>
+    </div>
   </header>
   <main id="stage">
     <div id="cvWrap">
@@ -45,7 +47,7 @@
         </div>
       </div>
     </div>
-    <div id="town" hidden><div id="townBar"></div><canvas id="townCv" aria-label="골목 — 누른 채로 끌면 조이스틱, 짧게 누르면 그곳까지 걸어가요"></canvas><div id="townJoy" hidden aria-hidden="true"><i></i></div><div id="townNav"></div><div id="townSheet" class="town-sheet" hidden></div></div>
+    <div id="town" hidden><div id="townBar"></div><canvas id="townCv" aria-label="골목 — 누른 채로 끌면 조이스틱, 짧게 누르면 그곳까지 걸어가요"></canvas><div id="townJoy" hidden aria-hidden="true"><i></i></div><div id="townNav"></div><div id="townSheet" class="town-sheet" hidden></div><div id="townFade" hidden aria-hidden="true"></div></div>
   </main>
   <footer id="bar">
     <div class="hands-wrap"><small>손</small><div id="hands"></div></div>

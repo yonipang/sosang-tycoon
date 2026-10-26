@@ -30,14 +30,17 @@ export function updateHud() {
   // 주문표: 들어온 순서대로 (손에 이미 든 몫은 흐리게)
   const handLeft = {};
   for (const d of r.hands) handLeft[d.menu] = (handLeft[d.menu] || 0) + 1;
-  const tk = r.tickets.slice(0, 7).map(t => {
+  // 주문표 칸에 들어가는 만큼만 (넘치면 마지막 칸이 +몇)
+  const fit = Math.max(2, Math.floor(($('tickets').clientWidth + 4) / 48));
+  const show = r.tickets.length > fit ? fit - 1 : fit;
+  const tk = r.tickets.slice(0, show).map(t => {
     const c = r.customers.find(q => q.id === t.cid);
     const f = c ? c.patience / c.patMax : 1;
     const ready = handLeft[t.menu] > 0 && (handLeft[t.menu]--, true);
     const ev = t.takeout || (c && c.tag && c.tag.state === 'on'); // 돌발 이벤트 주문은 빨간 표
     return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}${ev ? ' ev' : ''}">${icon(t.menu)}<b>${t.table ? t.table + '번' : '포장'}</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
-  }).join('') + (r.tickets.length > 7 ? `<div class="tk more">+${r.tickets.length - 7}</div>` : '');
-  setHTML('tickets', tk || '<div class="tk-empty">주문이 들어오면 여기에 쌓입니다</div>');
+  }).join('') + (r.tickets.length > show ? `<div class="tk more">+${r.tickets.length - show}</div>` : '');
+  setHTML('tickets', tk); // 빈 주문표 안내 글은 빼요 (v0.43 화면 정리)
   // 손
   const hands = Array.from({ length: handsMax() }, (_, i) => i).map(i => { // 서빙 쟁반이 있으면 3칸
     const d = r.hands[i];

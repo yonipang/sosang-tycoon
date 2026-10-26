@@ -14,7 +14,7 @@ import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
 import { townMode } from '../sim/town.js';
-import { showTown } from './town.js';
+import { showTown, hideTown } from './town.js';
 import { toast } from './feedback.js';
 import { icon } from './icons.js';
 import { dayLabel } from './hud.js';
@@ -83,50 +83,37 @@ export function renderPrep() {
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
   const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 재료는 새벽 시장에서 사고, 가게는 새벽에 열어요
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
-  const cards = MENU_IDS.map(m => {
-    if (!menuOn(m)) return ''; // 아직 안 연 메뉴 · 오늘 쉬는 메뉴는 보여 주지 않아요 (이야기로 열리면 「새 메뉴」로 등장)
-    const M = MENUS[m];
-    const isNew = G.story.fresh.includes(m);
+  // 프롤로그 · 4일차(마을 전): 「오늘의 메뉴」 한 칸 — 메뉴마다 한 줄(가격 · 재료 주문), 원가율·장부는 그 아래 작게 (v0.43 화면 정리)
+  const rows = todayMenus().map(m => {
+    const M = MENUS[m], isNew = G.story.fresh.includes(m);
     const had = last ? (last.stockStart ? last.stockStart[m] : last.prep[m]) : 0;
     const soldOut = last && had && last.sold[m] >= had;
-    const inv = invServings(m), soon = recipeOf(m).filter(i => invToday(i) > 0).map(i => INGREDIENTS[i].name).join('·');
-    // 꼭 볼 것만 칩으로: 새 메뉴 · 어제 품절 · 만들 수 있는 그릇(오늘까지 써야 하는 재료가 있으면 빨갛게)
-    const lv = menuLv(m);
-    const chips = (lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : '') + (isNew ? '<span class="tag new">새 메뉴</span>' : '')
-      + (soldOut ? '<span class="tag hot">어제 품절</span>' : '')
-      + (inv ? `<span class="tag ${soon ? 'warn' : ''}">재고 ${inv}${soon ? ` · 오늘까지 ${soon}` : ''}</span>` : '');
-    const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} <small>${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} · ${I.shelf}일</small>`; }).join('<br>');
-    return `<div class="mcard">
+    const inv = invServings(m);
+    const chips = (isNew ? '<span class="tag new">새 메뉴</span>' : '') + (soldOut ? '<span class="tag hot">어제 품절</span>' : '') + (inv ? `<span class="tag">재고 ${inv}</span>` : '');
+    return `<div class="pm-row">
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
-      ${lv > 1 ? `<div class="lv-base"><span>Lv${lv} 기본 가격</span><b>${won(lvBasePrice(m))}</b></div>` : ''}
-      ${town ? `<div class="row"><span>재고</span><b class="stock-n">${inv}그릇${inv ? '' : ' · 새벽 시장에서 사 보세요'}</b></div>` : `<div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>`}
-      <details class="more"><summary>자세히</summary>
-        <p>원가 ${won(costOf(m))}${costOf(m) !== M.cost ? ` (평소 ${won(M.cost)})` : ''} · 원가율 ${Math.round(costRatio(m) * 100)}% · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}<br>오늘 만들 수 있는 양 ${inv + (town ? 0 : G.prep[m])}그릇${last ? ` · 어제 ${last.sold[m]}그릇 판매` : ''}</p>
-        <p class="recipe"><b>한 그릇에 하나씩</b> <small>(창고 · 받은 날부터 쓸 수 있는 날)</small><br>${recipe}</p>
-      </details>
+      <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>재료 주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
     </div>`;
   }).join('');
+  const cards = `<div class="tmcard pm-card"><div class="q-head"><small>오늘의 메뉴</small><span class="q-sub">주문한 재료는 아침에 옵니다</span></div>${rows}</div>`;
   if (town) { renderLedger(last, after, dawn); return; } // 1장부터: 오늘의 메뉴 칸 하나로 (화면 정리 — 기획서 「화면 정리」)
   showScreen(`
     <div class="prep">
       <div class="phase-tag night">${dawn ? '새벽 · ' : town ? '밤 · 가게 장부 · ' : '전날 밤 22:00 · '}${G.shop}</div>
       <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '준비'}</h2>
-      <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
+      ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명</p>` : ''}
       ${questCard()}
-      ${town ? todayCard() : ''}
-      ${town ? boardCard() : ''}
       ${toolsCard()}
       ${cards}
       <div class="sum">
-        ${town ? '' : `<div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>`}
-        ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
+        <div><span>재료 주문${alba ? ' <small>· 오 사장님 가게 돈</small>' : ''}</span><b>−${won(cost)}</b></div>
+        ${alba ? '' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       ${!town || dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다. 집에서 자고 일어나 보세요</p>'}
       ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
 
@@ -151,7 +138,6 @@ function renderLedger(last, after, dawn) {
       ${bills}
       ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
       <button class="btn" data-act="toTown">돌아가기</button>
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
     </div>`, 'scr-prep');
 }
@@ -475,6 +461,7 @@ export function renderSettings(from) {
         <small class="set-h">계정 · 클라우드 저장</small>
         ${accountRows()}
       </div>
+      ${G.phase !== 'title' ? `<button class="btn" data-act="toTitle">처음 화면으로${G.run ? ' <small>(오늘 영업은 저장되지 않습니다)</small>' : ''}</button>` : ''}
       <button class="btn" data-act="credits">크레딧</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
       ${hasSave() || G.phase !== 'title' ? '<button type="button" class="set-restart" data-act="restart">처음부터 다시 하기</button>' : ''}
@@ -524,7 +511,6 @@ export function renderPause() {
       <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button><button class="btn small" data-act="devMarket">시세 소식 (다음 날)</button></div>` : ''}
-      <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
 
@@ -588,7 +574,7 @@ export function initScreens(onStart) {
     else if (a === 'toTown') { mmOpen = null; playSfx('page'); hideScreen(); showTown(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
-    else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
+    else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; hideTown(); renderTitle(); } // 설정에서만 (v0.43)
   });
 }
 // 확인 창 (되돌릴 수 없는 일 앞에서): 취소가 왼쪽, 창 밖을 눌러도 취소

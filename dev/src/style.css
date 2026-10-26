@@ -47,7 +47,9 @@ img.px { object-fit: contain; }
 .pill b { font-weight: normal; }
 .pill.star { color: var(--red-dark); }
 .clock { background: var(--ink); color: var(--paper); padding: 0 6px; letter-spacing: 1px; }
-#tickets { display: flex; gap: 4px; margin-top: 6px; min-height: 48px; overflow: hidden; }
+#tickets { display: flex; gap: 4px; flex: 1; min-width: 0; min-height: 48px; overflow: hidden; }
+.hud-row2 { display: flex; gap: 6px; margin-top: 6px; align-items: stretch; } /* 주문표 · 오른쪽에 퀘스트 버튼과 돌발 띠 (v0.43: 위 막대 두 줄로) */
+.tk.more { display: flex; align-items: center; justify-content: center; }
 .tk { position: relative; width: 44px; height: 48px; flex: none; background: #fff; border: 2px solid var(--ink); }
 .tk img { position: absolute; left: 8px; top: 4px; width: 24px; height: 24px; }
 .tk b { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; line-height: 16px; font-weight: normal; color: var(--ink-soft); }
@@ -312,7 +314,9 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .toast.quest { background: var(--mustard); color: var(--ink); border-color: var(--ink); }
 
 /* 영업 중 위 막대: 할 일 (가게 그림을 가리지 않게 막대 안에) */
-#questTrack { display: flex; gap: 4px; margin-top: 4px; overflow: hidden; }
+#questTrack { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 104px; overflow: hidden; }
+#questTrack .qt { flex: none; width: 100%; margin: 0; }
+#questTrack .qt.qbtn { justify-content: center; }
 .qt { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 0 1 auto; background: var(--paper-2); padding: 0 6px 0 0; border: 2px solid var(--ink); }
 .qt .q-face { width: 32px; height: 20px; border: 0; border-right: 2px solid var(--ink); }
 .qt .q-face img { margin-top: -14px; }
@@ -321,7 +325,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 
 /* ── 대화 창 ── */
 .talk { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 10px; padding-top: calc(max(8px, env(safe-area-inset-top)) + 60px); background: linear-gradient(0deg, rgba(29,35,64,0) 30%, rgba(29,35,64,.75)); cursor: pointer; } /* 대화는 위에 (v0.40 사용자 요청 — 아래는 잘 안 보여요). 위 막대(날짜·잔고)는 가리지 않게 */
-.tk-box { display: flex; align-items: flex-end; gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
+.tk-box { display: flex; align-items: flex-start; gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
 .tk-face { flex: none; width: 64px; height: 80px; overflow: hidden; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
 .tk-face img { display: block; width: 64px; height: 128px; margin-top: -24px; } /* 4배: 머리부터 허리까지 */
 .tk-body { position: relative; flex: 1; min-height: 96px; background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px 20px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
@@ -514,7 +518,7 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .inc-banner small { display: block; color: var(--mustard); letter-spacing: 2px; }
 .inc-banner b { font-weight: normal; font-size: 28px; line-height: 1.2; text-shadow: 0 2px 0 var(--red-dark); }
 @keyframes incBanner { 0% { transform: scale(2.2) rotate(-8deg); opacity: 0; } 60% { transform: scale(.9) rotate(-1deg); } }
-.inc-talk .tk-box { display: flex; align-items: flex-end; gap: 6px; }
+.inc-talk .tk-box { display: flex; align-items: flex-start; gap: 6px; }
 .inc-ui.think .tk-body { background: #efe9fb; border-style: dashed; }
 .inc-ui.think .tk-name { background: #6b5a9a; }
 .inc-ui.narr .tk-body { background: var(--night); color: var(--paper); border-color: var(--paper); }
@@ -929,3 +933,14 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .gd-done { flex: none; color: var(--green); }
 .gd-foot { margin: 8px 0 0; color: var(--ink-soft); text-align: right; font-size: 14px; }
 .town-sheet.furn .mk-foot { bottom: 0; margin-bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+
+/* 프롤로그 준비: 오늘의 메뉴 한 칸 (v0.43) */
+.pm-card .q-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-row { padding: 6px 10px 8px; border-top: 2px dashed var(--line); }
+.pm-row:first-of-type { border-top: 0; }
+.sum small { color: var(--ink-soft); }
+
+/* 가게 문을 지날 때 (ui/town.js doorFade) */
+#townFade { position: absolute; inset: 0; z-index: 40; background: #120e1c; opacity: 0; pointer-events: auto; }
+#townFade.in { opacity: 1; transition: opacity .22s steps(4); }
+#townFade.out { opacity: 0; transition: opacity .22s steps(4); }
