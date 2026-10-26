@@ -6,6 +6,7 @@ import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost, weekBills } from '../sim/day.js';
+import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
@@ -112,6 +113,7 @@ export function renderPrep() {
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
       ${questCard()}
       ${town ? todayCard() : ''}
+      ${town ? boardCard() : ''}
       ${toolsCard()}
       ${cards}
       <div class="sum">
@@ -123,6 +125,16 @@ export function renderPrep() {
       ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
+}
+
+// 가게 앞 칠판 · 오늘의 추천 (1장부터, sim/traffic.js): 점심·오후에 하나씩 — 그 메뉴를 좋아하는 손님층이 더 들어와요 (다시 누르면 비워요)
+function boardCard() {
+  const on = todayMenus(), B = G.board || {};
+  const row = k => {
+    const S = BOARD_SLOTS[k];
+    return `<div class="brow"><span class="b-slot"><b>${S.name}</b><small>${S.from}~${S.to}시</small></span><span class="b-pick">${on.map(m => `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}">${icon(m, 'dish')}<small>${MENUS[m].name}</small></button>`).join('')}</span></div>`;
+  };
+  return `<div class="tcard bcard" data-guide="board"><div class="q-head"><small>가게 앞 칠판</small><b>오늘의 추천</b></div>${row('lunch')}${row('after')}<p class="b-note">점심엔 직장인, 오후엔 학생이 많이 지나갑니다. 추천 메뉴를 좋아하는 손님이 더 들어옵니다</p></div>`;
 }
 
 // 오늘의 메뉴 (1장부터, 데이브 더 다이버 초밥 칸처럼): 칸 8개 중 가게 등급만큼 열려 있고 나머지는 자물쇠
@@ -175,6 +187,28 @@ function costCard(c) {
   const extra = [w ? `버린 음식·재료 +${w}%` : '', ru ? `급구매 +${ru}%` : ''].filter(Boolean).join(' · ');
   return `<div class="hl wide cost ${crClass(c.total)}"><small>오늘 원가율</small><b>${pct(c.total)}</b><span>팔린 음식 재료 ${P(c.total) - w - ru}%${extra ? ` · ${extra}` : ' · 버린 것 없음!'}</span></div>`;
 }
+// 파워블로거가 다녀간 날 (sim/traffic.js bloggerEndDay)
+function blogCard(good) {
+  if (good === null || good === undefined) return '';
+  return `<div class="hl wide ${good ? 'good' : 'warn'}"><small>파워블로거</small><b>${good ? '「맛있다」는 글이 올라갑니다' : '「무난하다」는 글이 올라갑니다'}</b><span>사흘 동안 직장인·어르신이 ${good ? '더' : '조금 덜'} 들어옵니다</span></div>`;
+}
+// 시간대별 손님 (sim/traffic.js logPass): 회색 = 지나간 사람, 색 = 손님층별 들어온 사람
+const HOUR_TYPES = ['worker', 'student', 'elder'];
+function hourCard(H) {
+  if (!H || !Object.keys(H).length) return '';
+  const hours = Array.from({ length: 13 }, (_, i) => 9 + i);
+  const sum = o => Object.values(o || {}).reduce((a, b) => a + b, 0);
+  const tot = h => (H[h] ? sum(H[h].pass) : 0), max = Math.max(1, ...hours.map(tot));
+  const cols = hours.map(h => {
+    const ins = HOUR_TYPES.map(t => { const n = (H[h] && H[h].in[t]) || 0; return n ? `<i class="t-${t}" style="height:${n / max * 100}%"></i>` : ''; }).join('');
+    return `<div class="hc"><div class="hb"><div class="hp" style="height:${tot(h) / max * 100}%"></div><div class="hi">${ins}</div></div><small>${h}</small></div>`;
+  }).join('');
+  const peak = hours.reduce((a, h) => (tot(h) > tot(a) ? h : a), 9), P = H[peak] || { pass: {}, in: {} };
+  const top = HOUR_TYPES.reduce((a, t) => ((P.pass[t] || 0) > (P.pass[a] || 0) ? t : a));
+  return `<div class="hl wide hourly"><small>시간대별 손님 · 회색은 지나간 사람, 색은 들어온 사람</small><div class="hcols">${cols}</div>
+    <div class="hlegend">${HOUR_TYPES.map(t => `<span><i class="t-${t}"></i>${CUSTOMER_TYPES[t].name}</span>`).join('')}</div>
+    <span>가장 붐빈 때 ${peak}시: ${tot(peak)}명이 지나감 (${CUSTOMER_TYPES[top].name}이 가장 많음) · ${sum(P.in)}명 입장</span></div>`;
+}
 // 오늘 쌓은 숙련도 (메뉴 업그레이드가 열린 뒤)
 function masteryCard(g) {
   if (!g || !upgradeOpen()) return '';
@@ -198,6 +232,8 @@ export function renderReceipt() {
     incidentCard(R.incidents),
     best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
     costCard(R.cost),
+    blogCard(R.blog),
+    hourCard(R.hourly),
     masteryCard(R.mastery),
     R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
     R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
@@ -445,6 +481,7 @@ export function initScreens(onStart) {
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
+    else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

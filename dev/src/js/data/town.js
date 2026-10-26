@@ -49,6 +49,9 @@ export const VACANT_NOTE = '「임대 문의」 종이가 붙어 있습니다. �
 // 행동 칸
 export const NIGHT_SLOTS = 4;
 export const DAWN_SLOTS = 3;
+// 밤과 새벽은 한 턴: 칸 7개를 이어서 써요. 밤 칸 4개를 다 쓰면(또는 집에서 자면) 새벽 5시가 되고 식자재가 문을 열어요.
+//  7칸을 넘기면 넘긴 만큼 피로 · 가게를 열 때 칸이 남았으면(일찍 자서 건너뛴 밤 칸 포함) 피로 하나가 풀려요
+export const TURN_SLOTS = NIGHT_SLOTS + DAWN_SLOTS;
 export const NIGHT_START = 21 * 60; // 밤 21:00부터 한 칸에 한 시간
 export const DAWN_START = 5 * 60;   // 새벽 05:00부터
 // 피로: 칸을 넘겨 쓴 만큼 +1 (최대 3). 밤에 칸을 남기고 자면 −1. 피로 하나에 사장 걸음 8% 느려져요
@@ -58,7 +61,8 @@ export const FATIGUE_SLOW = 0.08;
 // 할 일 (cost: 행동 칸 · money: 원)
 //  clean 청소: 위생 +60 (영업하면 하루 −25). 위생이 40 아래면 손님 만족이 떨어지고 리뷰에 나와요
 //  talk 이웃과 이야기: 다음 날 그 이웃 소개로 손님 한 팀이 와요
-//  flyer 전단지: 다음 날 가게 앞 손님 +15%
+//  counter 계산대 · 홍보: 우리 가게 계산대에서 인스타 올리기 · 파워블로거 섭외 (아래 PROMO, 칸·돈은 그 일마다)
+//  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
@@ -67,7 +71,9 @@ export const ACTS = {
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
-  flyer: { name: '전단지 붙이기', cost: 1, when: 'night', money: 5000 },
+  counter: { name: '계산대 · 홍보', cost: 0, when: 'night' },
+  insta: { name: '인스타 올리기', cost: 1, when: 'night' },
+  blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
   market: { name: '장보기', cost: 1, when: 'dawn' },
   setup: { name: '오픈 준비 (진열)', cost: 1, when: 'dawn' },
@@ -77,16 +83,21 @@ export const ACTS = {
 export const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
-  board: ['flyer'],
+  board: [],
   market: ['market'],
 };
 export const HYGIENE_DECAY = 25;
 export const CLEAN_GAIN = 60;
 export const HYGIENE_LOW = 40;
 export const HYGIENE_SAT = 0.5;      // 위생이 낮을 때 손님 만족 −0.5
-export const FLYER_MUL = 1.15;
+// 홍보 (계산대): 손님층마다 들어오는 비율 (sim/traffic.js)
+//  insta: 다음 날 학생 ×mul · blogger: 다음 날 블로거가 옴(at: 영업 시작부터 분) → 만족 4점 이상이면 그다음 days일 동안 직장인·어르신 ×good, 아니면 ×bad
+export const PROMO = {
+  insta: { types: ['student'], mul: 1.3 },
+  blogger: { types: ['worker', 'elder'], good: 1.3, bad: 0.9, days: 3, at: 150, sat: 4 },
+};
 export const SETUP_MUL = 1.15;
 export const SETUP_UNTIL = 120;      // 영업 시작부터 120분(11시)까지
 export const MARKET_DEAL = 0.85;     // 오늘 특가 15% 싸게

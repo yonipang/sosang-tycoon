@@ -18,6 +18,7 @@ import { TUT_IMPATIENT } from '../data/tutorial.js';
 import { tutNote, tutHold } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
+import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -69,7 +70,7 @@ export function spawnParty(members, opts) {
   members.forEach((ch, k) => {
     const sx = (fromLeft ? -1 - k : W + k) + (fromLeft ? -1 : 1) * (opts.delay || 0);
     r.customers.push({
-      force: !!opts.force, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null,
+      force: !!opts.force, blog: !!opts.blog, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null,
       id: r.nextId++, char: ch, type: opts.type || PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
       path: sidewalk(sx, DOOR_OUT.x), state: 'walk', moving: true, lane: fromLeft ? -0.12 : 0.08,
@@ -184,7 +185,7 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
   let m = weighted(w);
   const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
   if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
@@ -247,6 +248,7 @@ export function pay(c) {
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
     noteSat(m, sat);
+    if (m.blog) { L.blogSat = sat; L.blogMenu = m.menu; emit('say', m.id, sat >= 4 ? '와, 이건 글 써야겠는데요?' : '음… 무난하네요.'); } // 파워블로거 (sim/traffic.js)
     const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
     L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
     incidentNote('paid', m);
@@ -264,11 +266,20 @@ export function pay(c) {
 function atDoor(c) {
   const r = G.run, members = partyOf(c);
   r.log.foot += members.length;
-  if (c.force || rand() < Math.min(0.95, (r.enterP || 0) * revisitMul(c.char))) { // 단골·돌발 손님은 꼭 들어와요 · 맛있게 먹었던 손님은 메뉴 레벨만큼 더 잘 들어와요
+  // 들어오는 비율 = 기본 × 손님층 배율(메뉴 궁합·칠판·홍보 — sim/traffic.js) × 재방문(메뉴 레벨). 단골·돌발 손님은 꼭 들어와요
+  const hour = nowHour();
+  const enter = c.force || rand() < Math.min(0.95, (r.enterP || 0) * typeEnterMul(c.type, hour) * revisitMul(c.char));
+  logPass(hour, c.type, members.length, enter);
+  if (enter) {
     r.log.entered += members.length;
     members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
     if (c.reg) emit('say', c.id, pickLine(REGULARS[c.reg].lines));
-    else if (!c.force) { const back = noteBack(c.char); if (back && fxRand() < 0.5) emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`); }
+    else if (c.blog) emit('say', c.id, '여기 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?');
+    else if (!c.force) {
+      const back = noteBack(c.char), line = enterLine(c.type, hour);
+      if (back && fxRand() < 0.5) emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`);
+      else if (line && fxRand() < 0.35) emit('say', c.id, line);
+    }
     return;
   }
   const glance = rand() < GLANCE_CHANCE;

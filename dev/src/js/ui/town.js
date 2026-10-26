@@ -6,10 +6,10 @@ import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
 import { TILE } from '../data/layout.js';
-import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_START, DAWN_START, HYGIENE_LOW } from '../data/town.js';
+import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
-import { townMode, slotsMax, actNow, placeOpen, marketUnit } from '../sim/town.js';
+import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock } from '../sim/town.js';
 import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
@@ -139,8 +139,9 @@ function layoutTown() {
 // 위: 밤/새벽 · 시각 · 남은 일 칸 · 피로 · 위생
 function renderBar() {
   const Tn = G.town, dawn = Tn.part === 'dawn', max = slotsMax();
-  const min = (dawn ? DAWN_START : NIGHT_START) + Tn.used * 60, hh = Math.floor(min / 60) % 24, mm = min % 60;
-  const dots = Array.from({ length: Math.max(max, Tn.used) }, (_, i) => `<i class="${i < Tn.used ? (i >= max ? 'over' : 'used') : ''}"></i>`).join('');
+  const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;
+  // 칸: 밤 4칸(남색) + 새벽 3칸(노랑) 한 줄 · 쓴 칸은 비우고, 넘긴 칸은 빨강
+  const dots = Array.from({ length: Math.max(max, Tn.used) }, (_, i) => `<i class="${i < NIGHT_SLOTS ? 'n' : 'd'} ${i < Tn.used ? (i >= max ? 'over' : 'used') : ''}"></i>`).join('');
   $('townBar').innerHTML = `<span class="tb-time ${dawn ? 'dawn' : 'night'}">${dawn ? '새벽' : '밤'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</span>
     <span class="tb-slots" title="할 수 있는 일">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
@@ -152,7 +153,6 @@ function townMarks() {
   const Tn = G.town, out = [];
   const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
   if (Tn.part === 'dawn') { if (!Tn.marketIn) out.push(top('market')); out.push(top('shop')); }
-  else if (Tn.used >= slotsMax()) out.push(top('home'));
   return out;
 }
 
@@ -268,17 +268,29 @@ function openPlace(id) {
     sheet(`<div class="ts-head"><b>${P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${P.open === 'dawn' ? '새벽에 문을 엽니다' : '지금은 문을 닫았습니다'}</p>`);
     return;
   }
-  const acts = PLACE_ACTS[id].filter(a => ACTS[a].when === 'any' || ACTS[a].when === Tn.part);
-  const rows = acts.map(a => {
+  const acts = PLACE_ACTS[id].filter(a => (ACTS[a].when === 'any' || ACTS[a].when === Tn.part) && !COUNTER_ACTS.includes(a)); // 홍보는 계산대 창에서
+  const rows = acts.map(a => actRow(id, a)).join('');
+  sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || `<p class="ts-note">${id === 'board' ? '동네 소식과 행사 안내가 붙어 있습니다' : '지금 할 일이 없습니다'}</p>`}`);
+  T.sheetPlace = id;
+}
+// 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
+const COUNTER_ACTS = ['insta', 'blogger'];
+function openCounter() {
+  const rows = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
+  sheet(`<div class="ts-head"><b>계산대 · 홍보</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}<p class="ts-note">어르신은 이웃 이야기(소개 손님)로 옵니다</p>`, 'counter');
+  T.sheetPlace = 'shop';
+}
+function actRow(id, a) {
+  const Tn = G.town;
+  {
     const A = ACTS[a], ok = actNow(id, a);
     const cost = A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}` : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'flyer' ? `${won(A.money)} · 내일 손님 조금 더` : a === 'setup' ? '오늘 11시까지 손이 빠릅니다' : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
-      : a === 'sleep' ? (Tn.used < slotsMax() ? '일을 남기고 자면 피로가 풀립니다' : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'setup' ? '오늘 11시까지 손이 빠릅니다' : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
+      : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
+      : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost ? `<i>${(a === 'market' && Tn.marketIn) ? '' : cost}</i>` : ''}</button>`;
-  }).join('');
-  sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">지금 할 일이 없습니다</p>'}`);
-  T.sheetPlace = id;
+  }
 }
 
 let chatQ = null; // 이웃 이야기 줄들
@@ -380,8 +392,9 @@ export function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
-    if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
+    if (what === 'dawn') { T.part = 'dawn'; playSfx('page'); if (arg === 'sleep') { closeSheet(); placeMe('home'); } } // 밤 칸을 다 쓰면 그 자리에서 새벽
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
 }
@@ -395,5 +408,6 @@ export function refreshTown() {
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
+  else if (s.classList.contains('counter')) openCounter();
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }

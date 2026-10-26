@@ -9,6 +9,7 @@ export const REVIEW_TEMPLATES = {
   full: { stars: 3, salience: 2, lines: ['자리가 없어서 다음에 오기로 했어요', '줄이 길어서 그냥 지나갔어요'] },
   payWait: { stars: 3, salience: 2, lines: ['계산하려고 한참 서 있었어요', '맛은 괜찮은데 계산이 느려요'] },
   blogger: { stars: 5, salience: 9, lines: ['(블로그) 골목 안 숨은 {menu} 맛집 발견!', '(블로그) {menu} 하나 먹으러 또 갈 집'] },
+  blogBad: { stars: 3, salience: 9, lines: ['(블로그) 소문만큼은 아니었던 {menu}…', '(블로그) {menu}, 무난하지만 일부러 갈 정도는 글쎄'] },
   youtuber: { stars: 5, salience: 9, lines: ['(영상) 골목 분식집 {menu} 먹방… 바삭함 실화?', '(영상) 구독자 여러분, 이 집 {menu}은 꼭 드세요'] },
   dirty: { stars: 2, salience: 6, lines: ['맛은 괜찮은데 테이블이 좀 끈적했어요', '가게가 좀 지저분해요. 청소 좀…'] },
   regular: { stars: 5, salience: 2, lines: ['매일 와도 안 질려', '여기 {menu}는 옛날 맛 그대로야'] },

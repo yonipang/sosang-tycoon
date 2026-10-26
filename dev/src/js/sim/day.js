@@ -19,7 +19,10 @@ import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, ingCost, marketNextDay, costBreakdown } from './market.js';
 import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, giveMenu, shortIng, todayMenus, menuOn } from './pantry.js';
 import { upgradeEndDay } from './upgrade.js';
-import { townEnterNight, townSpeedMul, setupUntil, flyerMul, referralPlan, townEndDay, dirty } from './town.js';
+import { townOpenRest } from './town.js';
+import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
+import { bloggerToday, bloggerEndDay } from './traffic.js';
+import { PROMO } from '../data/town.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => todayMenus().reduce((s, m) => s + G.prep[m] * costOf(m), 0); // 주문 금액 (아침 도착 때 결제 — 프롤로그·1장 첫날, 메뉴 한 벌씩)
@@ -40,7 +43,8 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
-      mastery: {}, fans: {}, back: {}, // 메뉴 업그레이드: 오늘 숙련도 · 맛있게 먹은 손님 · 다시 온 손님 (sim/upgrade.js, 마감 때 더해요)
+      mastery: {}, fans: {}, back: {}, hourly: {}, blogSat: null, blogMenu: null, // 시간대 기록 · 블로거 만족 (sim/traffic.js)
+      // 메뉴 업그레이드: 오늘 숙련도 · 맛있게 먹은 손님 · 다시 온 손님 (sim/upgrade.js, 마감 때 더해요)
       priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
   };
@@ -71,8 +75,10 @@ defineCmd('openShop', () => {
   G.run.startStock = Object.fromEntries(MENU_IDS.map(m => [m, stockOf(m)])); // 메뉴마다 만들 수 있던 그릇 (어제 품절 표시용)
   G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
   // 마을(밤·새벽)에서 한 일: 피로·오픈 준비 → 사장 걸음, 이웃 소개 손님
+  townOpenRest(); // 칸을 남긴 턴이면 피로가 풀려요
   G.run.player.speed = PLAYER_SPEED * townSpeedMul(); G.run.setupUntil = setupUntil();
   G.run.referral = referralPlan();
+  G.run.blog = bloggerToday() ? { at: PROMO.blogger.at, done: false } : null; // 어젯밤 섭외한 파워블로거
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
   setPhase('day');
@@ -146,7 +152,7 @@ export function tickDay(dt) {
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
   // 들어올 손님 = 시간대 기대값 × 별점 × 개업 초기 × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) * districtVisitMul(todayMenus()) * flyerMul();
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(G.rating) * openingMul(G.day) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
@@ -158,6 +164,12 @@ export function tickDay(dt) {
     const chars = freeChars().slice(0, 2);
     f.done = true;
     if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? '미소 꽃집' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+  }
+  // 파워블로거가 와요 (점심 무렵)
+  if (r.blog && !r.blog.done && !r.closing && r.min >= r.blog.at) {
+    r.blog.done = true;
+    const ch = freeChars().includes(16) ? 16 : freeChars('worker')[0];
+    if (ch !== undefined && spawnParty([ch], { force: true, blog: true })) emit('toast', '파워블로거가 왔습니다. 맛있게 만들어 보세요', 'good');
   }
   // 급구매한 재료 도착 (실제 초 기준)
   for (const o of r.rush.slice()) {
@@ -201,6 +213,7 @@ export function endDay() {
   if (dirty()) L.events.push({ kind: 'dirty', who: '손님' }); // 위생이 낮으면 리뷰에 나와요
   townEndDay();
   const masteryGain = upgradeEndDay();
+  const blog = bloggerEndDay(); // 블로거 평 → 며칠 동안 직장인·어르신 (null = 오늘 안 옴)
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
   for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, stockOf(m))); takeMenu(m, k); readyLeft += k * costOf(m); }
@@ -233,7 +246,7 @@ export function endDay() {
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
-    incidents: L.incidents || [], mastery: masteryGain, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
+    incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
   if (G.history.length > 60) G.history.shift();

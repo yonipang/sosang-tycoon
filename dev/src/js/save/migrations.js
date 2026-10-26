@@ -52,6 +52,10 @@ export function migrate(o) {
   if (!o.menuLv) o.menuLv = Object.fromEntries(MENU_IDS.map(m => [m, 1]));
   if (!o.mastery) o.mastery = Object.fromEntries(MENU_IDS.map(m => [m, o.history.reduce((s, h) => s + ((h.sold && h.sold[m]) || 0), 0)]));
   if (!o.fans) o.fans = {};
+  if (!o.board) o.board = { lunch: null, after: null }; // 칠판 추천(v0.31) 이전 세이브
+  // 밤·새벽 한 턴(v0.30) 이전 세이브: 새벽이었으면 칸을 밤 4칸 뒤에서 이어 세요
+  if (o.town && o.town.on && !o.town.turn) { if (o.town.part === 'dawn') o.town.used = (o.town.used || 0) + 4; o.town.rest = 0; }
+  if (o.town) o.town.turn = 1;
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

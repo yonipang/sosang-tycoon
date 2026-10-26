@@ -67,6 +67,7 @@ def town_night_dawn(pg):
         pg.wait_for_timeout(300); shot(pg, '9-town-night')
     R('townAct', "{place:'shop',act:'clean'}")
     R('townAct', "{place:'laundry',act:'talk'}"); town_chat(pg)
+    R('townAct', "{place:'shop',act:'insta'}")  # 계산대 · 홍보
     R('townAct', "{place:'home',act:'sleep'}"); talk(pg)
     R('townAct', "{place:'market',act:'market'}"); town_chat(pg)
     if 'market' not in seen: seen.append('market'); pg.wait_for_timeout(200); shot(pg, '9b-market')
@@ -125,6 +126,7 @@ with sync_playwright() as pw:
         play(pg)
         incs.append([d, pg.evaluate('JSON.stringify(__T.G.lastReceipt.incidents)'), pg.evaluate('(__T.G.lastReceipt.reviews||[]).map(v=>v.who).join(",")')])
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
+    if not pg.evaluate('!!(__T.G.lastReceipt.hourly && Object.keys(__T.G.lastReceipt.hourly).length)'): errs.append('영수증 시간대 기록이 없어요')
     to_prep(pg); shot(pg, '9-prep-day9')
     # 메뉴 연구 칠판 (마을 · 우리 가게): 떡볶이 올리기
     pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'recipe'})"); pg.wait_for_timeout(200)

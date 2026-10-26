@@ -585,6 +585,8 @@ body.in-town #bar { display: none; }
 .tb-time.dawn { background: #5d6b9e; }
 .tb-slots { display: inline-flex; gap: 3px; margin-right: auto; }
 .tb-slots i { width: 12px; height: 12px; border: 2px solid var(--paper); background: var(--mustard); }
+.tb-slots i.n { background: #8fa3e8; }
+.tb-slots i.d { background: var(--mustard); }
 .tb-slots i.used { background: transparent; opacity: .5; }
 .tb-slots i.over { background: var(--red); border-color: var(--red); }
 .tb-tag { font-size: 16px; padding: 0 6px; border: 2px solid rgba(251,243,226,.5); }
@@ -665,6 +667,31 @@ em.today { font-style: normal; color: var(--red); }
 .u-foot { margin: 0; padding: 4px 8px 8px; color: var(--ink-soft); word-break: keep-all; }
 .urow.lvup { animation: lvUp 1s ease-out; }
 @keyframes lvUp { 0% { background: var(--mustard); transform: scale(1.04); } 40% { background: #fff3c4; transform: scale(1); } 100% { background: transparent; } }
+/* 가게 앞 칠판 · 오늘의 추천 (가게 장부) */
+.brow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 2px dashed var(--line); }
+.brow:nth-of-type(2) { border-top: 0; }
+.b-slot { flex: none; width: 64px; display: flex; flex-direction: column; line-height: 1.2; }
+.b-slot b { font-weight: normal; }
+.b-slot small { color: var(--ink-soft); }
+.b-pick { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+.b-m { display: flex; flex-direction: column; align-items: center; width: 64px; padding: 2px; font: inherit; color: var(--ink); background: var(--paper-2); border: 2px dashed var(--ink-soft); cursor: pointer; line-height: 1.2; }
+.b-m .dish { width: 28px; height: 28px; opacity: .6; }
+.b-m.on { background: #2f4a3c; color: #f1eee2; border: 2px solid #8a5a32; }
+.b-m.on .dish { opacity: 1; }
+.b-note { margin: 0; padding: 0 8px 8px; color: var(--ink-soft); word-break: keep-all; }
+/* 영수증: 시간대별 손님 */
+.hourly .hcols { display: flex; gap: 2px; align-items: flex-end; height: 92px; margin: 6px 0 2px; }
+.hc { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.hc small { font-size: 16px; line-height: 1; color: var(--ink-soft); transform: scale(.7); }
+.hb { position: relative; flex: 1; width: 100%; }
+.hp { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(122,95,76,.22); }
+.hi { position: absolute; left: 0; right: 0; bottom: 0; top: 0; display: flex; flex-direction: column-reverse; }
+.hi i { display: block; width: 100%; }
+.t-worker { background: var(--blue); }
+.t-student { background: #e4703a; }
+.t-elder { background: #8c9a6a; }
+.hlegend { display: flex; gap: 10px; color: var(--ink-soft); }
+.hlegend i { display: inline-block; width: 10px; height: 10px; margin-right: 3px; }
 /* 메뉴 연구 칠판 (마을 아래 창): 초록 칠판 + 나무 테 · 분필 글씨 */
 .town-sheet.chalk { background: #2f4a3c; border: 6px solid #8a5a32; box-shadow: inset 0 0 0 2px #24382e, 0 4px 0 rgba(0,0,0,.4); color: #f1eee2; }
 .town-sheet.chalk .ts-head b { color: #f1eee2; }
