@@ -28,6 +28,7 @@ import { QUESTS, CHAPTERS } from '../data/story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
 import { INCIDENTS } from '../data/incidents.js';
 import { DEV_JUMPS } from '../sim/dev.js';
+import { FOOT_REPORT } from '../data/district.js';
 
 const scr = () => $('screen');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -284,7 +285,7 @@ export function renderReceipt() {
         <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
       </div>`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
-    R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',
+    FOOT_REPORT && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',
     `<div class="hls">${review}${masteryCard(R.mastery)}</div>`,
   ].filter(Boolean);
   rcPage = 0;
@@ -336,7 +337,7 @@ function receiptDetail(R, lines, miss, rv, delta) {
         ${R.dishWaste ? `<div class="ln note"><span>만들고 못 판 음식</span><b>${won(R.dishWaste)}</b></div>` : ''}
         ${leftLine(R)}
         <div class="dash"></div>
-        ${R.foot ? `<div class="ln"><span>가게 앞을 지나간 사람</span><b>${R.foot}명</b></div><div class="ln"><span>그중 들어온 사람</span><b>${R.entered}명 (${Math.round(R.entered / R.foot * 100)}%)</b></div>` : ''}
+        ${FOOT_REPORT && R.foot ? `<div class="ln"><span>가게 앞을 지나간 사람</span><b>${R.foot}명</b></div><div class="ln"><span>그중 들어온 사람</span><b>${R.entered}명 (${Math.round(R.entered / R.foot * 100)}%)</b></div>` : ''}
         <div class="ln"><span>받은 손님</span><b>${R.served}명</b></div>
         <div class="ln"><span>손님 한 명당 매출</span><b>${won(R.avgSpend)}</b></div>
         <div class="ln"><span>놓친 손님</span><b>${R.missedTotal}명</b></div>

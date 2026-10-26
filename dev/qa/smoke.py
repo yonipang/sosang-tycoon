@@ -57,6 +57,8 @@ def to_prep(pg):
         for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
 def town_chat(pg):
     for _ in range(10):
+        if pg.evaluate("!document.getElementById('talk').hidden"):  # 이야기 장면(신문 등)이 위에 떠 있으면 먼저 넘겨요
+            print('  마을 대화 중 장면:', pg.evaluate('__T.G.story.queue[0]')); talk(pg); continue
         if pg.evaluate("document.getElementById('townSheet').hidden || !document.getElementById('townSheet').classList.contains('chat')"): return
         pg.click('#townSheet'); pg.wait_for_timeout(30)
 def town_night_dawn(pg):
