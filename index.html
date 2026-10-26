@@ -325,7 +325,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .qt b { font-weight: normal; color: var(--red-dark); }
 
 /* ── 대화 창 ── */
-.talk { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px 10px; padding-bottom: max(16px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(29,35,64,0) 30%, rgba(29,35,64,.75)); cursor: pointer; }
+.talk { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 10px; padding-top: calc(max(8px, env(safe-area-inset-top)) + 60px); background: linear-gradient(0deg, rgba(29,35,64,0) 30%, rgba(29,35,64,.75)); cursor: pointer; } /* 대화는 위에 (v0.40 사용자 요청 — 아래는 잘 안 보여요). 위 막대(날짜·잔고)는 가리지 않게 */
 .tk-box { display: flex; align-items: flex-end; gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
 .tk-face { flex: none; width: 64px; height: 80px; overflow: hidden; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
 .tk-face img { display: block; width: 64px; height: 128px; margin-top: -24px; } /* 4배: 머리부터 허리까지 */
@@ -366,14 +366,14 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 #cutCap.title b { font-weight: normal; font-size: 32px; line-height: 1.3; }
 @keyframes capIn { from { opacity: 0; } }
 #cutSkip { position: absolute; right: 8px; top: max(8px, env(safe-area-inset-top)); background: transparent; border: 2px solid rgba(251,243,226,.5); color: rgba(251,243,226,.8); padding: 0 8px; cursor: pointer; }
-.talk.in-cut { background: none; }
+.talk.in-cut { background: none; justify-content: flex-end; padding-top: 12px; padding-bottom: max(16px, env(safe-area-inset-bottom)); } /* 연출은 자막처럼 아래 그대로 */
 
 /* 오 사장님이 짚어 주는 곳 (준비 화면 길잡이) */
 /* 짚은 곳만 밝게, 나머지는 어둡게 (짚은 칸의 큰 그림자가 화면을 덮어요) */
 .guide-on { position: relative; z-index: 3; outline: 3px solid var(--mustard); outline-offset: 3px; animation: guidePulse 1s steps(2) infinite; }
 #guideDim { position: absolute; inset: 0; z-index: 20; background: rgba(12,10,24,.66); pointer-events: none; } /* 짚은 곳만 구멍 (ui/story.js guideHole) */
 @keyframes guidePulse { 50% { outline-color: #fff6d6; } }
-#screen.guiding { padding-bottom: 220px; }
+#screen.guiding { padding-top: 190px; padding-bottom: 40px; } /* 길잡이 대화가 위에 있어서 짚은 곳이 가려지지 않게 */
 .talk.guide { background: none; }
 .toast.who { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-left: 0; }
 .toast.who .q-face { width: 32px; height: 24px; border: 0; border-right: 2px solid var(--ink); }
@@ -597,7 +597,7 @@ body.in-town #bar { display: none; }
 .tb-tag { font-size: 16px; padding: 0 6px; border: 2px solid rgba(251,243,226,.5); }
 .tb-tag.warn { border-color: var(--red); color: #ffb3a6; }
 .town-sheet { position: absolute; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); max-height: 62%; overflow-y: auto; background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.4); padding: 6px 10px 10px; line-height: 1.4; }
-.town-sheet.chat { background: transparent; border: 0; box-shadow: none; padding: 0; cursor: pointer; }
+.town-sheet.chat { background: transparent; border: 0; box-shadow: none; padding: 0; cursor: pointer; top: 104px; bottom: auto; }  /* 골목 이웃 대화도 위에 */
 .ts-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; border-bottom: 2px dashed var(--line); }
 .ts-head b { font-weight: normal; font-size: 20px; }
 .ts-x { width: 36px; height: 36px; background: var(--paper); border: 3px solid var(--ink); font: inherit; cursor: pointer; }
@@ -1364,7 +1364,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.39';
+const GAME_VERSION = '0.40';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -6427,7 +6427,7 @@ function updateTown(dt) {
 
 function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
 
-// 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요
+// 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요 (갈 수 없는 칸이면 가만히)
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
@@ -6443,8 +6443,10 @@ function tapTown(e) {
     walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; showVacant(); });
     return;
   }
-  const to = nearestOpen(Math.floor(wx / TILE), Math.floor(wy / TILE));
-  if (to) walkTo(to);
+  // 갈 수 없는 곳(막힌 칸 · 닿지 않는 칸)을 누르면 그대로 서 있어요 (v0.40 사용자 요청)
+  const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+  if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H || walls()[ty * MAP_W + tx]) return;
+  walkTo([tx, ty]);
 }
 
 // ── 아래 창: 장소의 할 일 · 이웃 이야기 · 시장 ──

@@ -329,7 +329,7 @@ export function updateTown(dt) {
 
 function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
 
-// 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요
+// 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요 (갈 수 없는 칸이면 가만히)
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
@@ -345,8 +345,10 @@ function tapTown(e) {
     walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; showVacant(); });
     return;
   }
-  const to = nearestOpen(Math.floor(wx / TILE), Math.floor(wy / TILE));
-  if (to) walkTo(to);
+  // 갈 수 없는 곳(막힌 칸 · 닿지 않는 칸)을 누르면 그대로 서 있어요 (v0.40 사용자 요청)
+  const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
+  if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H || walls()[ty * MAP_W + tx]) return;
+  walkTo([tx, ty]);
 }
 
 // ── 아래 창: 장소의 할 일 · 이웃 이야기 · 시장 ──
