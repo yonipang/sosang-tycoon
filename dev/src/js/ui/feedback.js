@@ -17,6 +17,7 @@ import { showTown, hideTown, townShown, refreshTown } from './town.js';
 import { townMode } from '../sim/town.js';
 import { SCENES } from '../data/story.js';
 import { setMusic } from './music.js';
+import { ohInShop } from '../sim/tutorial.js';
 
 export function toast(text, kind, who) {
   const box = $('toasts');
@@ -70,7 +71,7 @@ const renderBarSoon = () => refreshTown();
 const shown = new Set();
 // oh: 프롤로그(알바 사흘) 동안은 오 사장님이 옆에서 말해 줘요
 function hint(key, text, oh) {
-  if (G.day > 2 || shown.has(key)) return;
+  if (G.day > 2 || shown.has(key) || ohInShop()) return; // 프롤로그 1~2일차는 오 사장님이 가게에서 직접 (sim/tutorial.js)
   shown.add(key);
   if (oh && G.story && G.story.ch === 0) toast(oh, 'hint', 'oh');
   else toast(text, 'hint');

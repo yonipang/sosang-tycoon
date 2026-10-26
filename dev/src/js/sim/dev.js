@@ -7,12 +7,13 @@ import { defineCmd, emit } from './events.js';
 import { forceIncident } from './incidents.js';
 import { townEnterNight } from './town.js';
 
-const PRO = ['p_stir', 'p_serve', 'p_book', 'p_keys'];
+const PRO = ['p_stir', 'p_serve', 'p_book', 'p_ahead', 'p_keys'];
 // 가 볼 수 있는 곳: day(그날 준비 화면) · ch · title · done · active · queue(보여 줄 장면) · menus · toolsOpen · tools · decor · shop
 export const DEV_JUMPS = [
   { id: 'p1', name: '프롤로그 1일차 · 첫 연출부터', day: 1, fresh: true },
-  { id: 'p1b', name: '프롤로그 1일차 · 연출 없이 영업', day: 1, ch: 0, title: '알바생', active: PRO, queue: [] },
-  { id: 'p3', name: '프롤로그 3일차 (인수 전날)', day: 3, ch: 0, title: '알바생', done: ['p_stir', 'p_serve', 'p_book'], active: ['p_keys'], prog: { p_keys: 2 } },
+  { id: 'p1b', name: '프롤로그 1일차 · 연출 없이 영업 (오 사장님 가게 길잡이)', day: 1, ch: 0, title: '알바생', active: ['p_keys'], queue: [] },
+  { id: 'p2', name: '프롤로그 2일차 · 미리 만들기 길잡이', day: 2, ch: 0, title: '알바생', done: ['p_stir', 'p_serve', 'p_book'], active: ['p_keys'], prog: { p_keys: 1 } },
+  { id: 'p3', name: '프롤로그 3일차 (인수 전날 · 오 사장님 전화)', day: 3, ch: 0, title: '알바생', done: ['p_stir', 'p_serve', 'p_book', 'p_ahead'], active: ['p_keys'], prog: { p_keys: 2 } },
   { id: 'c1h', name: '1장 4일차 · 인수 연출부터', day: 4, ch: 0, title: '알바생', done: PRO, queue: ['handover', 'paper0', 'ch1'] },
   { id: 'c1', name: '1장 4일차 · 개업 첫날', day: 4, ch: 1, title: '사장 지망생', shop: '골목분식', done: PRO, queue: ['ch1'] },
   { id: 'c1k', name: '1장 5일차 · 김밥·장사 도구', day: 5, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note'], active: ['c1_stock', 'c1_kimbap'], queue: ['tools'], menus: ['tteok', 'kimbap'], fresh: ['kimbap'], decor: [] },

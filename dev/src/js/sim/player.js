@@ -13,6 +13,7 @@ import { menuOpen, storyNote, storyFridge } from './story.js';
 import { handsMax, cookRule } from './tools.js';
 import { costOf } from './market.js';
 import { incidentNote, handTakeout } from './incidents.js';
+import { tutNote } from './tutorial.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -110,12 +111,14 @@ function startCook(st) {
   r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
+  tutNote('cookStart');
 }
 // 손에 들기: 기다리는 주문이 없으면(미리 만든 몫) 재료를 하나 써요 — 주문이 들어오면 그 몫은 재료를 다시 쓰지 않아요 (sim/customers.js spareOf)
 function toHands(m, q) {
   const r = G.run;
-  if (ticketsCount(m) <= handsCount(m) && r.stock[m] > 0) r.stock[m]--;
-  r.hands.push({ menu: m, q });
+  const ahead = ticketsCount(m) <= handsCount(m); // 주문 없이 미리 만든 몫
+  if (ahead && r.stock[m] > 0) r.stock[m]--;
+  r.hands.push(ahead ? { menu: m, q, ahead: true } : { menu: m, q });
 }
 
 // 새벽에 미리 끓이기 (sim/day.js dawnCook) — 주문 없이, 손에 들지 않고 보온 통에 담아요
@@ -180,6 +183,7 @@ function finishCook(q, note) {
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });
   incidentNote('cook', { menu: c.menu }, q);
+  tutNote('cookEnd');
 }
 
 // ── 내주기·버리기 ──

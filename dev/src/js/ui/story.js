@@ -14,6 +14,7 @@ import { playSfx } from './sfx.js';
 import { setMusic } from './music.js';
 import { setting } from './settings.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
+import { tutAsk } from '../sim/tutorial.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
 const fill = s => s.replace(/\{shop\}/g, G.shop);
@@ -87,7 +88,8 @@ function drawScene() {
   guide(null);
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
-    const [who, text, at] = sc.lines[open.i];
+    const [who, text, at, pic] = sc.lines[open.i];
+    if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
@@ -97,6 +99,23 @@ function drawScene() {
   box.className = 'talk';
   box.innerHTML = `<div class="tk-box"><div class="tk-body"><b class="tk-name">새 간판</b><p>가게 이름을 지어 주세요</p>
     <div class="ask-row"><input id="talkName" maxlength="8" value="골목분식" autocomplete="off" aria-label="가게 이름"><button type="button" class="btn primary" data-talk="name">간판 걸기</button></div></div></div>`;
+}
+
+// 장사 요령 카드 (오 사장님 가게 길잡이 — 데이브 더 다이버의 요령 카드처럼): 그림 · 한두 문장 · 확인
+function tipHTML(text, pic) {
+  const pics = [].concat(pic || []).map(n => `<span class="tip-pic">${icon(n)}</span>`).join('');
+  return `<div class="tip-card"><small class="tip-tag">장사 요령</small>${pics ? `<div class="tip-pics">${pics}</div>` : ''}<p>${fill(text)}</p><span class="btn primary">확인</span></div>`;
+}
+
+// 오 사장님이 시키는 일: 가게 그림 아래쪽 띠 (화살표는 render/view.js). 매 프레임 불러요 (main.js)
+let tutLast = '';
+export function updateTutBar() {
+  const a = G.phase === 'day' ? tutAsk() : null, el = $('tutBar');
+  const html = a ? `<span class="tb-face">${icon('char' + CAST.oh.char)}</span><p>${a.text}</p>` : '';
+  if (html === tutLast) return;
+  tutLast = html;
+  el.innerHTML = html; el.hidden = !a;
+  if (a) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 }
 
 // 시세 소식: 우리 가게에 무엇이 바뀌는지 (재료값 · 원가율 · 며칠)

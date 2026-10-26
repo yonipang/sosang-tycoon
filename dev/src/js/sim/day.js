@@ -15,6 +15,7 @@ import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 import { readyCap } from './tools.js';
+import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, marketNextDay, costBreakdown } from './market.js';
 import { townEnterNight, townSpeedMul, setupUntil, flyerMul, referralPlan, townEndDay, dirty } from './town.js';
 
@@ -91,6 +92,7 @@ defineCmd('openShop', () => {
 function startBusiness(n) {
   emit('sfx', 'open');
   emit('toast', `${G.day}일차 영업 시작!${n ? ` 재료 ${n}인분 도착` : ''}`, 'good');
+  tutNote('open');
 }
 // 새벽: 미리 끓이기 (미니게임은 sim/player.js startCook과 같아요)
 defineCmd('dawnCook', ({ menu }) => {
@@ -126,6 +128,7 @@ defineCmd('closeEarly', () => {
   r.closing = true; r.closeMin = r.min;
   emit('toast', '영업을 마감합니다. 남은 손님만 받습니다', 'info');
   emit('closing');
+  tutNote('closing');
 });
 defineCmd('pause', ({ on }) => { if (G.run) G.run.paused = on; emit('pause', on); });
 defineCmd('speed', ({ x }) => { if (G.run) G.run.speed = x; });
@@ -140,6 +143,7 @@ export function tickDay(dt) {
     r.closing = true; r.closeMin = DAY_MIN;
     emit('toast', '21시, 영업을 마감합니다. 남은 손님만 받습니다', 'info');
     emit('closing');
+    tutNote('closing');
   }
   // 가게 앞 보도에 사람이 지나가요. 그중 일부가 들어와 손님이 돼요 (마감 뒤에는 지나가기만)
   const hour = 9 + Math.floor(r.min / 60);
@@ -243,6 +247,7 @@ export function endDay() {
   }
   // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
   const clean = !L.missed.soldout && openMenus().every(m => r.stock[m] > 0);
+  tutEndDay(); // 오늘 못 한 길잡이 차례는 건너뛰어요 (주는 퀘스트는 받고 — 영수증 퀘스트도 셀 수 있게 먼저)
   storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;

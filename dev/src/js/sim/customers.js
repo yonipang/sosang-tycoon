@@ -14,6 +14,8 @@ import { menuOpen, storyNote } from './story.js';
 import { incidentNote } from './incidents.js';
 import { dirty } from './town.js';
 import { HYGIENE_SAT } from '../data/town.js';
+import { TUT_IMPATIENT } from '../data/tutorial.js';
+import { tutNote, tutHold } from './tutorial.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -200,6 +202,7 @@ function decide(c) {
   c.patMax = c.patience = PATIENCE.food * P(c);
   c.state = 'waitFood';
   emit('order', c.id, m);
+  tutNote('order');
 }
 
 // 사장이 음식을 내줬을 때 (sim/player.js)
@@ -214,7 +217,9 @@ export function serve(c, dish) {
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
   storyNote('served', { menu: c.menu });
+  if (dish.ahead) storyNote('ahead');
   incidentNote('served', c, dish.q);
+  tutNote('served');
 }
 
 function satisfaction(c) {
@@ -248,6 +253,7 @@ export function pay(c) {
   emit('sfx', 'coin');
   storyNote('paid', { n: group.length });
   for (const m of group) leave(m, false);
+  tutNote('paid');
 }
 
 // 가게 앞에서: 들어올지 정하고, 안 들어오면 그냥 지나가요 (가끔 멈춰서 보거나 한마디)
@@ -278,6 +284,7 @@ function passerLine() {
 
 export function updateCustomers(dt) {
   const r = G.run;
+  const wdt = tutHold() ? 0 : dt; // 오 사장님이 시키는 동안은 손님이 기다려 줘요 (sim/tutorial.js)
   for (const c of r.customers.slice()) {
     if (c.state === 'leave' && !r.customers.includes(c)) continue;
     if (c.faceT > 0) c.faceT -= dt;
@@ -311,7 +318,7 @@ export function updateCustomers(dt) {
         break;
       }
       case 'queue':
-        c.patience -= dt;
+        c.patience -= wdt;
         if (r.closing) { leave(c, false); break; }
         if (c.patience <= 0) partyLeaves(c, 'full');
         break;
@@ -323,7 +330,8 @@ export function updateCustomers(dt) {
         if (c.timer <= 0) decide(c);
         break;
       case 'waitFood':
-        c.patience -= dt;
+        c.patience -= wdt;
+        if (c.patience < c.patMax * TUT_IMPATIENT && !c.tutSeen) { c.tutSeen = true; tutNote('impatient'); }
         if (c.patience <= 0) partyLeaves(c, 'wait', c.menu);
         break;
       case 'eating':
@@ -342,12 +350,13 @@ export function updateCustomers(dt) {
         freeSeat(c); // 일행이 아직 앉아 있으면 탁자는 비지 않아요
         c.path = findPath(c, [PAY_SPOTS[r.payLine.length - 1]], 'customer') || [];
         c.patMax = c.patience = PATIENCE.pay * P(c);
+        tutNote('payLine');
         break;
       }
       case 'payLine':
         if (r.payLine[0] === c.id && arrived) {
           c.dir = 0;
-          c.patience -= dt;
+          c.patience -= wdt;
           if (c.patience <= 0) { c.payWaited = true; pay(c); }
         }
         break;

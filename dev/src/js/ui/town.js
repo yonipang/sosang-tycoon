@@ -17,7 +17,7 @@ import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 
 const WALK = 60;     // 걷는 빠르기 (지도 픽셀/초)
-const VIEW_W = 144;  // 화면에 보이는 지도 너비 (9칸). 높이는 화면에 맞춰요
+const VIEW_W = 224;  // 화면에 보이는 지도 너비 (14칸 — 멀리서 보듯, 포켓몬 하트골드 정도). 높이는 화면에 맞춰요
 let T = null;        // 보이는 동안의 골목 { me, cam, path, goPlace, time, sheet, vw, vh }
 
 export const townShown = () => !!T && !$('town').hidden;
@@ -26,7 +26,7 @@ export const townView = () => T; // 시험용 (main.js __T)
 // 칸 ↔ 픽셀 (사람은 칸 가운데, 발끝은 칸 아래쪽)
 const tileX = tx => tx * TILE + TILE / 2;
 const tileY = ty => ty * TILE + TILE - 3;
-const vacantB = BUILDINGS.find(b => b[0] === 'st_vacant');
+const vacantB = BUILDINGS.find(b => b[0] === 'tw_vacant');
 
 // 못 지나가는 칸: 건물 그림이 덮는 칸 · 물건 · 서 있는 이웃
 let wallMap = null;
@@ -185,7 +185,7 @@ function tapTown(e) {
   const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
   const place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
   if (place) { goPlace(place); return; }
-  if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.st_vacant[3], SPR.st_vacant[2], SPR.st_vacant[3]])) {
+  if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.tw_vacant[3], SPR.tw_vacant[2], SPR.tw_vacant[3]])) {
     walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); });
     return;
   }

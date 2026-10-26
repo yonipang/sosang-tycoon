@@ -13,11 +13,12 @@ import { cloudInit, onCloud, cloudFlush, cloudCheck, CLOUD } from './save/cloud.
 import { toast } from './ui/feedback.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
 import { initInput } from './ui/input.js';
-import { initStory, updateQuestTrack } from './ui/story.js';
+import { initStory, updateQuestTrack, updateTutBar } from './ui/story.js';
 import { initIncidentUI } from './ui/incident.js';
 import { initTown, updateTown, townView } from './ui/town.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
 import { initMusic, updateMusic, musicState } from './ui/music.js';
+import { tutAsk } from './sim/tutorial.js';
 
 function layout() {
   const st = $('stage');
@@ -36,6 +37,7 @@ function frame(now) {
   updateTown(dt);
   updateMusic(dt);
   if (G.phase === 'day') updateQuestTrack(); // 돌발 이벤트 진행도 (바뀐 것만 다시 그려요)
+  updateTutBar(); // 오 사장님이 시키는 일 띠
   document.body.dataset.phase = G.phase;
   if (G.phase !== 'title') updateHud();
   if (G.run && !document.getElementById('rushUI').hidden && Math.floor(lastT / 500) !== Math.floor((lastT - dt * 1000) / 500)) renderRush(); // 도착까지 남은 초
@@ -65,6 +67,6 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView };
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk };
 }
 boot();

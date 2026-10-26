@@ -34,13 +34,14 @@ export const CHAPTERS = [
 // 퀘스트
 //  kind: 무엇을 세나 (sim/story.js storyNote) — cook(완벽 조리) · paid(계산한 손님 수) · receipt(마감 영수증) · dayEnd(마친 영업일)
 //        dayServed(하루 받은 손님, 그날 최고) · note(냉장고 뒤 쪽지) · served(그 메뉴를 내준 수) · cleanDay(재료가 안 떨어진 날)
-//        weekly(고정비 내기) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기)
+//        weekly(고정비 내기) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기) · ahead(미리 만든 음식 내주기)
 //  menu: 그 메뉴만 셈 · need: 몇 번 · needs: 이 퀘스트들이 끝나면 저절로 시작 · after: 이 퀘스트들이 끝나야 완료
 //  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴)
 export const QUESTS = {
   p_stir: { who: 'oh', title: '떡볶이는 팔로 저어', goal: '떡볶이 완벽 조리', kind: 'cook', menu: 'tteok', need: 3 },
   p_serve: { who: 'oh', title: '손님은 끝까지', goal: '계산까지 마친 손님', kind: 'paid', need: 5 },
   p_book: { who: 'oh', title: '오늘 장부', goal: '마감 영수증 보기', kind: 'receipt', need: 1 },
+  p_ahead: { who: 'oh', title: '손이 놀 때', goal: '미리 만든 음식 내주기', kind: 'ahead', need: 2 }, // 사흘 안에 못 해도 인수는 돼요 (1장에서도 셀 수 있어요)
   p_keys: { who: 'oh', title: '사흘만 맡아 봐', goal: '영업 사흘 마치기', kind: 'dayEnd', need: 3, after: ['p_stir', 'p_serve', 'p_book'], wait: '오 사장님의 다른 부탁을 마저 들어 보세요', give: { scenes: ['handover', 'paper0', 'ch1'] } },
   c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 10명 받기', kind: 'dayServed', need: 10, give: { scenes: ['plant'] } },
   c1_note: { who: 'park', title: '김밥도 있었잖아', goal: '냉장고 뒤 쪽지 찾기', kind: 'note', need: 1, give: { scenes: ['note', 'tools'], menuNext: 'kimbap' } },
@@ -66,10 +67,73 @@ export const SCENES = {
       ['oh', '장사 준비는 전날 밤에 해. 할 건 딱 두 가지야.'],
       ['oh', '하나, 가격. 떡볶이 한 그릇 4,000원. 비싸면 손님이 돌아가고, 싸면 남는 게 없다.', 'price'],
       ['oh', '둘, 재료. 오늘 밤에 시키면 내일 아침에 온다. 모자라면 손님을 놓치고, 남으면 버리게 돼.', 'order'],
-      ['oh', '사흘 동안 내가 부탁할 건 여기 적어 놨다. 하나씩 해 봐.', 'quest'],
-      ['oh', '다 됐으면 「가게 열기」. 아침 아홉 시에 문 연다. 영업하는 동안 옆에서 봐 줄게.', 'open'],
+      ['oh', '내 부탁은 하나다. 사흘만 이 가게를 맡아 봐. 나머진 가게에서 하나씩 시킬게.', 'quest'],
+      ['oh', '다 됐으면 「가게 열기」. 아침 아홉 시에 문 연다. 이틀은 내가 옆에 서 있을 테니 걱정 마.', 'open'],
     ],
-    start: ['p_stir', 'p_serve', 'p_book', 'p_keys'], title: '알바생',
+    start: ['p_keys'], title: '알바생',
+  },
+  // ── 오 사장님 가게 길잡이 (data/tutorial.js) — 'tip' 줄은 장사 요령 카드: ['tip', 글, 가리킬 곳, 그림(아이콘 이름 · 여럿이면 배열)]
+  tut_hi: {
+    when: 'now',
+    lines: [
+      ['oh', '자, 문 열었다. 오늘은 내가 여기 서서 볼 테니까 겁먹지 마.'],
+      ['oh', '손님 오면 하나씩 알려 줄게. 시키는 대로만 해 봐.'],
+    ],
+  },
+  tut_cooked: {
+    when: 'now',
+    lines: [
+      ['tip', '바늘이 가운데 왔을 때 누르면 「완벽」입니다. 완벽하게 만든 음식을 먹은 손님은 별점을 후하게 주고, 가끔 팁도 줍니다.', null, ['tteok', 'face_love']],
+      ['oh', '떡볶이는 팔로 젓는 거다. 오늘내일 완벽하게 세 번 만들어 봐.'],
+    ],
+    start: ['p_stir'],
+  },
+  tut_paid: {
+    when: 'now',
+    lines: [
+      ['tip', '계산까지 마쳐야 돈이 들어옵니다. 계산 줄에서 오래 기다린 손님은 기분이 나빠져 별점을 낮게 줍니다.', null, ['register', 'face_angry']],
+      ['oh', '그래, 그게 장사 한 바퀴다. 주문 받고, 만들고, 갖다주고, 계산하고.'],
+      ['oh', '오늘은 이렇게 다섯 명만 끝까지 받아 봐.'],
+    ],
+    start: ['p_serve'],
+  },
+  tut_close: {
+    when: 'now',
+    lines: [
+      ['oh', '마감이다. 남은 손님까지 다 받으면 오늘 장부가 나온다.'],
+      ['oh', '장부는 끝까지 봐. 오늘 얼마 남았는지 모르고 장사하면 망한다.'],
+    ],
+    start: ['p_book'],
+  },
+  tut_d2: {
+    when: 'now',
+    lines: [
+      ['oh', '어제 잘했다. 오늘은 점심때 손님이 몰릴 거다.'],
+      ['oh', '그러니까 손이 놀 때 미리 만들어 둬. 주문 들어오면 바로 내주게.'],
+    ],
+    start: ['p_ahead'],
+  },
+  tut_ahead: {
+    when: 'now',
+    lines: [
+      ['tip', '미리 만든 음식은 손에 들고 있다가 주문이 들어오면 바로 내줄 수 있습니다. 손에 들 수 있는 만큼만 만들 수 있고, 마감까지 못 팔면 버립니다.', null, ['tteok', 'tteok']],
+      ['oh', '너무 많이 만들면 다 버린다. 손님 보면서 해.'],
+    ],
+  },
+  tut_wait: {
+    when: 'now',
+    lines: [
+      ['oh', '저 손님 봐라. 머리 위 막대가 줄고 있지?'],
+      ['tip', '손님 머리 위 막대는 기다릴 수 있는 시간입니다. 막대가 다 줄면 손님이 화를 내며 그냥 나갑니다.', null, ['face_angry']],
+      ['oh', '바쁠 땐 오래 기다린 손님부터 챙겨.'],
+    ],
+  },
+  tut_d3: {
+    when: 'now',
+    lines: [
+      ['ohPhone', '나다. 오늘은 허리 때문에 병원 가는 날이라 못 나간다.'],
+      ['ohPhone', '사흘째니까 혼자 해 봐. 내가 가르친 대로만 하면 된다.'],
+    ],
   },
   handover: {
     cut: 'handover', // 사흘째 밤, 가게 앞: 고민 → 결심 → 열쇠 (data/cutscenes.js). 끝나면 가게 이름 짓기
@@ -190,9 +254,9 @@ export const SCENES = {
 // 새 게임의 이야기 상태 (세이브 칸 story)
 //  ch 장 · title 칭호 · active 진행 중 퀘스트 · done 끝난 퀘스트 · prog 진행도 · queue 보여 줄 장면
 //  menus 연 메뉴 · soon 다음 날 열 메뉴 · fresh 오늘 처음 연 메뉴(「새 메뉴」 표시) · decor 장식 · today 오늘 끝낸 퀘스트
-//  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js)
+//  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js) · tut 끝낸 가게 길잡이 차례 (data/tutorial.js)
 export function newStory() {
-  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [] };
+  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [] };
 }
 
 // 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요

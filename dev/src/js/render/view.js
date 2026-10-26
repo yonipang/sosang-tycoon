@@ -6,6 +6,9 @@ import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount } from '../sim/player.js';
 import { menuOpen, questActive } from '../sim/story.js';
+import { TUT_SPOT } from '../data/tutorial.js';
+import { CAST } from '../data/story.js';
+import { ohInShop, tutAsk } from '../sim/tutorial.js';
 
 export const VW = W * TILE;
 export const VH = H * TILE;
@@ -184,6 +187,44 @@ function clueHint() {
   ctx.fillStyle = '#e0533a'; ctx.fillRect(x + 4, y + 2, 2, 5); ctx.fillRect(x + 4, y + 8, 2, 2);
 }
 
+// 오 사장님 가게 길잡이 (sim/tutorial.js): 시키는 곳을 분홍 화살표로 가리키고, 그 둘레가 반짝여요
+//  화살표 끝 (x, y) · dir: 'down' 위에서 아래로 · 'left' 오른쪽에서 왼쪽으로
+function arrow(x, y, dir) {
+  const k = Math.round(Math.sin(t * 7) * 2);
+  ctx.save();
+  if (dir === 'left') { ctx.translate(x + k, y); ctx.rotate(Math.PI / 2); } else ctx.translate(x, y - Math.abs(k));
+  // 아래를 보는 화살표 (끝이 0,0): 검은 테두리 → 분홍
+  const shape = (o, col) => { ctx.fillStyle = col; for (let i = 0; i < 6; i++) ctx.fillRect(-1 - i - o, -1 - i - o, 3 + i * 2 + o * 2, 1 + o); ctx.fillRect(-2 - o, -12 - o, 5 + o * 2, 6 + o); };
+  shape(1, '#3b2a20'); shape(0, '#ff5fa2');
+  ctx.fillStyle = '#ffd1e6'; ctx.fillRect(-1, -11, 1, 4);
+  ctx.restore();
+}
+function glow(x, y, w, h) {
+  const a = 0.45 + Math.sin(t * 7) * 0.35;
+  ctx.strokeStyle = `rgba(255,95,162,${a.toFixed(2)})`; ctx.lineWidth = 1;
+  ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, w - 1, h - 1);
+}
+function tutPointer() {
+  const a = tutAsk(), r = G.run;
+  if (!a || !r) return;
+  if (a.at === 'stove') { const [x, y] = STATIONS.stove.tiles[0]; glow(x * TILE - 1, y * TILE - 1, TILE + 2, TILE * 2 + 2); arrow((x + 1) * TILE + 2, y * TILE + 14, 'left'); }
+  else if (a.at === 'register') { const [x, y] = REGISTER.tiles[0]; glow(x * TILE - 1, y * TILE - 6, TILE * 2 + 2, TILE + 8); arrow(x * TILE + 24, y * TILE - 4, 'down'); }
+  else if (a.at === 'seat') {
+    const c = r.customers.filter(q => q.state === 'waitFood' && r.hands.some(d => d.menu === q.menu)).sort((p, q) => p.patience - q.patience)[0];
+    if (!c) return;
+    const px = Math.round(c.x * TILE), top = Math.round(c.y * TILE - 9 - (sittingNow(c) ? SIT_LIFT : 0));
+    glow(px - 1, top - 2, 18, 30);
+    arrow(px + 19, top + 12, 'left');
+  }
+}
+// 오 사장님 머리 위: 시킬 때 「!」
+function ohMark() {
+  if (!tutAsk()) return;
+  const x = TUT_SPOT.x * TILE + 3, y = TUT_SPOT.y * TILE - 30 + Math.round(Math.sin(t * 5) * 1.5);
+  bubble(x, y, 9, 12);
+  ctx.fillStyle = '#ff5fa2'; ctx.fillRect(x + 4, y + 2, 2, 5); ctx.fillRect(x + 4, y + 8, 2, 2);
+}
+
 // 아직 안 연 메뉴의 조리대는 그리지 않아요 (이야기로 메뉴가 열리면 생겨요)
 const visibleFurniture = () => FURNITURE.filter(f => !f.station || menuOpen(STATIONS[f.station].menu));
 
@@ -221,6 +262,11 @@ export function drawFrame(dt) {
     }
     const p = r.player;
     items.push({ y: p.y + 0.6, d: () => drawChar(0, p.x, p.y, p.dir, p.moving ? 'walk' : 'idle', t) });
+    // 프롤로그 1~2일차: 오 사장님이 화분 자리에 서서 지켜봐요 (시킬 때는 그쪽을 봐요)
+    if (ohInShop()) {
+      const a = tutAsk(), dir = a && a.at === 'stove' ? 1 : a && a.at === 'register' ? 3 : 2;
+      items.push({ y: TUT_SPOT.y + 0.6, d: () => drawChar(CAST.oh.char, TUT_SPOT.x, TUT_SPOT.y, dir, 'idle', t * 0.8 + 2) });
+    }
     // 탁자 위 음식
     SEATS.forEach((s, i) => {
       const c = r.seats[i] && r.customers.find(q => q.id === r.seats[i]);
@@ -243,6 +289,7 @@ export function drawFrame(dt) {
     const p = r.player;
     r.hands.forEach((d, i) => sprC(d.menu, p.x * TILE + 8 + (r.hands.length > 1 ? (i ? 7 : -7) : 0), p.y * TILE - 22));
     tint(r.min);
+    ohMark(); tutPointer(); // 길잡이 화살표는 맨 위에 밝게
   }
   // 누른 자리
   for (let i = marks.length - 1; i >= 0; i--) {

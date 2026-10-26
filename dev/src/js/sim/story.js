@@ -5,6 +5,7 @@ import { QUESTS, SCENES } from '../data/story.js';
 import { PREP_FIRST_DAY } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
 import { emit, defineCmd } from './events.js';
+import { tutSceneDone } from './tutorial.js';
 
 // 메뉴가 열렸는지 (조리대·주문·손님 메뉴가 모두 이걸 봐요)
 export const menuOpen = m => G.story ? G.story.menus.includes(m) : m === 'tteok';
@@ -107,6 +108,7 @@ defineCmd('sceneDone', ({ name }) => {
   if (sc.decor && !S.decor.includes(sc.decor)) S.decor.push(sc.decor);
   if (sc.opens === 'tools') S.toolsOpen = true;
   // 가게를 넘겨받을 때: 오 사장님 가게 돈은 사장님이 정리해 가고, 내 돈과 창업 대출로 새로 시작
+  tutSceneDone(id);
   if (sc.money === 'start') { G.cash = START_CASH; G.loan = START_LOAN; G.weekSales = 0; emit('toast', `가게 통장 · ${START_CASH.toLocaleString('ko-KR')}원으로 시작합니다`, 'good'); }
   emit('quest');
   if (G.phase === 'prep') emit('prep');

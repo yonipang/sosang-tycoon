@@ -18,6 +18,9 @@ window.__bot = (() => {
     const p = r.player;
     if (r.cook) { cook(r); return; }
     if (p.moving) return;
+    // 오 사장님이 미리 만들어 보라고 하면 (프롤로그 2일차)
+    const ask = window.__T.tutAsk();
+    if (ask && ask.at === 'stove' && ask.until === 'cookStart' && r.hands.length < 2) { tap(1, 1); return; }
     // 이야기: 냉장고 뒤 쪽지를 찾아야 하면 한가할 때 냉장고로
     if (G.story.active.includes('c1_note') && !r.hands.length && !r.tickets.length && !r.payLine.length) { tap(0, 1); return; }
     const waiting = r.customers.filter(c => c.state === 'waitFood');
@@ -30,7 +33,7 @@ window.__bot = (() => {
     if (front && front.patience / front.patMax < 0.6) { tap(8, 9); return; }
     if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
     if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) tap(8, 9); return; } // 포장은 계산대로
-    if (r.hands.length && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { tap(6, 1); return; }
+    if (r.hands.some(d => !d.ahead) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { tap(6, 1); return; } // 미리 만든 몫은 들고 있어요
     if (!atReg) tap(8, 9);
   }
   function check() {
@@ -46,7 +49,8 @@ window.__bot = (() => {
     let t = 0;
     const ui = document.getElementById('incUI'); // 돌발 이벤트 대화·카드는 넘겨요 (봇은 runFor라 멈춤과 상관없이 돌아요)
     for (let k = 0; k < 20 && !ui.hidden; k++) { const b = ui.querySelector('[data-inc]'); (b || ui).click(); }
-    while (G.phase === 'day' && t < sec) { think(); runFor(0.1); check(); t += 0.1; }
+    const talk = document.getElementById('talk'); // 영업 중 대화·요령 카드도 넘겨요 (오 사장님 가게 길잡이)
+    while (G.phase === 'day' && t < sec) { for (let k = 0; k < 4 && !talk.hidden; k++) talk.click(); think(); runFor(0.1); check(); t += 0.1; }
     return G.phase;
   }
   return { think, play, problems, games };

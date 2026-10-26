@@ -610,3 +610,18 @@ body.in-town #bar { display: none; }
 #townNav { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 8px 8px 0; }
 #townNav button { font: inherit; font-size: 16px; padding: 2px 8px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink); cursor: pointer; }
 #townNav button.off { opacity: .45; }
+
+/* 오 사장님 가게 길잡이 (프롤로그 1~2일차): 시키는 일 띠 · 장사 요령 카드 */
+#tutBar { position: absolute; left: 0; right: 0; bottom: 6px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(20,16,30,.86); border-top: 2px solid #ff5fa2; border-bottom: 2px solid #ff5fa2; color: #fff; line-height: 1.35; pointer-events: none; z-index: 6; }
+#tutBar p { margin: 0; flex: 1; font-size: 16px; text-shadow: 0 2px 0 #000; word-break: keep-all; }
+#tutBar .tb-face { flex: none; width: 32px; height: 32px; overflow: hidden; background: var(--paper-2); border: 2px solid #ff5fa2; }
+#tutBar .tb-face img { display: block; width: 32px; height: 64px; margin-top: -14px; }
+#tutBar.pop { animation: tutPop .35s ease-out; }
+@keyframes tutPop { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+.talk.tip-mode { justify-content: center; align-items: center; background: rgba(20,16,30,.7); }
+.tip-card { width: min(340px, 100%); background: #14101e; border: 3px solid #f2d33a; box-shadow: 0 4px 0 rgba(0,0,0,.4); padding: 10px 14px 14px; color: #fff; text-align: center; line-height: 1.5; }
+.tip-tag { display: inline-block; color: #f2d33a; letter-spacing: 1px; margin-bottom: 6px; }
+.tip-pics { display: flex; justify-content: center; gap: 12px; padding: 12px; margin-bottom: 8px; background: var(--paper-2); border: 2px solid #f2d33a; }
+.tip-pic img { display: block; width: 48px; height: auto; image-rendering: pixelated; }
+.tip-card p { margin: 0 0 12px; font-size: 16px; word-break: keep-all; }
+.tip-card .btn { display: inline-block; min-width: 120px; background: #ff3d8b; text-shadow: 0 2px 0 #a3134f; }

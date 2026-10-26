@@ -247,6 +247,16 @@ def own_sign(text='분식', bg=(200, 56, 42, 255), hi=(232, 104, 80, 255)):
 
 
 # 「식자재」 간판 (48x20) — 골목 끝 정 사장 식자재 마트 (그림의 MARKET 판 자리를 덮어요: 판 왼쪽 위 x32 · y70)
+TW_CUT = {'store': (16, 46), 'home': (32, 60), 'market': (16, 52)}  # 빼는 지붕 줄 (src/js/data/town.js 건물 높이와 맞춰요)
+
+
+def squash(im, y0, y1):  # 지붕 가운데 줄(y0~y1)을 빼서 낮게 — 마을 지도에서 건물이 너무 크지 않게 (포켓몬 하트골드 느낌)
+    out = Image.new('RGBA', (im.width, im.height - (y1 - y0)), (0, 0, 0, 0))
+    out.paste(im.crop((0, 0, im.width, y0)), (0, 0))
+    out.paste(im.crop((0, y1, im.width, im.height)), (0, y0))
+    return out
+
+
 def dull(im, k):  # 채도를 k만큼 빼고 살짝 어둡게
     from PIL import ImageEnhance
     a = im.split()[3]
@@ -321,11 +331,14 @@ def collect():
     s['sign_laundry'] = own_sign('세탁', (52, 96, 170, 255), (96, 140, 210, 255))  # 옆 세탁소 STORE 판 자리
     s['sign_flower'] = own_sign('꽃집', (56, 130, 70, 255), (100, 176, 110, 255))   # 맞은편 꽃집
     # 마을(밤·새벽 골목): 우리 집 빌라 · 정 사장 식자재 마트 · 게시판
-    s['st_home'] = crop(EXT, 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/4_Generic_Buildings_16x16.png', 368, 573, 96, 113)
-    s['st_market'] = crop(EXT, STORE, 240, 553, 112, 133)
+    #  마을 지도용 건물은 지붕 가운데를 빼서 낮게 (tw_ — 연출의 st_ 가게 그림은 그대로)
+    s['tw_home'] = squash(crop(EXT, 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/4_Generic_Buildings_16x16.png', 368, 573, 96, 113), TW_CUT['home'][0], TW_CUT['home'][1])
+    s['tw_market'] = squash(crop(EXT, STORE, 240, 553, 112, 133), TW_CUT['market'][0], TW_CUT['market'][1])
+    for k, x in (('flower', 0), ('bunsik', 176), ('laundry', 352)):
+        s['tw_' + k] = squash(crop(EXT, STORE, x, 409, 80, 118), TW_CUT['store'][0], TW_CUT['store'][1])
     s['sign_mart'] = own_sign_mart()
     # 마을 지도(위에서 내려다본 골목): 빈 가게 · 잔디 · 나무 · 벤치 · 덤불
-    s['st_vacant'] = dull(crop(EXT, STORE, 256, 409, 80, 118), 0.65)  # 빈 가게: 색을 빼서 문 닫은 느낌
+    s['tw_vacant'] = dull(squash(crop(EXT, STORE, 256, 409, 80, 118), TW_CUT['store'][0], TW_CUT['store'][1]), 0.65)  # 빈 가게: 색을 빼서 문 닫은 느낌
     s['sign_vacant'] = own_sign('임대', (120, 112, 104, 255), (160, 152, 144, 255))
     TER = 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/1_Terrains_and_Fences_16x16.png'
     s['grass'] = crop(EXT, TER, 48, 128, 16, 16)
