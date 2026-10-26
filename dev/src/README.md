@@ -7,9 +7,9 @@
 | engine | `util.js` `random.js` | 공통 도구 · 난수(rand/fxRand) |
 | sim | `events.js` | 사건(emit/onEvent) · 명령(defineCmd/runCmd) |
 | art | `atlas.js` | 그림 한 장 + 자리표 (art_pack.py가 만들어요) |
-| data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` `credits.js` `market.js` `town.js` `story.js` `tutorial.js` `cutscenes.js` `tools.js` `incidents.js` `district.js` | 메뉴·손님·돈과 시간·가게 배치·리뷰 문구·크레딧·재료 시세 소식·마을(지도·장소·행동 칸)·이야기(인물·퀘스트·대화 장면)·오 사장님 가게 길잡이(프롤로그 1~2일차)·연출 대본·장사 도구·돌발 이벤트·상권 |
+| data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` `credits.js` `market.js` `town.js` `story.js` `tutorial.js` `cutscenes.js` `tools.js` `incidents.js` `district.js` | 메뉴(레시피·원재료·오늘의 메뉴 칸)·손님·돈과 시간·가게 배치·리뷰 문구·크레딧·재료 시세 소식·마을(지도·장소·행동 칸)·이야기(인물·퀘스트·대화 장면)·오 사장님 가게 길잡이(프롤로그 1~2일차)·연출 대본·장사 도구·돌발 이벤트·상권 |
 | save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 · 클라우드 저장(구글 로그인, Firebase) |
-| sim | `market.js` `town.js` `story.js` `tutorial.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 이야기 규칙(퀘스트 세기·메뉴 열기) · 가게 길잡이(차례·시키는 동안 시계 멈춤) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
+| sim | `market.js` `pantry.js` `town.js` `story.js` `tutorial.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 재료 시세·원가 · 재료 창고(원재료·유통기한·오늘의 메뉴) · 마을 · 이야기 규칙(퀘스트 세기·메뉴 열기) · 가게 길잡이(차례·시키는 동안 시계 멈춤) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | render | `view.js` `cut.js` `town.js` | 가게 그리기 · 연출(밤 골목) 그리기 · 마을 지도(위에서 본 골목) 그리기 |
 | ui | `sfx.js` `icons.js` `hud.js` `story.js` `incident.js` `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 돌발 이벤트 대화·목표·결과 카드 · 연출 진행 · 준비/영수증 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
@@ -21,4 +21,5 @@
 
 ## 원가율 · 재료 시세
 - 메뉴 1인분 원가는 `sim/market.js` `costOf(m)` (그날 시세 반영). `MENUS[m].cost`를 직접 쓰지 말고 이걸 써요.
+- 재료는 원재료 낱개(`data/menu.js` INGREDIENTS)로 사고, 메뉴 한 그릇은 recipe 재료를 하나씩 써요. 창고·영업 중 재료 계산은 `sim/pantry.js`(`invServings`·`stockOf`·`takeMenu`)로만 해요.
 - 시세 소식은 `data/market.js`에 더하면 골목 신문 장면(`mk_이름`)이 저절로 생겨요.

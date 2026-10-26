@@ -1,15 +1,15 @@
 // 마을 규칙 (data/town.js): 밤·새벽 행동 칸 · 피로 · 청소/위생 · 이웃 이야기(소개 손님) · 전단지 · 새벽 장보기 · 오픈 준비
 // 화면은 만지지 않고 사건만: emit('town', 무엇, …) → ui/town.js · 저장은 emit('prep')(ui/feedback.js가 저장해요)
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS } from '../data/menu.js';
+import { MENU_IDS, INGREDIENTS } from '../data/menu.js';
 import {
   PLACES, PLACE_ACTS, ACTS, NIGHT_SLOTS, DAWN_SLOTS, FATIGUE_MAX, FATIGUE_SLOW, HYGIENE_DECAY, CLEAN_GAIN, HYGIENE_LOW,
-  FLYER_MUL, SETUP_MUL, SETUP_UNTIL, MARKET_PACK, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO,
+  FLYER_MUL, SETUP_MUL, SETUP_UNTIL, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO,
 } from '../data/town.js';
 import { seedRand, rand } from '../engine/random.js';
 import { emit, defineCmd } from './events.js';
-import { menuOpen } from './story.js';
-import { costOf } from './market.js';
+import { ingCost } from './market.js';
+import { openIngs, stockIn } from './pantry.js';
 
 export const newTown = () => ({ on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, seen: false, visits: 0 });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
@@ -72,53 +72,32 @@ function goDawn() {
   if (T.used < NIGHT_SLOTS && T.fatigue > 0) T.fatigue--;
   T.part = 'dawn'; T.used = 0; T.marketIn = false;
   seedRand(G.baseSeed + G.day * 7919 + 211); // 그날 씨앗 (영업 시작 때 다시 정해요)
-  const ms = MENU_IDS.filter(m => menuOpen(m));
-  T.deal = ms.length ? ms[Math.floor(rand() * ms.length)] : null;
+  const fresh = openIngs().filter(i => !INGREDIENTS[i].keep); // 특가는 신선 재료 하나
+  T.deal = fresh.length ? fresh[Math.floor(rand() * fresh.length)] : null;
   emit('town', 'dawn');
   emit('prep');
   emit('story'); // 새벽에 볼 장면 (골목 신문 등)
 }
 
-// 시장: 오늘 1인분 값 (특가면 15% 싸게, 10원 단위)
-export const marketUnit = m => Math.round(costOf(m) * (G.town.deal === m ? MARKET_DEAL : 1) / 10) * 10;
-// 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 메뉴: 몇 묶음(5인분) }
+// 시장: 오늘 재료 1인분 값 (특가면 15% 싸게, 10원 단위) — 원재료 낱개로 팔아요 (data/menu.js INGREDIENTS)
+export const marketUnit = i => Math.round(ingCost(i) * (G.town.deal === i ? MARKET_DEAL : 1) / 10) * 10;
+// 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 }
 defineCmd('marketBuyCart', ({ cart }) => {
   const T = G.town;
   if (!townMode() || T.part !== 'dawn' || !T.marketIn) return false;
-  const list = Object.entries(cart || {}).filter(([m, k]) => k > 0 && menuOpen(m));
+  const open = openIngs();
+  const list = Object.entries(cart || {}).filter(([i, k]) => k > 0 && open.includes(i));
   if (!list.length) return false;
-  const total = list.reduce((s, [m, k]) => s + marketUnit(m) * k * MARKET_PACK, 0);
+  const total = list.reduce((s, [i, k]) => s + marketUnit(i) * k * INGREDIENTS[i].pack, 0);
   if (total > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
-  for (const [m, k] of list) {
-    const n = k * MARKET_PACK;
-    G.cash -= marketUnit(m) * n;
-    G.inv[m].push({ n, exp: G.day + MENUS[m].shelf - 1 });
-    T.bought[m] = (T.bought[m] || 0) + n;
+  for (const [i, k] of list) {
+    const n = k * INGREDIENTS[i].pack;
+    G.cash -= marketUnit(i) * n;
+    stockIn(i, n);
+    T.bought[i] = (T.bought[i] || 0) + n;
   }
-  emit('toast', `재료를 샀습니다 · ${list.map(([m, k]) => `${MENUS[m].ing} ${k * MARKET_PACK}인분`).join(' · ')}`, 'good');
+  emit('toast', `재료를 샀습니다 · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
-  emit('prep');
-  return true;
-});
-defineCmd('marketBuy', ({ menu, packs }) => {
-  const T = G.town;
-  if (!townMode() || T.part !== 'dawn' || !T.marketIn || !menuOpen(menu)) return false;
-  const n = (packs || 1) * MARKET_PACK, cost = marketUnit(menu) * n;
-  if (n > 0) {
-    if (cost > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
-    G.cash -= cost;
-    G.inv[menu].push({ n, exp: G.day + MENUS[menu].shelf - 1 });
-  } else { // 오늘 산 것만 무를 수 있어요
-    const back = Math.min(-n, T.bought[menu] || 0);
-    if (!back) return false;
-    G.cash += marketUnit(menu) * back;
-    let k = back;
-    const today = G.inv[menu].filter(b => b.exp === G.day + MENUS[menu].shelf - 1).reverse();
-    for (const b of today) { const d = Math.min(k, b.n); b.n -= d; k -= d; if (!k) break; }
-    G.inv[menu] = G.inv[menu].filter(b => b.n > 0);
-  }
-  T.bought[menu] = (T.bought[menu] || 0) + (n > 0 ? n : -Math.min(-n, T.bought[menu] || 0));
-  emit('sfx', n > 0 ? 'coin' : 'tap');
   emit('prep');
   return true;
 });

@@ -59,7 +59,7 @@ export const FATIGUE_SLOW = 0.08;
 //  clean 청소: 위생 +60 (영업하면 하루 −25). 위생이 40 아래면 손님 만족이 떨어지고 리뷰에 나와요
 //  talk 이웃과 이야기: 다음 날 그 이웃 소개로 손님 한 팀이 와요
 //  flyer 전단지: 다음 날 가게 앞 손님 +15%
-//  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 5인분씩, 그날 특가 한 가지
+//  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 export const ACTS = {
   ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
@@ -87,7 +87,6 @@ export const HYGIENE_SAT = 0.5;      // 위생이 낮을 때 손님 만족 −0.
 export const FLYER_MUL = 1.15;
 export const SETUP_MUL = 1.15;
 export const SETUP_UNTIL = 120;      // 영업 시작부터 120분(11시)까지
-export const MARKET_PACK = 5;        // 한 번에 5인분
 export const MARKET_DEAL = 0.85;     // 오늘 특가 15% 싸게
 export const REFERRAL_AT = [120, 300]; // 소개 손님이 오는 때 (영업 시작부터 분)
 

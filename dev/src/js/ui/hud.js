@@ -9,6 +9,8 @@ import { WEEKDAYS } from '../data/economy.js';
 import { $, clockText, won, wonShort } from '../engine/util.js';
 import { icon } from './icons.js';
 import { menuOpen } from '../sim/story.js';
+import { stockOf, shortIng, todayMenus } from '../sim/pantry.js';
+import { INGREDIENTS } from '../data/menu.js';
 
 const last = {};
 function setText(id, v) { if (last[id] !== v) { last[id] = v; $(id).textContent = v; } }
@@ -43,9 +45,9 @@ export function updateHud() {
   }).join('');
   setHTML('hands', hands);
   // 남은 재료
-  setHTML('stockMini', MENU_IDS.filter(m => menuOpen(m)).map(m => {
-    const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0);
-    return `<span class="${r.stock[m] <= 0 ? 'out' : r.stock[m] <= 3 ? 'low' : ''}">${icon(m)}${r.stock[m] <= 0 ? '품절' : r.stock[m]}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] && r.ready[m].length ? `<i class="ready" title="미리 끓여 둔 그릇">${r.ready[m].length}</i>` : ''}</span>`;
+  setHTML('stockMini', todayMenus().map(m => {
+    const inc = r.rush.filter(o => o.menu === m).reduce((s, o) => s + o.n, 0), n = stockOf(m);
+    return `<span class="${n <= 0 ? 'out' : n <= 3 ? 'low' : ''}">${icon(m)}${n <= 0 ? '품절' : n}${inc ? `<i class="inc">+${inc}</i>` : ''}${r.ready && r.ready[m] && r.ready[m].length ? `<i class="ready" title="미리 끓여 둔 그릇">${r.ready[m].length}</i>` : ''}</span>`;
   }).join(''));
   setText('bSpeed', r.speed + '×');
   // 조리 미니게임
@@ -84,14 +86,15 @@ export function initDawn() {
   });
 }
 
-// 냉장고 창: 메뉴마다 남은 재료와 급구매 버튼
+// 냉장고 창: 메뉴마다 만들 수 있는 그릇(가장 먼저 떨어질 재료)과 급구매 버튼 (급구매는 메뉴 한 벌씩)
 export function renderRush() {
   const r = G.run;
   if (!r) return;
-  $('rushList').innerHTML = MENU_IDS.filter(m => menuOpen(m)).map(m => {
+  $('rushList').innerHTML = todayMenus().map(m => {
     const inc = r.rush.filter(o => o.menu === m);
     const wait = inc.length ? Math.ceil(Math.min(...inc.map(o => o.t))) : 0;
-    return `<div class="rush-row">${icon(m)}<div><b>${MENUS[m].ing}</b><small>남은 재료 ${r.stock[m]}인분${inc.length ? ` · ${inc.reduce((s, o) => s + o.n, 0)}인분 오는 중 (${wait}초)` : ''}</small></div>
+    const low = INGREDIENTS[shortIng(m)].name;
+    return `<div class="rush-row">${icon(m)}<div><b>${MENUS[m].ing}</b><small>${stockOf(m)}그릇 남음 · 먼저 떨어질 재료: ${low}${inc.length ? ` · ${inc.reduce((s, o) => s + o.n, 0)}그릇 분 오는 중 (${wait}초)` : ''}</small></div>
       <button type="button" class="btn small" data-rush="${m}" ${r.closing ? 'disabled' : ''}>${RUSH_QTY}인분 급구매<br>${won(rushCost(m))}</button></div>`;
   }).join('');
 }

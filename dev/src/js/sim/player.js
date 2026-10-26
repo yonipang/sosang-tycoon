@@ -2,7 +2,7 @@
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 import { G } from '../save/state.js';
-import { MENUS, QUALITY_NAME } from '../data/menu.js';
+import { MENUS, INGREDIENTS, QUALITY_NAME } from '../data/menu.js';
 import { PAY_STEP_SEC } from '../data/economy.js';
 import { STATIONS, REGISTER, SEATS, TABLES, PAY_SPOTS, solidForPlayer } from '../data/layout.js';
 import { josa } from '../engine/util.js';
@@ -14,6 +14,7 @@ import { handsMax, cookRule } from './tools.js';
 import { costOf } from './market.js';
 import { incidentNote, handTakeout } from './incidents.js';
 import { tutNote } from './tutorial.js';
+import { stockOf, takeMenu, shortIng, menuOn } from './pantry.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -94,9 +95,10 @@ defineCmd('cookStop', () => cookTap()); // 옛 이름
 // 주문이 없어도 미리 만들 수 있어요 (손에 들 수 있는 만큼만). 주문 없이 만든 몫은 손에 드는 순간 재료를 써요
 function startCook(st) {
   const r = G.run, m = st.menu;
+  if (!menuOn(m)) { emit('toast', `${josa(MENUS[m].name, '은/는')} 오늘 쉬는 메뉴입니다`, 'info'); return; }
   if (r.hands.length >= handsMax()) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
   const forOrder = ticketsCount(m) > handsCount(m);
-  if (!forOrder && r.stock[m] <= 0) { emit('toast', `${MENUS[m].ing} 재료가 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
+  if (!forOrder && stockOf(m) <= 0) { emit('toast', `${josa(INGREDIENTS[shortIng(m)].name, '이/가')} 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
   // 보온 통: 새벽에 미리 끓여 둔 그릇이 있으면 미니게임 없이 바로 들어요 (좋은 것부터)
   const rd = r.ready && r.ready[m];
   if (rd && rd.length) {
@@ -117,7 +119,7 @@ function startCook(st) {
 function toHands(m, q) {
   const r = G.run;
   const ahead = ticketsCount(m) <= handsCount(m); // 주문 없이 미리 만든 몫
-  if (ahead && r.stock[m] > 0) r.stock[m]--;
+  if (ahead && stockOf(m) > 0) takeMenu(m);
   r.hands.push(ahead ? { menu: m, q, ahead: true } : { menu: m, q });
 }
 

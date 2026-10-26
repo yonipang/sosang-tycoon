@@ -2,6 +2,7 @@
 import { newStory } from '../data/story.js';
 import { newTown } from '../sim/town.js';
 import { TUTORIAL } from '../data/tutorial.js';
+import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS } from '../data/menu.js';
 
 export function migrate(o) {
   if (!o || typeof o !== 'object') throw new Error('세이브 형식이 아니에요');
@@ -32,6 +33,21 @@ export function migrate(o) {
     for (const m in o.prep) o.prep[m] = 0;
     if (o.story.queue && !o.story.queue.includes('town1d')) o.story.queue.push('town1d');
   }
+  // 원재료 창고(v0.26) 이전 세이브: 메뉴 한 벌씩이던 재료를 그 메뉴의 원재료로 나눠요 (같은 양 · 같은 기한, 오래가는 재료는 오늘부터 새 기한)
+  //  식자재 특가·오늘 산 것도 메뉴로 적혀 있었으면 비워요
+  const oldMenus = MENU_IDS.filter(m => Array.isArray(o.inv[m]));
+  if (oldMenus.length) {
+    const inv = {}, d = o.day || 1;
+    for (const m of oldMenus) for (const b of o.inv[m]) for (const i of MENUS[m].recipe) {
+      const I = INGREDIENTS[i];
+      (inv[i] = inv[i] || []).push({ n: b.n, exp: I.keep ? Math.max(b.exp, d + I.shelf - 1) : b.exp });
+    }
+    o.inv = inv;
+  }
+  for (const i of ING_IDS) if (!Array.isArray(o.inv[i])) o.inv[i] = [];
+  if (o.town && MENU_IDS.includes(o.town.deal)) o.town.deal = null;
+  if (o.town && o.town.bought && Object.keys(o.town.bought).some(k => MENU_IDS.includes(k))) o.town.bought = {};
+  if (!Array.isArray(o.menuOff)) o.menuOff = []; // 오늘의 메뉴 이전 세이브: 열린 메뉴를 모두 팔아요
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

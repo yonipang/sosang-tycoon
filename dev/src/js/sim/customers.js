@@ -16,6 +16,7 @@ import { dirty } from './town.js';
 import { HYGIENE_SAT } from '../data/town.js';
 import { TUT_IMPATIENT } from '../data/tutorial.js';
 import { tutNote, tutHold } from './tutorial.js';
+import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -163,7 +164,7 @@ function removeTicket(c) {
   const m = c.menu;
   const handsM = r.hands.filter(d => d.menu === m).length;
   const ticketsM = r.tickets.filter(t => t.menu === m).length;
-  if (handsM <= ticketsM) r.stock[m]++;
+  if (handsM <= ticketsM) giveMenu(m);
 }
 
 // 손에 든 음식 중 주문표에 묶이지 않은 몫 = 주문 없이 미리 만든 것 (재료는 만들 때 이미 썼어요)
@@ -171,8 +172,8 @@ export function spareOf(m) {
   const r = G.run;
   return Math.max(0, r.hands.filter(d => d.menu === m).length - r.tickets.filter(t => t.menu === m).length);
 }
-// 팔 수 있나: 남은 재료가 있거나, 미리 만든 게 손에 있거나
-export const canSell = m => G.run.stock[m] > 0 || spareOf(m) > 0;
+// 팔 수 있나: 오늘의 메뉴에 있고, 재료가 다 있거나 미리 만든 게 손에 있거나
+export const canSell = m => menuOn(m) && (stockOf(m) > 0 || spareOf(m) > 0);
 
 function reaction(c, m) {
   const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1);
@@ -182,21 +183,21 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOpen(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
   const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
-  if (want && menuOpen(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것
+  if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
   if (re.leave && !c.tag && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 이벤트 손님은 가격 때문에 그냥 가지 않아요 (기분은 남아요)
   if (!canSell(m)) {
-    const alts = MENU_IDS.filter(x => x !== m && menuOpen(x) && canSell(x) && !reaction(c, x).leave);
+    const alts = MENU_IDS.filter(x => x !== m && canSell(x) && !reaction(c, x).leave);
     if (alts.length && (c.tag || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님은 다른 메뉴라도 먹어요
     else { partyLeaves(c, 'soldout', m); return; }
   }
-  if (!spareOf(m)) r.stock[m]--; // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
+  if (!spareOf(m)) takeMenu(m); // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
   c.menu = m; c.priceSat = re.sat;
   r.tickets.push({ cid: c.id, menu: m, table: SEATS[c.seat].table });
   c.patMax = c.patience = PATIENCE.food * P(c);

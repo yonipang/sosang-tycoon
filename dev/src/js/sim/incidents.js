@@ -8,6 +8,7 @@ import { rand, weighted } from '../engine/random.js';
 import { emit } from './events.js';
 import { menuOpen } from './story.js';
 import { spawnParty, freeChars, spareOf, canSell } from './customers.js';
+import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 
 // {menu} {qty} 채우기 ({menu}을/를처럼 조사가 붙으면 받침에 맞게)
 const fillText = (s, d) => String(s || '')
@@ -60,13 +61,13 @@ function startIncident(x) {
     x.waves = Array.from({ length: D.waves }, (_, k) => ({ at: r.min + k * D.gap, n: Math.min(per, D.size - k * per) })).filter(w => w.n > 0);
     groupWaves(x);
   } else if (D.kind === 'takeout') {
-    const ms = MENU_IDS.filter(m => menuOpen(m) && canSell(m));
+    const ms = MENU_IDS.filter(m => canSell(m));
     if (!ms.length || (D.menu && !ms.includes(D.menu))) { x.state = 'skip'; return; }
     x.menu = D.menu || ms[Math.floor(rand() * ms.length)];
     const spare = spareOf(x.menu); // 미리 만들어 손에 든 몫은 재료를 다시 쓰지 않아요
-    x.qty = Math.min(D.qty, r.stock[x.menu] + spare);
+    x.qty = Math.min(D.qty, stockOf(x.menu) + spare);
     x.left = x.qty; x.until = r.min + D.limit;
-    r.stock[x.menu] -= Math.max(0, x.qty - spare);
+    takeMenu(x.menu, Math.max(0, x.qty - spare));
     for (let i = 0; i < x.qty; i++) r.tickets.push({ cid: -1, menu: x.menu, table: 0, takeout: x });
     emit('order', -1, x.menu);
   } else if (D.kind === 'mission') {
@@ -78,7 +79,7 @@ function startIncident(x) {
   } else if (D.kind === 'guest') {
     const chars = freeChars('worker');
     if (!chars.length) { x.state = 'skip'; return; }
-    x.menu = menuOpen(D.menu) ? D.menu : MENU_IDS.find(m => menuOpen(m));
+    x.menu = menuOn(D.menu) ? D.menu : MENU_IDS.find(m => menuOn(m));
     x.until = r.min + D.limit;
     spawnParty([chars[0]], { force: true, tag: x, wants: x.menu });
   }
@@ -117,7 +118,7 @@ function endIncident(x, ok) {
     const left = r.tickets.filter(t => t.takeout === x);
     r.tickets = r.tickets.filter(t => t.takeout !== x);
     const handsM = r.hands.filter(d => d.menu === x.menu).length, others = r.tickets.filter(t => t.menu === x.menu).length;
-    r.stock[x.menu] += Math.max(0, left.length - Math.max(0, handsM - others));
+    giveMenu(x.menu, Math.max(0, left.length - Math.max(0, handsM - others)));
     r.log.sats.push(2);
   }
   // 단체: 계산한 아이마다 팁, 모두 받으면 덤 (성공·실패와 상관없이 받은 만큼은 받아요)

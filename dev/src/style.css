@@ -609,8 +609,42 @@ body.in-town #bar { display: none; }
 .mk-sum { display: flex; justify-content: space-between; padding-top: 8px; }
 .mk-sum b { font-weight: normal; color: var(--red-dark); }
 .mk-buy { display: block; width: 100%; margin-top: 8px; }
+.mk-foot { position: sticky; bottom: -10px; margin: 8px -10px -10px; padding: 0 10px 10px; background: var(--paper); border-top: 3px solid var(--ink); } /* 합계·구매하기는 늘 아래에 보여요 */
 .mk-buy[disabled] { opacity: .5; }
 .mk-sum b { font-weight: normal; }
+.mk-h { display: block; margin-top: 10px; padding-bottom: 2px; border-bottom: 2px solid var(--ink); color: var(--ink-soft); }
+.mk-h i { font-style: normal; color: var(--line); margin-left: 4px; }
+.mk-fill { display: block; width: 100%; margin: 8px 0 2px; background: var(--mustard); }
+.mk-row.plan > img { width: 32px; height: 32px; }
+em.today { font-style: normal; color: var(--red); }
+
+/* 오늘의 메뉴 (1장부터 · 가게 장부): 칸 8개 중 가게 등급만큼 열리고 나머지는 자물쇠 */
+.tmcard { background: var(--paper); border: 3px solid var(--ink); margin-bottom: 8px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px; }
+.slot { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; min-height: 108px; padding: 4px 2px; border: 2px solid var(--ink); background: var(--paper-2); text-align: center; line-height: 1.25; }
+.slot b { font-weight: normal; word-break: keep-all; }
+.slot small { color: var(--ink-soft); }
+.slot small.none { color: var(--red); }
+.slot .dish { width: 32px; height: 32px; flex: none; }
+.slot em.today { word-break: keep-all; }
+.slot.hurry { border-color: var(--red); }
+.slot.empty { justify-content: center; border: 2px dashed var(--line); background: transparent; }
+.slot.empty small { color: var(--line); }
+.slot.locked { justify-content: center; gap: 4px; background: var(--wood-2); border-color: var(--wood); color: var(--line); }
+.slot.locked small { color: var(--line); }
+.slot .lock { fill: currentColor; }
+.slot .lock .kh { fill: var(--wood-2); }
+.slot-x { margin-top: auto; padding: 0 6px; font: inherit; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); box-shadow: 0 2px 0 var(--ink); cursor: pointer; }
+.slot-x:active { transform: translateY(2px); box-shadow: none; }
+.tm-rest { padding: 0 8px 8px; }
+.tm-rest > small { display: block; color: var(--ink-soft); }
+.tm-off { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 4px 8px; font: inherit; color: var(--ink); text-align: left; background: transparent; border: 2px dashed var(--ink-soft); cursor: pointer; }
+.tm-off .dish { width: 32px; height: 32px; flex: none; opacity: .6; }
+.tm-off span { flex: 1; }
+.tm-off span small { margin-left: 6px; color: var(--ink-soft); }
+.tm-off b { font-weight: normal; background: var(--mustard); border: 2px solid var(--ink); padding: 0 6px; }
+.more p.recipe small { color: var(--ink-soft); }
+.left-ings { text-align: right; word-break: keep-all; }
 .prep-town { display: flex; gap: 8px; }
 .prep-town .btn { flex: 1; }
 #townNav { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 8px 8px 0; }

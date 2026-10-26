@@ -3,15 +3,17 @@
 import { G } from '../save/state.js';
 import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
-import { MENUS, MENU_IDS } from '../data/menu.js';
+import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
 import { TILE } from '../data/layout.js';
-import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_START, DAWN_START, HYGIENE_LOW, MARKET_PACK, MARKET_DEAL } from '../data/town.js';
+import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_START, DAWN_START, HYGIENE_LOW } from '../data/town.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
 import { townMode, slotsMax, actNow, placeOpen, marketUnit } from '../sim/town.js';
 import { menuOpen } from '../sim/story.js';
-import { invCount } from '../sim/day.js';
+import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
+import { ingNews } from '../sim/market.js';
+import { toast } from './feedback.js';
 import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
@@ -243,8 +245,10 @@ function tapTown(e) {
 // ── 아래 창: 장소의 할 일 · 이웃 이야기 · 시장 ──
 function sheet(html, cls) {
   const s = $('townSheet');
+  const keep = !s.hidden && s.className === 'town-sheet ' + (cls || '') ? s.scrollTop : 0; // 같은 창을 다시 그리면 스크롤 자리 그대로
   s.className = 'town-sheet ' + (cls || '');
   s.innerHTML = html; s.hidden = false;
+  s.scrollTop = keep;
   T.sheet = true;
 }
 export function closeSheet() { const s = $('townSheet'); if (!s) return; s.hidden = true; s.innerHTML = ''; if (T) T.sheet = false; }
@@ -284,23 +288,37 @@ function drawChat() {
   sheet(`<div class="ts-chat">${lineHTML(who, text)}</div>`, 'chat');
 }
 
-// 시장: 메뉴마다 5인분씩 장바구니에 담고, 아래 「구매하기」로 한 번에 사요 (장바구니는 화면에만 — 사기 전엔 돈이 안 나가요)
-let cart = {};
+// 시장: 원재료를 묶음으로 장바구니에 담고, 아래 「구매하기」로 한 번에 사요 (장바구니는 화면에만 — 사기 전엔 돈이 안 나가요)
+//  위 「오늘 팔 양」: 메뉴마다 몇 그릇 팔지 정하고 「모자란 재료 담기」를 누르면, 창고 재고를 빼고 모자란 재료만 담아요 (sim/pantry.js cartFor)
+let cart = {}, plan = {};
+const PLAN_STEP = 5;
+function planDefault() {
+  const last = G.history[G.history.length - 1];
+  plan = {};
+  for (const m of todayMenus()) plan[m] = Math.max(PLAN_STEP, Math.ceil(((last && last.sold[m]) || 10) / PLAN_STEP) * PLAN_STEP + PLAN_STEP);
+}
+function ingRow(i) {
+  const I = INGREDIENTS[i], Tn = G.town, unit = marketUnit(i), deal = Tn.deal === i, k = cart[i] || 0;
+  const inv = invOf(i), today = invToday(i), news = ingNews(i);
+  const uses = menusUsing(i).filter(m => menuOpen(m)).map(m => MENUS[m].name).join('·');
+  return `<div class="mk-row"><div class="mk-txt"><b>${I.name}${deal ? ' <span class="tag hot">특가</span>' : ''}${news ? ` <span class="tag ${news.mul > 1 ? 'warn' : 'new'}">시세${news.mul > 1 ? '▲' : '▼'}</span>` : ''}</b>
+    <small>${I.pack}인분 ${won(unit * I.pack)} · ${I.shelf}일 보관 · 재고 ${inv}${today ? ` <em class="today">오늘까지 ${today}</em>` : ''} · ${uses}</small></div>
+    <div class="step"><button type="button" data-ts="cart" data-i="${i}" data-d="-1" ${k ? '' : 'disabled'} aria-label="${I.name} 빼기">−</button><b>${k ? '+' + k * I.pack : 0}</b><button type="button" data-ts="cart" data-i="${i}" data-d="1" aria-label="${I.name} 담기">+</button></div></div>`;
+}
 function marketHTML() {
-  const Tn = G.town, last = G.history[G.history.length - 1];
-  const ms = MENU_IDS.filter(m => menuOpen(m));
-  const rows = ms.map(m => {
-    const unit = marketUnit(m), deal = Tn.deal === m, k = cart[m] || 0, bought = Tn.bought[m] || 0;
-    return `<div class="mk-row">${icon(m)}<div class="mk-txt"><b>${MENUS[m].ing}${deal ? ' <span class="tag hot">오늘 특가</span>' : ''}</b>
-      <small>${MARKET_PACK}인분 ${won(unit * MARKET_PACK)}${deal ? ` (${Math.round((1 - MARKET_DEAL) * 100)}% 싸게)` : ''} · 재고 ${invCount(m)}${bought ? ` (오늘 ${bought} 삼)` : ''}${last ? ` · 어제 ${last.sold[m] || 0}그릇` : ''}</small></div>
-      <div class="step"><button type="button" data-ts="cart" data-m="${m}" data-d="-1" ${k ? '' : 'disabled'} aria-label="${MENUS[m].ing} 빼기">−</button><b>${k * MARKET_PACK}인분</b><button type="button" data-ts="cart" data-m="${m}" data-d="1" aria-label="${MENUS[m].ing} 담기">+</button></div></div>`;
-  }).join('');
-  const total = ms.reduce((s, m) => s + marketUnit(m) * (cart[m] || 0) * MARKET_PACK, 0);
+  const ings = openIngs();
+  const planRows = todayMenus().map(m => `<div class="mk-row plan">${icon(m)}<div class="mk-txt"><b>${MENUS[m].name}</b><small>재료로 ${invServings(m)}그릇 · ${MENUS[m].recipe.map(i => INGREDIENTS[i].name).join('·')}</small></div>
+    <div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('');
+  const fresh = ings.filter(i => !INGREDIENTS[i].keep), keep = ings.filter(i => INGREDIENTS[i].keep);
+  const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
   return `<div class="ts-head"><b>정 사장 식자재</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <p class="ts-note">5인분씩 담아서 한 번에 삽니다. 먼저 산 재료부터 쓰고, 유통기한이 지나면 버립니다.</p>${rows}
-    <div class="mk-sum"><span>합계 <b>${won(total)}</b></span><span class="${short ? 'neg' : ''}">잔고 ${won(G.cash)}</span></div>
-    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '살 재료를 담아 보세요'}</button>`;
+    <small class="mk-h">오늘 팔 양</small>${planRows}
+    <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기</button>
+    <small class="mk-h">신선 재료 <i>매일</i></small>${fresh.map(ingRow).join('')}
+    ${keep.length ? `<small class="mk-h">오래가는 재료 <i>가끔</i></small>${keep.map(ingRow).join('')}` : ''}
+    <div class="mk-foot"><div class="mk-sum"><span>합계 <b>${won(total)}</b></span><span class="${short ? 'neg' : ''}">잔고 ${won(G.cash)}</span></div>
+    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '살 재료를 담아 보세요'}</button></div>`;
 }
 
 export function initTown() {
@@ -349,13 +367,15 @@ export function initTown() {
     const k = b.dataset.ts;
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
-    else if (k === 'cart') { const m = b.dataset.m; cart[m] = Math.max(0, (cart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
-    if (what === 'market') { T.sheetPlace = 'market'; cart = {}; if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
     if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });

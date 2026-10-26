@@ -1,12 +1,35 @@
 // 메뉴 (프로토타입: 분식집 3종). 가격·원가 단위는 원.
 // fair: 손님이 「적당하다」고 느끼는 기준 가격 (손님 유형·평판에 따라 달라져요 — data/customers.js)
 // game: 조리 미니게임 종류 (아래 COOK_GAMES) · cook: 졸이기 바늘 속도 (높을수록 어려워요)
-// ing: 재료 묶음 이름 · shelf: 유통기한(받은 날 포함 며칠 쓸 수 있는지). 재료 1인분 값 = cost
+// recipe: 1인분에 하나씩 쓰는 원재료 (아래 INGREDIENTS) · cost: 평소 1인분 원가 = 재료값 합 (시세는 sim/market.js costOf)
+// ing: 재료 한 벌 이름 (급구매·주문은 메뉴 한 벌씩)
 export const MENUS = {
-  tteok: { name: '떡볶이', price: 4000, cost: 1300, fair: 4000, station: 'stove', game: 'stir', cook: 1.0, ing: '떡볶이 재료', shelf: 2 },
-  kimbap: { name: '김밥', price: 3500, cost: 1100, fair: 3500, station: 'mat', game: 'roll', cook: 0.85, ing: '김밥 재료', shelf: 1 },
-  twigim: { name: '튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2, ing: '냉동 튀김', shelf: 5 },
+  tteok: { name: '떡볶이', price: 4000, cost: 1300, fair: 4000, station: 'stove', game: 'stir', cook: 1.0, ing: '떡볶이 재료', recipe: ['ddeok', 'fishcake', 'scallion', 'gochujang'] },
+  kimbap: { name: '김밥', price: 3500, cost: 1100, fair: 3500, station: 'mat', game: 'roll', cook: 0.85, ing: '김밥 재료', recipe: ['rice', 'gim', 'egg', 'carrot'] },
+  twigim: { name: '야채튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2, ing: '야채튀김 재료', recipe: ['batter', 'onion', 'carrot', 'oil'] },
 };
+// 원재료 (식자재 가게에서 낱개로 사요 — 기획서 「마을 가게와 성장 시스템」)
+//  pack: 한 묶음 몇 인분 · shelf: 유통기한(받은 날 포함 며칠) · cost: 1인분 값(원) · keep: 오래가는 재료(쌀·김·양념·가루·기름)
+//  메뉴가 늘면(메뉴 연구) 여기에 더하고 그 메뉴 recipe에 넣어요. 여러 메뉴가 같은 재료를 나눠 써요(당근: 김밥·튀김)
+export const INGREDIENTS = {
+  ddeok: { name: '떡', pack: 5, shelf: 2, cost: 500 },
+  fishcake: { name: '어묵', pack: 5, shelf: 3, cost: 400 },
+  scallion: { name: '대파', pack: 5, shelf: 3, cost: 200 },
+  carrot: { name: '당근', pack: 5, shelf: 5, cost: 200 },
+  onion: { name: '양파', pack: 5, shelf: 5, cost: 300 },
+  egg: { name: '계란', pack: 10, shelf: 7, cost: 300 },
+  gochujang: { name: '고추장', pack: 20, shelf: 30, cost: 200, keep: true },
+  rice: { name: '쌀', pack: 20, shelf: 30, cost: 300, keep: true },
+  gim: { name: '김', pack: 20, shelf: 30, cost: 300, keep: true },
+  batter: { name: '튀김가루', pack: 20, shelf: 30, cost: 300, keep: true },
+  oil: { name: '식용유', pack: 20, shelf: 30, cost: 400, keep: true },
+};
+export const ING_IDS = Object.keys(INGREDIENTS);
+// 오늘의 메뉴 칸: 8칸을 보여 주고 가게 등급만큼 열려요 (1등급 4칸 · 등급마다 한 칸씩). 가게 등급은 아직 1등급만 (2장 이후)
+export const MENU_SLOTS = 8;
+export const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8];
+export const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
+export const SHOP_GRADE = 1;
 export const MENU_IDS = ['tteok', 'kimbap', 'twigim'];
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
 export const PRICE_STEP = 500;

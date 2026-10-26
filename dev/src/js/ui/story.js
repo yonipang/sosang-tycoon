@@ -4,9 +4,9 @@ import { $, won } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { CAST, CHAPTERS, QUESTS, SCENES } from '../data/story.js';
 import { MARKET_NEWS } from '../data/market.js';
-import { MENUS } from '../data/menu.js';
-import { costOf } from '../sim/market.js';
-import { questProg, questWaiting } from '../sim/story.js';
+import { MENUS, INGREDIENTS } from '../data/menu.js';
+import { costOf, newsMenus } from '../sim/market.js';
+import { questProg, questWaiting, menuOpen } from '../sim/story.js';
 import { activeIncidents, incidentInfo } from '../sim/incidents.js';
 import { clockText } from '../engine/util.js';
 import { icon } from './icons.js';
@@ -118,19 +118,23 @@ export function updateTutBar() {
   if (a) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 }
 
-// 시세 소식: 우리 가게에 무엇이 바뀌는지 (재료값 · 원가율 · 며칠)
+// 시세 소식: 우리 가게에 무엇이 바뀌는지 (오르내리는 재료 · 그 재료를 쓰는 메뉴의 원가·원가율 · 며칠)
+const newsShopMenus = n => newsMenus(n).filter(m => menuOpen(m));
 function marketEffect(id) {
-  const n = MARKET_NEWS[id], m = n.menu, base = MENUS[m].cost, now = costOf(m), up = n.mul > 1;
-  return `<div class="np-effect ${up ? 'up' : 'down'}"><small>{shop} ${MENUS[m].name}</small>
-    <b>재료값 1인분 ${won(base)} → ${won(now)}</b>
-    <span>지금 가격이면 원가율 ${Math.round(base / G.prices[m] * 100)}% → ${Math.round(now / G.prices[m] * 100)}% · ${n.days}일 동안</span></div>`.replace('{shop}', G.shop);
+  const n = MARKET_NEWS[id], up = n.mul > 1;
+  const ings = n.ings.map(i => INGREDIENTS[i].name).join('·');
+  const rows = newsShopMenus(n).map(m => {
+    const base = MENUS[m].cost, now = costOf(m), pr = G.prices[m];
+    return `<b>${MENUS[m].name} 1인분 원가 ${won(base)} → ${won(now)}</b><span>지금 가격이면 원가율 ${Math.round(base / pr * 100)}% → ${Math.round(now / pr * 100)}%</span>`;
+  }).join('');
+  return `<div class="np-effect ${up ? 'up' : 'down'}"><small>${G.shop} · ${ings} 값 ${up ? '오름' : '내림'} · ${n.days}일 동안</small>${rows}</div>`;
 }
 
 function paperHTML(sc) {
   const P = sc.paper;
   return `<div class="np">
     <div class="np-mast"><b>골목 신문</b><small>${P.tag || `제${P.no}호`} · ${G.day}일차</small></div>
-    <div class="np-pic">${P.market ? icon(MARKET_NEWS[P.market].menu) : `${icon('char0')}${icon('tteok')}`}</div>
+    <div class="np-pic">${P.market ? icon(newsShopMenus(MARKET_NEWS[P.market])[0] || 'tteok') : `${icon('char0')}${icon('tteok')}`}</div>
     <h3 class="np-head">${fill(P.head)}</h3>
     <p class="np-sub">${fill(P.sub)}</p>
     <p class="np-body">${fill(P.body)}</p>
