@@ -6,7 +6,7 @@
 export const MENUS = {
   tteok: { name: '떡볶이', price: 4000, cost: 1300, fair: 4000, station: 'stove', game: 'stir', cook: 1.0, ing: '떡볶이 재료', recipe: ['ddeok', 'fishcake', 'scallion', 'gochujang'] },
   kimbap: { name: '김밥', price: 3500, cost: 1100, fair: 3500, station: 'mat', game: 'roll', cook: 0.85, ing: '김밥 재료', recipe: ['rice', 'gim', 'egg', 'carrot'] },
-  twigim: { name: '야채튀김', price: 3500, cost: 1200, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2, ing: '야채튀김 재료', recipe: ['batter', 'onion', 'carrot', 'oil'] },
+  twigim: { name: '야채튀김', price: 3500, cost: 900, fair: 3500, station: 'fryer', game: 'fry', cook: 1.2, ing: '야채튀김 재료', recipe: ['batter', 'onion', 'carrot', 'oil'] },
 };
 // 새 메뉴 (2장 · 메뉴 연구 칠판에서 개발): 기본 메뉴마다 5가지. 기본 메뉴는 그대로 두고 메뉴가 하나 더 생겨요 (v0.45 사용자 결정)
 //  base: 어느 메뉴에서 나왔나 (같은 조리대·같은 미니게임) · lv: 개발하려면 기본 메뉴 레벨 · dev: 개발비
@@ -59,8 +59,8 @@ export const INGREDIENTS = {
   gochujang: { name: '고추장', pack: 20, shelf: 30, cost: 200, keep: true },
   rice: { name: '쌀', pack: 20, shelf: 30, cost: 300, keep: true },
   gim: { name: '김', pack: 20, shelf: 30, cost: 300, keep: true },
-  batter: { name: '튀김가루', pack: 20, shelf: 30, cost: 300, keep: true },
-  oil: { name: '식용유', pack: 20, shelf: 30, cost: 400, keep: true },
+  batter: { name: '튀김가루', pack: 20, shelf: 30, cost: 200, keep: true }, // v0.45: 튀김 원가율이 높다는 말에 300 → 200
+  oil: { name: '식용유', pack: 20, shelf: 30, cost: 200, keep: true },     // v0.45: 400 → 200 (야채튀김 원가율 34% → 26%)
   // 새 메뉴 재료 (2장 · 메뉴 연구 칠판에서 그 메뉴를 개발하면 시장에 나와요)
   chili: { name: '청양고추', pack: 10, shelf: 4, cost: 200 },
   milk: { name: '우유', pack: 5, shelf: 3, cost: 400 },
