@@ -983,6 +983,20 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .pk-none { color: var(--ink-soft); word-break: keep-all; }
 /* 영업 중 아래 막대: 메뉴가 많아도 버튼이 밀리지 않게 */
 #stockMini { min-width: 0; overflow: hidden; flex-wrap: wrap; row-gap: 0; }
+
+.slot.buy { justify-content: center; gap: 2px; font: inherit; cursor: pointer; border: 2px dashed var(--mustard); background: #fff7d9; }
+.slot.buy small { color: var(--ink-soft); }
+.slot.buy .slot-plus { color: #a06a10; }
+
+/* 냉장고 (가게 안 · 창고 재료) */
+.pt-menus { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
+.pt-menus span { display: inline-flex; align-items: center; gap: 2px; }
+.pt-menus .dish { width: 24px; height: 24px; }
+.pt-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding-top: 6px; }
+.pt-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pt-row .mk-ic { width: 24px; height: 24px; }
+.pt-row span { flex: 1; }
+.pt-row small { width: 100%; padding-left: 28px; color: var(--red); font-size: 14px; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1206,7 +1220,12 @@ for (const m in MENUS) if (!MENUS[m].cost) MENUS[m].cost = MENUS[m].recipe.reduc
 const ING_IDS = Object.keys(INGREDIENTS);
 // 오늘의 메뉴 칸: 8칸을 보여 주고 가게 등급만큼 열려요 (1등급 4칸 · 등급마다 한 칸씩). 가게 등급은 G.shopLv (미소 가구 확장공사)
 const MENU_SLOTS = 8;
-const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8];
+const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8]; // (옛 세이브 보정용 — v0.45까지는 확장공사로 칸이 늘었어요)
+// 칸 늘리기 (v0.46 사용자 결정): 처음 4칸, 장이 나아갈 때마다 한 칸씩 더 늘릴 수 있어요 — 칸을 눌러 돈을 내고 열어요 (sim/pantry.js slotBuy)
+//  SLOT_CH[k] = k번째 칸(0부터)을 늘릴 수 있는 장 · SLOT_PRICE[k] = 그 칸 값
+const SLOT_START = 4;
+const SLOT_CH = [0, 0, 0, 0, 2, 3, 4, 5];
+const SLOT_PRICE = [0, 0, 0, 0, 100000, 200000, 300000, 400000];
 const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
 const MENU_IDS = Object.keys(MENUS); // 기본 3가지 + 새 메뉴 15가지 (열린 것만 써요 — sim/story.js menuOpen)
 const DEV_OPEN_CH = 2; // 새 메뉴 개발이 열리는 장
@@ -1518,7 +1537,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.45';
+const GAME_VERSION = '0.46';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1642,6 +1661,7 @@ const FATIGUE_SLOW = 0.08;
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 const ACTS = {
   ledger: { name: '오늘의 메뉴·가격', cost: 0, when: 'any' },
+  pantry: { name: '냉장고', cost: 0, when: 'any' },          // 창고 재료 보기 (v0.46: 오늘의 메뉴는 「가게 열기」에서)
   sales: { name: '판매 장부', cost: 0, when: 'any' },
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
@@ -1661,14 +1681,14 @@ const ACTS = {
 const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
+  shop: ['pantry', 'ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
   market: ['market'],
 };
 // 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
 const SHOP_SPOTS = [
-  { act: 'ledger', name: '냉장고 · 오늘의 메뉴', station: 'fridge' },
+  { act: 'pantry', name: '냉장고 · 창고 재료', station: 'fridge' },
   { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
   { act: 'counter', name: '계산대', register: true },
   { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
@@ -1799,7 +1819,7 @@ const FURN_SPECIAL = {
 // 미소 컬렉션 (♥♥♥♥♥): 6가지 한 번에 · 분위기 100 · 어느 테마로든 셈(테마 보너스 넷 다)
 const MISO_SET = { name: '미소 컬렉션', note: '미소 사장님이 사장님 가게만 생각하고 고른 한 벌', price: 1500000, heart: 5, mood: 100 };
 const MISO_NAMES = { wall: '꽃잎 벽지', floor: '따뜻한 무늬 바닥', window: '꽃 상자 창', plant: '꽃 핀 화분', frame: '말린 꽃 액자', table: '분홍 식탁보·방석' };
-// 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘고, 오늘의 메뉴 칸도 하나 늘어요 (data/layout.js applyShopLv · data/menu.js SLOTS_BY_GRADE)
+// 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘어요 (data/layout.js applyShopLv). 오늘의 메뉴 칸은 따로 — 장마다 늘려요 (v0.46)
 //  rent: 넓어진 만큼 주간 임대료가 더 나가요
 const SHOP_BUILD = {
   2: { name: '동네 가게', price: 1500000, heart: 2, rent: 70000, tables: 8 },
@@ -2710,6 +2730,7 @@ function migrate(o) {
     o.rating = o.revs.reduce((a, b) => a + b, 0) / 40; o.ratingN = Math.max(40, o.ratingN || 0);
   }
   if (!o.shopLv) o.shopLv = 1;
+  if (!o.menuSlots) o.menuSlots = SLOTS_BY_GRADE[o.shopLv] || 4; // 칸 늘리기(v0.46) 이전 세이브: 확장공사로 늘었던 칸은 그대로
   if (!o.guild) o.guild = { seen: false, due: 0, member: false, eq: { stove: 1, mat: 1, fryer: 1, fridge: 1, register: 1 }, tools2: [], visits: 0, tradeDay: 0 }; // 상인회(v0.41) 이전 세이브 // 확장공사(v0.36) 이전 세이브
   // 2장 이야기(v0.44) 이전 세이브: 1장을 끝냈으면 박 할머니 부탁부터, 미소 가구를 봤으면 미소 사장님 부탁도
   if (o.story && o.story.done.includes('c1_week')) {
@@ -2749,7 +2770,7 @@ const SAVE_V = 1;
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots'];
 
 const G = { phase: 'title', run: null };
 
@@ -2784,6 +2805,7 @@ function newGame(shopName) {
     bond: newBond(),
     furn: newFurn(),
     shopLv: 1,
+    menuSlots: SLOT_START, // 오늘의 메뉴 칸 수 (sim/pantry.js slotBuy)
     guild: newGuild(),
     phase: 'prep',
     run: null,
@@ -3179,7 +3201,25 @@ function useFifo(i, n) {
 }
 
 // ── 오늘의 메뉴 ──
-const slotsOpen = () => SLOTS_BY_GRADE[(G.shopLv || 1)]; // 가게 등급(확장공사 — sim/furniture.js)
+const slotsOpen = () => G.menuSlots || SLOT_START; // 늘린 칸 수 (장마다 한 칸씩 늘릴 수 있어요)
+// 다음에 늘릴 칸: { k, ch(필요한 장), price, ok(지금 장에서 늘릴 수 있나) } · 다 늘렸으면 null
+function nextSlot() {
+  const k = slotsOpen();
+  if (k >= MENU_SLOTS) return null;
+  return { k, ch: SLOT_CH[k], price: SLOT_PRICE[k], ok: !!G.story && G.story.ch >= SLOT_CH[k] };
+}
+defineCmd('slotBuy', () => {
+  const n = nextSlot();
+  if (G.phase !== 'prep' || !n) return false;
+  if (!n.ok) { emit('toast', `${n.ch}장이 되면 늘릴 수 있습니다`, 'info'); return false; }
+  if (G.cash < n.price) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
+  G.cash -= n.price;
+  G.menuSlots = n.k + 1;
+  emit('toast', `오늘의 메뉴 칸을 늘렸습니다 · ${G.menuSlots}칸`, 'good');
+  emit('sfx', 'coin');
+  emit('prep');
+  return true;
+});
 const menuOn = m => menuOpen(m) && !(G.menuOff || []).includes(m);
 const todayMenus = () => MENU_IDS.filter(menuOn);
 defineCmd('menuToggle', ({ menu }) => {
@@ -3871,6 +3911,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
   if (act === 'book') { emit('town', 'book'); return true; }
+  if (act === 'pantry') { emit('town', 'pantry'); return true; }
   if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn('sleep'); return true; }
@@ -6673,13 +6714,13 @@ function footHTML() {
 }
 
 function buildTab() {
-  const lv = shopLv(), B = nextBuild(), now = SLOTS_BY_GRADE[lv];
+  const lv = shopLv(), B = nextBuild();
   if (!B) return `<p class="ts-note">지금 가게 「${GRADE_NAMES[lv]}」 · 탁자 ${TABLES.length}개. 더 넓히는 공사는 준비 중입니다</p>`;
   const lock = bondLv('miso') < B.heart, price = buildPrice();
   return `<div class="fu-build">
-      <div class="fu-b-row"><span>지금</span><b>${GRADE_NAMES[lv]}</b><small>탁자 ${TABLES.length}개 · 메뉴 칸 ${now}</small></div>
+      <div class="fu-b-row"><span>지금</span><b>${GRADE_NAMES[lv]}</b><small>탁자 ${TABLES.length}개</small></div>
       <div class="fu-b-arrow">▼ 홀을 두 줄 넓혀요</div>
-      <div class="fu-b-row next"><span>공사 뒤</span><b>${B.name}</b><small>탁자 ${B.tables}개 · 메뉴 칸 ${SLOTS_BY_GRADE[lv + 1]}</small></div>
+      <div class="fu-b-row next"><span>공사 뒤</span><b>${B.name}</b><small>탁자 ${B.tables}개</small></div>
       <p class="fu-bonus">주간 임대료 +${wonShort(B.rent)} · 공사는 오늘 밤에 끝납니다</p>
     </div>
     <div class="mk-foot"><button type="button" class="btn primary big mk-buy" data-ts="fbuild" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hearts(B.heart)} 필요` : `확장공사 · ${won(price)}`}</button>
@@ -6954,7 +6995,7 @@ function showTown() {
 function renderNav() {
   if (T && T.inside) { // 가게 안: 할 일 버튼
     const dawn = G.town.part === 'dawn';
-    const B = [['ledger', '오늘의 메뉴'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -7144,6 +7185,15 @@ function actRow(id, a) {
   }
 }
 
+// 냉장고 (가게 안): 창고에 있는 재료 · 오늘까지 써야 하는 것 · 오늘의 메뉴마다 만들 수 있는 그릇
+function pantryHTML() {
+  const ings = openIngs().filter(i => invOf(i) > 0);
+  const rows = ings.map(i => { const t = invToday(i); return `<div class="pt-row${t ? ' today' : ''}">${icon('ing_' + i, 'mk-ic')}<span>${INGREDIENTS[i].name}</span><b>${invOf(i)}</b>${t ? `<small>오늘까지 ${t}</small>` : ''}</div>`; }).join('');
+  const menus = todayMenus().map(m => `<span>${icon(m, 'dish')}${invServings(m)}그릇</span>`).join('');
+  return `<div class="ts-head"><b>냉장고</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    <div class="pt-menus">${menus}</div>
+    ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 새벽 시장에서 재료를 사 보세요</p>'}`;
+}
 // 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
 function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
@@ -7282,6 +7332,7 @@ function initTown() {
     if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'guild') { T.sheetPlace = 'laundry'; if (chatQ) chatQ.after = () => sheet(guildHTML(), 'guild'); else sheet(guildHTML(), 'guild'); return; } // 문 회장님 이야기 뒤에 상인회 창
     if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
+    if (what === 'pantry') { T.sheetPlace = 'shop'; sheet(pantryHTML(), 'pantry'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
@@ -7304,6 +7355,7 @@ function refreshTown() {
   else if (s.classList.contains('guild')) sheet(guildHTML(), 'guild');
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
+  else if (s.classList.contains('pantry')) sheet(pantryHTML(), 'pantry');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
 // ── js/ui/cutscene.js ──
@@ -7575,7 +7627,6 @@ function menuSheet(m, last) {
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>
       <p class="recipe">${recipe}</p>
     </details>
-    ${on && todayMenus().length > 1 ? `<button type="button" class="btn" data-act="menuToggle" data-m="${m}">오늘은 쉬기</button>` : !on ? `<button type="button" class="btn primary" data-act="menuToggle" data-m="${m}">오늘 팔기</button>` : ''}
   </div></div>`;
 }
 
@@ -7585,7 +7636,7 @@ const LOCK_SVG = '<svg class="lock" viewBox="0 0 10 12" width="15" height="18" s
 function todayCard() {
   const on = todayMenus(), open = slotsOpen();
   const off = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
-  const gradeAt = k => SLOTS_BY_GRADE.findIndex(n => n > k); // 이 칸이 열리는 등급
+  const nx = nextSlot(); // 다음에 늘릴 칸 (지금 장에서 되면 값 · 아니면 몇 장부터)
   const todayIngs = m => recipeOf(m).filter(i => invToday(i) > 0).map(i => INGREDIENTS[i].name);
   const slots = Array.from({ length: MENU_SLOTS }, (_, k) => {
     const m = on[k];
@@ -7596,7 +7647,8 @@ function todayCard() {
       return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
-    return `<div class="slot locked">${LOCK_SVG}<small>${gradeAt(k)}등급</small></div>`;
+    if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
+    return `<div class="slot locked" aria-label="잠긴 칸">${LOCK_SVG}</div>`; // 자물쇠만 (v0.46 사용자 요청)
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
     <div class="slots">${slots}</div>
@@ -7956,6 +8008,7 @@ function initScreens(onStart) {
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
     else if (a === 'mmOpen') { mmOpen = m; pickOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'slotBuy') runCmd('slotBuy');
     else if (a === 'slotPick') { pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotSet') { pickOpen = null; const off = b.dataset.off; if (off) runCmd('menuSwap', { off, on: m }); else runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }
