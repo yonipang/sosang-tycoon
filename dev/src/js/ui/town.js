@@ -76,13 +76,28 @@ function townPath(from, to) {
   return out;
 }
 // 누른 칸이 막혀 있으면 가장 가까운 갈 수 있는 칸으로
+// 누른 칸에서 가장 가까운, 지금 걸어갈 수 있는 칸 (누른 곳이 막혀 있으면 그 앞)
+//  건물 뒤처럼 멀리 돌아가야 닿는 칸은 피해요 — 돌아가는 만큼 벌점 (누르면 엉뚱한 곳으로 가던 것)
 function nearestOpen(tx, ty) {
-  const m = walls();
-  let best = null, bd = 1e9;
+  const m = walls(), N = MAP_W * MAP_H, dist = new Int32Array(N).fill(-1);
+  const [sx, sy] = T ? meTile() : [tx, ty], s0 = sy * MAP_W + sx;
+  dist[s0] = 0;
+  const q = [s0];
+  for (let i = 0; i < q.length; i++) {
+    const c = q[i], cx = c % MAP_W, cy = (c - cx) / MAP_W;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy, k = ny * MAP_W + nx;
+      if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || m[k] || dist[k] >= 0) continue;
+      dist[k] = dist[c] + 1; q.push(k);
+    }
+  }
+  let best = null, bs = 1e9;
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
-    if (m[y * MAP_W + x]) continue;
-    const d = (x - tx) ** 2 + (y - ty) ** 2;
-    if (d < bd) { bd = d; best = [x, y]; }
+    const d = dist[y * MAP_W + x];
+    if (d < 0) continue;
+    const detour = d - (Math.abs(x - sx) + Math.abs(y - sy));
+    const score = Math.hypot(x - tx, y - ty) + detour * 0.6;
+    if (score < bs) { bs = score; best = [x, y]; }
   }
   return best;
 }
