@@ -48,6 +48,10 @@ export function migrate(o) {
   if (o.town && MENU_IDS.includes(o.town.deal)) o.town.deal = null;
   if (o.town && o.town.bought && Object.keys(o.town.bought).some(k => MENU_IDS.includes(k))) o.town.bought = {};
   if (!Array.isArray(o.menuOff)) o.menuOff = []; // 오늘의 메뉴 이전 세이브: 열린 메뉴를 모두 팔아요
+  // 메뉴 업그레이드(v0.27) 이전 세이브: 모두 Lv1, 숙련도는 지금까지 판 그릇(장부 기록)으로
+  if (!o.menuLv) o.menuLv = Object.fromEntries(MENU_IDS.map(m => [m, 1]));
+  if (!o.mastery) o.mastery = Object.fromEntries(MENU_IDS.map(m => [m, o.history.reduce((s, h) => s + ((h.sold && h.sold[m]) || 0), 0)]));
+  if (!o.fans) o.fans = {};
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

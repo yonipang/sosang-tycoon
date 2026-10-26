@@ -17,6 +17,7 @@ import { HYGIENE_SAT } from '../data/town.js';
 import { TUT_IMPATIENT } from '../data/tutorial.js';
 import { tutNote, tutHold } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
+import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -176,14 +177,14 @@ export function spareOf(m) {
 export const canSell = m => menuOn(m) && (stockOf(m) > 0 || spareOf(m) > 0);
 
 function reaction(c, m) {
-  const fair = MENUS[m].fair * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1);
+  const fair = MENUS[m].fair * fairMul(m) * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1); // 메뉴 레벨만큼 적당한 가격이 올라요
   return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
 }
 
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
+  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio); }
   let m = weighted(w);
   const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
   if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
@@ -218,13 +219,14 @@ export function serve(c, dish) {
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
   storyNote('served', { menu: c.menu });
+  noteServed(c.menu, dish.q); // 숙련도 (메뉴 업그레이드)
   if (dish.ahead) storyNote('ahead');
   incidentNote('served', c, dish.q);
   tutNote('served');
 }
 
 function satisfaction(c) {
-  let s = 3.5 + c.priceSat + [-0.2, 0.3, 0.8][Math.max(0, c.quality)];
+  let s = 3.5 + c.priceSat + [-0.2, 0.3, 0.8][Math.max(0, c.quality)] + (c.menu ? lvSat(c.menu) : 0); // 메뉴 레벨 만족
   if (c.foodWaitFrac > 0.6) s -= 0.7;
   if (c.payWaited) s -= 0.6;
   if (dirty()) s -= HYGIENE_SAT; // 위생이 낮으면 (data/town.js)
@@ -244,6 +246,7 @@ export function pay(c) {
     total += price;
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
+    noteSat(m, sat);
     const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
     L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
     incidentNote('paid', m);
@@ -261,10 +264,11 @@ export function pay(c) {
 function atDoor(c) {
   const r = G.run, members = partyOf(c);
   r.log.foot += members.length;
-  if (c.force || rand() < (r.enterP || 0)) { // 단골·돌발 손님은 꼭 들어와요
+  if (c.force || rand() < Math.min(0.95, (r.enterP || 0) * revisitMul(c.char))) { // 단골·돌발 손님은 꼭 들어와요 · 맛있게 먹었던 손님은 메뉴 레벨만큼 더 잘 들어와요
     r.log.entered += members.length;
     members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
     if (c.reg) emit('say', c.id, pickLine(REGULARS[c.reg].lines));
+    else if (!c.force) { const back = noteBack(c.char); if (back && fxRand() < 0.5) emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`); }
     return;
   }
   const glance = rand() < GLANCE_CHANCE;

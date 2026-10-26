@@ -1,11 +1,12 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 고정비 내는 날(고지서)
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOTS_BY_GRADE, GRADE_NAMES, SHOP_GRADE } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOTS_BY_GRADE, GRADE_NAMES, SHOP_GRADE, MENU_LEVELS } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost, weekBills } from '../sim/day.js';
+import { upgradeOpen, menuLv, lvInfo, lvCap, lvBasePrice, mastery, upState, anyUpReady } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
@@ -87,7 +88,8 @@ export function renderPrep() {
     const soldOut = last && had && last.sold[m] >= had;
     const inv = invServings(m), soon = recipeOf(m).filter(i => invToday(i) > 0).map(i => INGREDIENTS[i].name).join('·');
     // 꼭 볼 것만 칩으로: 새 메뉴 · 어제 품절 · 만들 수 있는 그릇(오늘까지 써야 하는 재료가 있으면 빨갛게)
-    const chips = (isNew ? '<span class="tag new">새 메뉴</span>' : '')
+    const lv = menuLv(m);
+    const chips = (lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : '') + (isNew ? '<span class="tag new">새 메뉴</span>' : '')
       + (soldOut ? '<span class="tag hot">어제 품절</span>' : '')
       + (inv ? `<span class="tag ${soon ? 'warn' : ''}">재고 ${inv}${soon ? ` · 오늘까지 ${soon}` : ''}</span>` : '');
     const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} <small>${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} · ${I.shelf}일</small>`; }).join('<br>');
@@ -95,6 +97,7 @@ export function renderPrep() {
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
+      ${lv > 1 ? `<div class="lv-base"><span>Lv${lv} 기본 가격</span><b>${won(lvBasePrice(m))}</b></div>` : ''}
       ${town ? `<div class="row"><span>재고</span><b class="stock-n">${inv}그릇${inv ? '' : ' · 새벽 시장에서 사 보세요'}</b></div>` : `<div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>`}
       <details class="more"><summary>자세히</summary>
         <p>원가 ${won(costOf(m))}${costOf(m) !== M.cost ? ` (평소 ${won(M.cost)})` : ''} · 원가율 ${Math.round(costRatio(m) * 100)}% · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}<br>오늘 만들 수 있는 양 ${inv + (town ? 0 : G.prep[m])}그릇${last ? ` · 어제 ${last.sold[m]}그릇 판매` : ''}</p>
@@ -109,6 +112,7 @@ export function renderPrep() {
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
       ${questCard()}
       ${town ? todayCard() : ''}
+      ${upgradeCard()}
       ${toolsCard()}
       ${cards}
       <div class="sum">
@@ -146,6 +150,25 @@ function todayCard() {
   </div>`;
 }
 
+// 메뉴 업그레이드 (1장 「첫 주 버티기」 뒤): 메뉴마다 숙련도 막대 · 다음 레벨 효과 · 올리기 (sim/upgrade.js)
+const pctTxt = v => `${Math.round(v * 100)}%`;
+function upgradeCard() {
+  if (!upgradeOpen()) return '';
+  const rows = MENU_IDS.filter(m => menuOpen(m)).map(m => {
+    const lv = menuLv(m), st = upState(m), next = MENU_LEVELS[lv + 1], cur = lvInfo(m);
+    const have = mastery(m), need = next ? next.need : have;
+    const bar = next ? Math.min(100, Math.round(have / need * 100)) : 100;
+    const eff = next ? `다음 Lv${lv + 1}: 적당한 가격 +${pctTxt(next.fair)} · 만족 +${next.sat} · 재방문 ${pctTxt(next.back)}` : `적당한 가격 +${pctTxt(cur.fair)} · 만족 +${cur.sat} · 재방문 ${pctTxt(cur.back)}`;
+    const btn = st === 'max' ? '<span class="u-note">최고 레벨</span>'
+      : st === 'cap' ? `<span class="u-note">다음 장에서<br>열립니다</span>`
+      : `<button type="button" class="btn small" data-act="menuUp" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'need' ? '숙련 모자람' : st === 'cash' ? '잔고 모자람' : '올리기'}<small>${wonShort(next.cost)}</small></button>`;
+    return `<div class="urow${st === 'ok' ? ' ready' : ''}" data-m="${m}">${icon(m, 'dish')}<div class="u-txt"><b>${MENUS[m].name} <i class="lv">Lv${lv}</i></b>
+      <div class="ubar"><i style="width:${bar}%"></i></div>
+      <small>숙련 ${have}${next ? `/${need}` : ''} · ${eff}</small></div>${btn}</div>`;
+  }).join('');
+  return `<div class="tcard upcard" data-guide="upgrade"><div class="q-head"><small>메뉴 업그레이드</small><b>많이 판 메뉴가 자랍니다</b></div>${rows}<p class="u-foot">숙련도는 내준 그릇 수입니다 (완벽 조리 1.5그릇). 다음 날 영업부터 효과가 납니다</p></div>`;
+}
+
 // 장사 도구 (오 사장님 권유로 1장 중간부터): 사면 계속 써요
 function toolsCard() {
   const S = G.story;
@@ -172,6 +195,13 @@ function costCard(c) {
   const extra = [w ? `버린 음식·재료 +${w}%` : '', ru ? `급구매 +${ru}%` : ''].filter(Boolean).join(' · ');
   return `<div class="hl wide cost ${crClass(c.total)}"><small>오늘 원가율</small><b>${pct(c.total)}</b><span>팔린 음식 재료 ${P(c.total) - w - ru}%${extra ? ` · ${extra}` : ' · 버린 것 없음!'}</span></div>`;
 }
+// 오늘 쌓은 숙련도 (메뉴 업그레이드가 열린 뒤)
+function masteryCard(g) {
+  if (!g || !upgradeOpen()) return '';
+  const t = MENU_IDS.filter(m => g[m]).map(m => `${MENUS[m].name} +${Math.round(g[m] * 10) / 10}`).join(' · ');
+  if (!t) return '';
+  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>가게 장부에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
+}
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 export function renderReceipt() {
   const R = G.lastReceipt;
@@ -188,6 +218,7 @@ export function renderReceipt() {
     incidentCard(R.incidents),
     best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
     costCard(R.cost),
+    masteryCard(R.mastery),
     R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
     R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
     R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '',
@@ -434,6 +465,7 @@ export function initScreens(onStart) {
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
+    else if (a === 'menuUp') runCmd('menuUp', { menu: m });
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

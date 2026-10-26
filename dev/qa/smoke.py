@@ -126,6 +126,17 @@ with sync_playwright() as pw:
         incs.append([d, pg.evaluate('JSON.stringify(__T.G.lastReceipt.incidents)'), pg.evaluate('(__T.G.lastReceipt.reviews||[]).map(v=>v.who).join(",")')])
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     to_prep(pg); shot(pg, '9-prep-day9')
+    # 메뉴 업그레이드 (1장 「첫 주 버티기」 뒤): 가게 장부에서 떡볶이 올리기
+    if not pg.locator('.upcard').count(): pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'ledger'})"); pg.wait_for_timeout(200); talk(pg)
+    up = {'mastery': pg.evaluate('JSON.stringify(__T.G.mastery)')}
+    if not pg.locator('.upcard').count(): errs.append('가게 장부에 메뉴 업그레이드 칸이 없어요')
+    else:
+        pg.locator('.upcard').screenshot(path=os.path.join(OUT, '9d-upgrade.png'))
+        if pg.locator('[data-act=menuUp][data-m=tteok]:not([disabled])').count():
+            pg.click('[data-act=menuUp][data-m=tteok]'); pg.wait_for_timeout(100)
+            if pg.evaluate('__T.G.menuLv.tteok') != 2: errs.append('떡볶이 업그레이드가 안 됐어요')
+        else: errs.append('떡볶이 숙련도가 30을 못 넘었어요')
+    up['lv'] = pg.evaluate('JSON.stringify(__T.G.menuLv)')
     story = pg.evaluate("JSON.stringify({dawn:__T.G.history.slice(-3).map(h=>h.day), tools:__T.G.story.tools, ch:__T.G.story.ch, title:__T.G.story.title, shop:__T.G.shop, done:__T.G.story.done, active:__T.G.story.active, decor:__T.G.story.decor, menus:__T.G.story.menus, prog:__T.G.story.prog})")
     bot0 = pg.evaluate('({problems: __bot.problems, games: __bot.games})')
     hist = pg.evaluate('JSON.stringify(__T.G.history.map(h=>[h.day,h.revenue,h.net,h.served,h.missed,+(h.rating||0).toFixed(2)]))')
@@ -144,6 +155,7 @@ print('본 장면:', seen)
 print('돌발 [일, 결과, 리뷰 쓴 사람]:'); [print('  ', i) for i in incs]
 print('도구:', pg_tools if 'pg_tools' in dir() else '')
 print('이야기:', st)
+print('메뉴 업그레이드:', up)
 print('끝:', state, '· 다시 열기:', after)
 print('봇 확인:', bot0['problems'][:5] or '문제 없음')
 print('오류:', errs or '없음')

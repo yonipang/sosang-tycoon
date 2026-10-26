@@ -128,6 +128,7 @@ export function initFeedback() {
     if (what === 'dawn') renderBarSoon();
   });
   onEvent('story', showNextScene);
+  onEvent('menuUp', m => { const el = document.querySelector(`.urow[data-m="${m}"]`); if (el) { el.classList.add('lvup'); el.scrollIntoView({ block: 'nearest' }); } }); // 메뉴 레벨이 오르면 그 줄이 반짝
   onEvent('quest', updateQuestTrack);
   onEvent('pause', on => { if (on) renderPause(); else if (G.phase === 'day') hideScreen(); });
   onEvent('closing', () => playSfx('page'));

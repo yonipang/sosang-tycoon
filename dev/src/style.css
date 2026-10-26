@@ -644,6 +644,27 @@ em.today { font-style: normal; color: var(--red); }
 .tm-off span small { margin-left: 6px; color: var(--ink-soft); }
 .tm-off b { font-weight: normal; background: var(--mustard); border: 2px solid var(--ink); padding: 0 6px; }
 .more p.recipe small { color: var(--ink-soft); }
+
+/* 메뉴 업그레이드 (가게 장부) */
+.tag.lv, i.lv { font-style: normal; background: var(--mustard); border: 2px solid var(--ink); color: var(--ink); padding: 0 4px; }
+.lv-base { display: flex; justify-content: space-between; color: var(--ink-soft); }
+.lv-base b { font-weight: normal; color: var(--green); }
+.urow { display: flex; align-items: center; gap: 8px; padding: 8px; border-top: 2px dashed var(--line); }
+.urow:nth-of-type(2) { border-top: 0; }
+.urow .dish { width: 32px; height: 32px; flex: none; }
+.u-txt { flex: 1; min-width: 0; }
+.u-txt b { font-weight: normal; }
+.u-txt small { display: block; color: var(--ink-soft); word-break: keep-all; line-height: 1.35; }
+.ubar { height: 8px; margin: 2px 0 4px; background: var(--paper-2); border: 2px solid var(--ink); }
+.ubar i { display: block; height: 100%; background: var(--green); }
+.urow.ready .ubar i { background: var(--mustard); }
+.urow .btn { flex: none; width: auto; margin: 0; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; line-height: 1.2; background: var(--mustard); }
+.urow .btn small { color: var(--ink-soft); }
+.urow .btn[disabled] { opacity: .5; background: var(--paper-2); }
+.u-note { flex: none; color: var(--ink-soft); }
+.u-foot { margin: 0; padding: 4px 8px 8px; color: var(--ink-soft); word-break: keep-all; }
+.urow.lvup { animation: lvUp 1s ease-out; }
+@keyframes lvUp { 0% { background: var(--mustard); transform: scale(1.04); } 40% { background: #fff3c4; transform: scale(1); } 100% { background: transparent; } }
 .left-ings { text-align: right; word-break: keep-all; }
 .prep-town { display: flex; gap: 8px; }
 .prep-town .btn { flex: 1; }

@@ -15,7 +15,8 @@ export const SAVE_V = 1;
 // meta = 세이브 꼬리표 { id: 이 가게(판) 번호, at: 마지막 저장 시각 } — 클라우드 저장에서 같은 판인지·어느 쪽이 최근인지 봐요
 // prep = 오늘 아침 도착할 재료 주문량(메뉴마다 인분 — 프롤로그·1장 첫날) · inv = 원재료 창고 { 재료: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] } (sim/pantry.js)
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff'];
+// menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans'];
 
 export const G = { phase: 'title', run: null };
 
@@ -41,6 +42,9 @@ export function newGame(shopName) {
     market: { id: null, until: 0 },
     town: newTown(),
     menuOff: [],
+    menuLv: Object.fromEntries(MENU_IDS.map(m => [m, 1])),
+    mastery: Object.fromEntries(MENU_IDS.map(m => [m, 0])),
+    fans: {},
     phase: 'prep',
     run: null,
   });

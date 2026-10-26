@@ -31,6 +31,24 @@ export const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8];
 export const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
 export const SHOP_GRADE = 1;
 export const MENU_IDS = ['tteok', 'kimbap', 'twigim'];
+// 메뉴 업그레이드 (기획서 「마을 가게와 성장 시스템」): Lv1~5. 숙련도 + 돈으로 올려요 (sim/upgrade.js)
+//  숙련도 = 그 메뉴를 내준 그릇 (완벽 조리는 MASTERY_PERFECT그릇) — 쌓인 숙련도가 need를 넘으면 cost를 내고 올려요 (숙련도는 줄지 않아요)
+//  fair: 손님이 적당하다고 느끼는 가격 +(배율) · sat: 손님 만족 + · back: 재방문률 — 만족 REVISIT_SAT점 이상 먹은 손님은
+//  다음에 가게 앞을 지날 때 (back − Lv1 back)만큼 더 잘 들어와요 (Lv1은 지금과 같아요)
+export const MENU_LEVELS = [
+  null,
+  { fair: 0, sat: 0, back: 0.10, need: 0, cost: 0 },
+  { fair: 0.05, sat: 0.1, back: 0.13, need: 30, cost: 30000 },
+  { fair: 0.10, sat: 0.15, back: 0.16, need: 100, cost: 80000 },
+  { fair: 0.15, sat: 0.2, back: 0.19, need: 250, cost: 150000 },
+  { fair: 0.20, sat: 0.3, back: 0.22, need: 500, cost: 300000 },
+];
+export const MENU_LV_MAX = 5;
+export const MASTERY_PERFECT = 1.5;
+export const REVISIT_SAT = 4;
+// 장마다 올릴 수 있는 최고 레벨 (G.story.ch 순서: 프롤로그·1장은 아직 · 1장 끝(2장)부터 Lv3 · 5장 Lv5 — Lv4~5는 나중에 메뉴 연구 「비법 노트」도 필요)
+//  업그레이드는 1장 「첫 주 버티기」를 끝내면 열려요 (오 사장님 전화)
+export const MENU_LV_CAP = [1, 1, 3, 3, 3, 5];
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
 export const PRICE_STEP = 500;
 export const PRICE_MIN = 1500;

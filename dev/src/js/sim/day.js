@@ -18,6 +18,7 @@ import { readyCap } from './tools.js';
 import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, ingCost, marketNextDay, costBreakdown } from './market.js';
 import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, giveMenu, shortIng, todayMenus, menuOn } from './pantry.js';
+import { upgradeEndDay } from './upgrade.js';
 import { townEnterNight, townSpeedMul, setupUntil, flyerMul, referralPlan, townEndDay, dirty } from './town.js';
 
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
@@ -39,6 +40,7 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
+      mastery: {}, fans: {}, back: {}, // 메뉴 업그레이드: 오늘 숙련도 · 맛있게 먹은 손님 · 다시 온 손님 (sim/upgrade.js, 마감 때 더해요)
       priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
   };
@@ -198,6 +200,7 @@ export function endDay() {
   closeIncidents(); // 끝나지 않은 돌발은 실패로
   if (dirty()) L.events.push({ kind: 'dirty', who: '손님' }); // 위생이 낮으면 리뷰에 나와요
   townEndDay();
+  const masteryGain = upgradeEndDay();
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
   for (const m in r.ready) { const k = Math.min(r.ready[m].length, Math.max(0, stockOf(m))); takeMenu(m, k); readyLeft += k * costOf(m); }
@@ -230,7 +233,7 @@ export function endDay() {
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: G.rating - before, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
-    incidents: L.incidents || [], reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
+    incidents: L.incidents || [], mastery: masteryGain, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
   G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
   if (G.history.length > 60) G.history.shift();
