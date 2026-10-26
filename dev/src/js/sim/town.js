@@ -71,6 +71,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
   if (act === 'book') { emit('town', 'book'); return true; }
+  if (act === 'pantry') { emit('town', 'pantry'); return true; }
   if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn('sleep'); return true; }

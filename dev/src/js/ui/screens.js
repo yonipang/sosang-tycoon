@@ -1,6 +1,6 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 고정비 내는 날(고지서)
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOT_CH } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
@@ -197,7 +197,7 @@ function todayCard() {
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
     if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
-    return `<div class="slot locked">${LOCK_SVG}<small>${SLOT_CH[k]}장</small></div>`;
+    return `<div class="slot locked" aria-label="잠긴 칸">${LOCK_SVG}</div>`; // 자물쇠만 (v0.46 사용자 요청)
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
     <div class="slots">${slots}</div>

@@ -982,3 +982,13 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .slot.buy { justify-content: center; gap: 2px; font: inherit; cursor: pointer; border: 2px dashed var(--mustard); background: #fff7d9; }
 .slot.buy small { color: var(--ink-soft); }
 .slot.buy .slot-plus { color: #a06a10; }
+
+/* 냉장고 (가게 안 · 창고 재료) */
+.pt-menus { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
+.pt-menus span { display: inline-flex; align-items: center; gap: 2px; }
+.pt-menus .dish { width: 24px; height: 24px; }
+.pt-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding-top: 6px; }
+.pt-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pt-row .mk-ic { width: 24px; height: 24px; }
+.pt-row span { flex: 1; }
+.pt-row small { width: 100%; padding-left: 28px; color: var(--red); font-size: 14px; }

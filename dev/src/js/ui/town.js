@@ -230,7 +230,7 @@ export function showTown() {
 function renderNav() {
   if (T && T.inside) { // 가게 안: 할 일 버튼
     const dawn = G.town.part === 'dawn';
-    const B = [['ledger', '오늘의 메뉴'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -420,6 +420,15 @@ function actRow(id, a) {
   }
 }
 
+// 냉장고 (가게 안): 창고에 있는 재료 · 오늘까지 써야 하는 것 · 오늘의 메뉴마다 만들 수 있는 그릇
+function pantryHTML() {
+  const ings = openIngs().filter(i => invOf(i) > 0);
+  const rows = ings.map(i => { const t = invToday(i); return `<div class="pt-row${t ? ' today' : ''}">${icon('ing_' + i, 'mk-ic')}<span>${INGREDIENTS[i].name}</span><b>${invOf(i)}</b>${t ? `<small>오늘까지 ${t}</small>` : ''}</div>`; }).join('');
+  const menus = todayMenus().map(m => `<span>${icon(m, 'dish')}${invServings(m)}그릇</span>`).join('');
+  return `<div class="ts-head"><b>냉장고</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    <div class="pt-menus">${menus}</div>
+    ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 새벽 시장에서 재료를 사 보세요</p>'}`;
+}
 // 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
 function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
@@ -558,6 +567,7 @@ export function initTown() {
     if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'guild') { T.sheetPlace = 'laundry'; if (chatQ) chatQ.after = () => sheet(guildHTML(), 'guild'); else sheet(guildHTML(), 'guild'); return; } // 문 회장님 이야기 뒤에 상인회 창
     if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
+    if (what === 'pantry') { T.sheetPlace = 'shop'; sheet(pantryHTML(), 'pantry'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
@@ -580,5 +590,6 @@ export function refreshTown() {
   else if (s.classList.contains('guild')) sheet(guildHTML(), 'guild');
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
+  else if (s.classList.contains('pantry')) sheet(pantryHTML(), 'pantry');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
