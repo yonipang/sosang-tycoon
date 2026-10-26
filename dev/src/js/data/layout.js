@@ -67,7 +67,7 @@ export function applyShopLv(lv) {
   QUEUE_SPOTS.length = 0; QUEUE_SPOTS.push([6, WALK_Y], [7, WALK_Y], [4, WALK_Y]);
   FURNITURE.length = 0;
   FURNITURE.push(...BACK_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
-    { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 2.125, over: true });
+    { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 1.125, over: true });
   FURN_SPOTS.plant = [[0, 4], [0, last]];
   return true;
 }

@@ -9,7 +9,7 @@ import { menuOpen, questActive } from '../sim/story.js';
 import { TUT_SPOT } from '../data/tutorial.js';
 import { CAST } from '../data/story.js';
 import { ohInShop, tutAsk } from '../sim/tutorial.js';
-import { furnSpr, furnHave, chairSpr } from '../sim/furniture.js';
+import { furnSpr, furnHave, chairSpr, withFurn } from '../sim/furniture.js';
 
 export let VW = W * TILE;
 export let VH = H * TILE; // 가게 등급(확장공사)이 바뀌면 fitView에서 다시 (data/layout.js applyShopLv)
@@ -327,3 +327,35 @@ export function drawIdle(dt, night) {
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);
 }
+
+// 마을 · 가게 안 (밤·새벽, 손님 없이): 사장이 걸어 다니고 물건을 눌러요 (ui/town.js). 마을 캔버스에 그려요
+//  S: { me: { x, y, dir, moving }, time, dawn, marks: [{ x, y }] (칸 — 누를 수 있는 물건 위 작은 점) }
+//  S.preview: 미소 가구 장바구니를 얹어서 · S.rows: 위에서 몇 줄만 (미리보기) · S.me 없으면 사장 없이
+export function drawShopTo(canvas, S) {
+  if (!ready) return;
+  if (S.preview) { withFurn(S.preview, () => drawShopTo(canvas, { ...S, preview: null })); return; }
+  const keep = ctx, ch = S.rows ? S.rows * TILE : VH;
+  if (canvas.width !== VW || canvas.height !== ch) { canvas.width = VW; canvas.height = ch; }
+  ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, VW, VH);
+  drawRoom();
+  for (const f of visibleFurniture().filter(f => f.y < 3 && !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  const items = [];
+  for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(fSpr(f), f.x * TILE, f.y * TILE) });
+  SEATS.forEach(s => items.push({ y: s.y + 0.2, d: () => spr(chairSpr(), s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  for (const d of decorNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
+  for (const d of plantsNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
+  const me = S.me;
+  if (me) items.push({ y: me.y + 0.6, d: () => drawChar(0, me.x, me.y, me.dir, me.moving ? 'walk' : 'idle', S.time) });
+  items.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  // 밤엔 가게 불을 켠 느낌으로 살짝만 어둡게
+  if (!S.rows) { ctx.fillStyle = S.dawn ? 'rgba(60,80,145,.12)' : 'rgba(30,36,90,.16)'; ctx.fillRect(0, 0, VW, VH); }
+  const bob = Math.round(Math.sin(S.time * 4) * 1.5);
+  for (const m of S.marks || []) { // 누를 수 있는 물건: 노란 점
+    ctx.fillStyle = 'rgba(59,42,32,.6)'; ctx.fillRect(Math.round(m.x * TILE) - 2, Math.round(m.y * TILE) - 2 + bob, 5, 5);
+    ctx.fillStyle = '#f5d76e'; ctx.fillRect(Math.round(m.x * TILE) - 1, Math.round(m.y * TILE) - 1 + bob, 3, 3);
+  }
+  ctx = keep;
+}
+export const shopViewSize = () => ({ w: VW, h: VH });

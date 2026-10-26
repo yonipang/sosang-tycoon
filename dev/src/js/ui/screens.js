@@ -141,15 +141,15 @@ function renderLedger(last, after, dawn) {
   const bills = G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : '';
   showScreen(`
     <div class="prep book">
-      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop}</div>
-      <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '가게 장부'}</h2>
+      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
+      <h2>${dawn ? '가게 열기' : '오늘의 메뉴'}</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
       ${qline}
       ${todayCard()}
       ${tools}
       ${bills}
       ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
-      <button class="btn" data-act="toTown">골목으로</button>
+      <button class="btn" data-act="toTown">돌아가기</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
     </div>`, 'scr-prep');
@@ -217,7 +217,7 @@ function toolsCard() {
 function leftLine(R) {
   const L = R.leftover || {};
   const left = Object.keys(L).filter(i => L[i] && (INGREDIENTS[i] || MENUS[i])).map(i => `${(INGREDIENTS[i] || MENUS[i]).name} ${L[i]}`).join(' · ');
-  return left ? `<div class="ln note"><span>내일 쓸 재료</span><b class="left-ings">${left}</b></div>` : '';
+  return left ? `<div class="ln note wrap"><span>내일 쓸 재료</span><b class="left-ings">${left}</b></div>` : '';
 }
 // 오늘 원가율: 팔린 음식 재료 + 버린 것 + 급구매 웃돈 (메뉴 원가율보다 얼마나 더 들었는지 보여 줘요)
 const pct = r => `${Math.round(r * 100)}%`;
@@ -295,19 +295,21 @@ export function renderReceipt() {
     <div class="receipt paged" data-pages="${pages.length}">
       ${PAGES}
       <div class="rc-dots">${dots}</div>
+      <div class="rc-nav"><button class="btn big rc-prev" data-act="rcPrev" hidden>◂ 이전</button>
       <button class="btn primary big rc-next" data-act="rcNext"${last ? '' : ' hidden'}>다음 ▸</button>
-      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button>
+      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button></div>
       ${last ? '<button class="btn ghost small rc-skip" data-act="afterReceipt">건너뛰기</button>' : ''}
     </div>`, 'scr-receipt');
   countUp(document.querySelector('.hero-num'));
 }
 // 영수증 다음 장 (같은 화면에서 숨기고 보여 줘요 — 다시 그리지 않아서 숫자 세기가 다시 돌지 않아요)
 let rcPage = 0;
-function receiptNext() {
+function receiptNext(d = 1) {
   const box = document.querySelector('.receipt.paged');
   if (!box) return;
   const n = +box.dataset.pages;
-  rcPage = Math.min(n - 1, rcPage + 1);
+  rcPage = Math.max(0, Math.min(n - 1, rcPage + d));
+  box.querySelector('.rc-prev').hidden = rcPage === 0; // 이전 장으로
   box.querySelectorAll('.rc-page').forEach(p => { p.hidden = +p.dataset.p !== rcPage; });
   box.querySelectorAll('.rc-dots i').forEach((d, k) => d.classList.toggle('on', k === rcPage));
   const end = rcPage === n - 1;
@@ -554,6 +556,7 @@ export function initScreens(onStart) {
     else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
     else if (a === 'quests') openQuests();
     else if (a === 'rcNext') receiptNext();
+    else if (a === 'rcPrev') receiptNext(-1);
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

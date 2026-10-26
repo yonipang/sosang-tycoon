@@ -74,7 +74,8 @@ def town_night_dawn(pg):
         if not pg.locator('#townSheet.furn').count(): errs.append('미소 가구 창이 안 열려요')
         else:
             pg.click('[data-ts=fth][data-t=wood]'); pg.wait_for_timeout(50)
-            pg.click('[data-ts=fbuy][data-c=wall]'); pg.wait_for_timeout(100)
+            pg.click('[data-ts=fbuy][data-c=wall]'); pg.wait_for_timeout(100)  # 담기 → 미리보기 → 구매하기
+            pg.click('[data-ts=fcart]'); pg.wait_for_timeout(100)
             if pg.evaluate('__T.G.furn.have.wall') != 'wood': errs.append('미소 가구에서 벽지를 못 샀어요')
             shot(pg, '9e-furn')
     R('townAct', "{place:'home',act:'sleep'}"); talk(pg)

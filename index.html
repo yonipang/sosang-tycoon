@@ -766,6 +766,17 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .rc-dots i { width: 8px; height: 8px; background: rgba(255,255,255,.25); }
 .rc-dots i.on { background: var(--mustard); }
 .rc-skip { display: block; margin: 6px auto 0; }
+.rc-nav { display: flex; gap: 8px; }
+.rc-nav .btn { flex: 1; min-width: 0; }
+.rc-nav .rc-prev { flex: 0 0 34%; }
+.rc-nav [hidden] { display: none; }
+/* 영수증 글이 넘치지 않게: 긴 줄(내일 쓸 재료 등)은 아래로 줄바꿈 */
+.receipt { overflow-x: hidden; max-width: 100%; }
+.receipt .paper { overflow-wrap: anywhere; }
+.ln > span { min-width: 0; }
+.ln.wrap { flex-wrap: wrap; }
+.ln.wrap > span { flex: none; }
+.ln.wrap > b, .ln.wrap .left-ings { white-space: normal; flex: 1 1 100%; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }
 
 /* 정 사장 식자재: 진열대 타일 */
 .mk-shelf { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 4px; }
@@ -866,6 +877,34 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .fu-b-row.next { background: #fff3c9; }
 .fu-b-arrow { text-align: center; color: var(--ink-soft); padding: 2px 0; }
 .hero-star .rv-n { display: block; margin-top: 2px; font-size: 14px; color: rgba(251,243,226,.7); }
+
+/* 판매 장부 (ui/sales.js) */
+.sl-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr .7fr; gap: 4px; padding: 4px 0; border-bottom: 1px dashed var(--line); align-items: baseline; }
+.sl-row b { font-weight: normal; text-align: right; }
+.sl-row small { color: var(--ink-soft); }
+.sl-th { color: var(--ink-soft); font-size: 14px; border-bottom: 2px solid var(--ink); }
+.sl-week { display: flex; justify-content: space-between; gap: 6px; margin-top: 10px; padding: 3px 6px; background: var(--paper-2); border: 2px solid var(--ink); flex-wrap: wrap; }
+.sl-week b { font-weight: normal; }
+.neg { color: var(--red); }
+#townNav button.go { background: var(--red); color: #fff; }
+/* 미소 가구: 미리보기 · 가진 물건 · 장바구니 */
+.town-sheet.furn { max-height: 82%; }
+.fu-top { position: sticky; top: -6px; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 0 -10px; padding: 6px 10px; background: var(--paper); border-bottom: 2px dashed var(--line); }
+.fu-prev { flex: none; width: 140px; height: 112px; image-rendering: pixelated; border: 3px solid var(--ink); background: var(--ink); }
+.fu-side { flex: 1; min-width: 0; }
+.fu-owned { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.fu-own { aspect-ratio: 1; min-width: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); background: var(--paper-2); overflow: hidden; }
+.fu-own.none { border-style: dashed; border-color: var(--line); background: transparent; }
+.fu-own img { image-rendering: pixelated; max-width: 24px; max-height: 24px; object-fit: contain; }
+.fu-mood { text-align: left; margin-top: 6px; line-height: 1.3; word-break: keep-all; }
+.fu-mood b.up { color: var(--green); }
+.fu-tile.pick { background: #fff3c9; border-color: var(--red); box-shadow: 0 3px 0 var(--red); }
+.fu-pk { position: absolute; top: 2px; right: 3px; font-style: normal; font-size: 12px; color: #fff; background: var(--red); padding: 0 3px; }
+.fu-set.pick { box-shadow: 0 3px 0 var(--red); border-color: var(--red); }
+.fu-setbtn { font: inherit; font-size: 13px; margin-left: 4px; padding: 0 6px; background: var(--mustard); color: var(--ink); border: 2px solid var(--ink); cursor: pointer; }
+.fu-btns { display: flex; gap: 8px; margin-top: 6px; }
+.fu-btns .btn { flex: 0 0 28%; }
+.fu-btns .btn.primary { flex: 1; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1282,7 +1321,7 @@ function applyShopLv(lv) {
   QUEUE_SPOTS.length = 0; QUEUE_SPOTS.push([6, WALK_Y], [7, WALK_Y], [4, WALK_Y]);
   FURNITURE.length = 0;
   FURNITURE.push(...BACK_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
-    { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 2.125, over: true });
+    { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 1.125, over: true });
   FURN_SPOTS.plant = [[0, 4], [0, last]];
   return true;
 }
@@ -1325,7 +1364,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.37';
+const GAME_VERSION = '0.38';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1443,9 +1482,13 @@ const FATIGUE_SLOW = 0.08;
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 //  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
+//  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
+//   · 계산대 = 판매 장부·손님 수첩·홍보 · 퇴식대 = 청소 · 화구 = 오픈 준비(새벽) · 문 = 골목으로 (SHOP_SPOTS)
+//  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 const ACTS = {
-  ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
+  ledger: { name: '오늘의 메뉴·가격', cost: 0, when: 'any' },
+  sales: { name: '판매 장부', cost: 0, when: 'any' },
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
@@ -1463,11 +1506,20 @@ const ACTS = {
 const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'book', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
   market: ['market'],
 };
+// 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
+const SHOP_SPOTS = [
+  { act: 'ledger', name: '냉장고 · 오늘의 메뉴', station: 'fridge' },
+  { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0]], stand: [[8, 3], [9, 3]] },
+  { act: 'counter', name: '계산대', register: true },
+  { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
+  { act: 'setup', name: '화구 · 오픈 준비', station: 'stove' },
+  { act: 'exit', name: '문 · 골목으로', door: true },
+];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
 const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] } };
 const HYGIENE_DECAY = 25;
@@ -3144,7 +3196,10 @@ const jungDisc = () => disc(JUNG_DISC, bondLv('jung'));
 const newFurn = () => ({ have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 });
 // 2장부터 미소 꽃집이 가구점으로
 const furnOpen = () => !!(G.story && G.story.ch >= 2);
-const furnHave = cat => (G.furn && G.furn.have[cat]) || null;
+// 미리보기: 장바구니를 잠깐 얹어서 계산·그리기 (저장 안 해요 — withFurn 안에서만)
+let over = null;
+function withFurn(cart, fn) { const keep = over; over = cart || null; try { return fn(); } finally { over = keep; } }
+const furnHave = cat => (over && over[cat]) || (G.furn && G.furn.have[cat]) || null;
 
 // 물건 하나: { theme: 테마(null = 어느 테마로든 셈), grade: 1|2|'sp'|'miso', price, mood, name, heart, spr }
 function itemInfo(cat, key) {
@@ -3193,19 +3248,30 @@ const eatMul = () => themesOn().reduce((k, th) => Math.min(k, FURN_THEMES[th].ea
 const furnSpr = (cat, base) => (furnHave(cat) ? itemInfo(cat, furnHave(cat)).spr : base);
 const chairSpr = () => (furnHave('table') ? itemInfo('table', furnHave('table')).spr.replace('table_', 'chair_') : 'chair');
 
-// 사기 (미소 가구 창이 열려 있을 때만 — G.town.furnIn)
-//  { cat, key } 하나 · { set: 테마, grade: 1|2 } 모자란 것 한 번에 · { miso: true } 미소 컬렉션
-defineCmd('furnBuy', ({ cat, key, set, grade, miso }) => {
+// 장바구니 (미소 가구 창: 고르고 미리 보고 「구매하기」) cart = { 카테고리: 물건 이름 }
+//  이미 있는 것은 빼고 셈 · 미소 컬렉션은 6가지 한 벌 값 · 사고 나서 6가지가 다 같은 물건(테마·등급)이면 15% 싸게
+function cartList(cart) { return Object.entries(cart || {}).filter(([c, k]) => FURN_CATS[c] && k && G.furn.have[c] !== k); }
+function cartPrice(cart) {
+  const L = cartList(cart);
+  if (!L.length) return 0;
+  const miso = L.filter(([, k]) => k === 'miso').length ? misoPrice() : 0;
+  const rest = L.filter(([, k]) => k !== 'miso').reduce((s, [c, k]) => s + furnPrice(c, k), 0);
+  const after = FURN_ORDER.map(c => (cart[c] || G.furn.have[c]));
+  const set = L.length >= 2 && after.every(k => k && k === after[0]) && after[0] !== 'miso';
+  return Math.round((rest * (set ? FURN_SET_RATE : 1)) / 100) * 100 + miso;
+}
+const cartIsSet = cart => { const after = FURN_ORDER.map(c => (cart[c] || G.furn.have[c])); return cartList(cart).length >= 2 && after.every(k => k && k === after[0]) && after[0] !== 'miso'; };
+defineCmd('furnBuyCart', ({ cart }) => {
   if (!furnOpen() || G.phase !== 'prep' || !G.town || !G.town.furnIn) return false;
-  let cats, price, k, name;
-  if (miso) { cats = FURN_ORDER.filter(c => furnHave(c) !== 'miso'); k = 'miso'; price = misoPrice(); name = MISO_SET.name; if (bondLv('miso') < MISO_SET.heart) return locked(); }
-  else if (set) { if (!FURN_THEMES[set]) return false; k = keyOf(set, grade); cats = setMissing(set, grade); price = setPrice(set, grade); name = `${FURN_THEMES[set].name}${grade === 2 ? ' 고급' : ''} 세트`; if (itemLocked('wall', k)) return locked(); }
-  else { if (!FURN_CATS[cat] || !key) return false; k = key; cats = [cat]; price = furnPrice(cat, key); name = itemInfo(cat, key).name; if (itemLocked(cat, key)) return locked(); if (FURN_SPECIAL[key] && FURN_SPECIAL[key].cat !== cat) return false; }
-  if (!cats.length || (!set && !miso && furnHave(cat) === k)) return false;
+  const L = cartList(cart);
+  if (!L.length) return false;
+  if (L.some(([c, k]) => (k === 'miso' ? bondLv('miso') < MISO_SET.heart : itemLocked(c, k)) || (FURN_SPECIAL[k] && FURN_SPECIAL[k].cat !== c))) return locked();
+  if (L.some(([, k]) => k === 'miso') && FURN_ORDER.some(c => (cart[c] || G.furn.have[c]) !== 'miso')) return false; // 미소 컬렉션은 한 벌로만
+  const price = cartPrice(cart);
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
-  for (const c of cats) G.furn.have[c] = k;
-  emit('toast', set || miso ? `${josa(name, '으로/로')} 가게를 꾸몄습니다 · 분위기 ${mood()}` : `${josa(name, '을/를')} 들였습니다 · 분위기 ${mood()}`, 'good');
+  for (const [c, k] of L) G.furn.have[c] = k;
+  emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
   emit('sfx', 'coin');
   trade();
   emit('prep');
@@ -3294,6 +3360,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
   if (act === 'book') { emit('town', 'book'); return true; }
+  if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn('sleep'); return true; }
   if (act === 'furn') { // 미소 가구: 그날 처음 들어갈 때 한 칸 + 이야기(친밀도·소개 손님) — 밤 칸을 다 써도 창은 그대로 (새벽이 돼도 그 창에서는 살 수 있어요)
@@ -4942,6 +5009,38 @@ function drawIdle(dt, night) {
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);
 }
+
+// 마을 · 가게 안 (밤·새벽, 손님 없이): 사장이 걸어 다니고 물건을 눌러요 (ui/town.js). 마을 캔버스에 그려요
+//  S: { me: { x, y, dir, moving }, time, dawn, marks: [{ x, y }] (칸 — 누를 수 있는 물건 위 작은 점) }
+//  S.preview: 미소 가구 장바구니를 얹어서 · S.rows: 위에서 몇 줄만 (미리보기) · S.me 없으면 사장 없이
+function drawShopTo(canvas, S) {
+  if (!ready) return;
+  if (S.preview) { withFurn(S.preview, () => drawShopTo(canvas, { ...S, preview: null })); return; }
+  const keep = ctx, ch = S.rows ? S.rows * TILE : VH;
+  if (canvas.width !== VW || canvas.height !== ch) { canvas.width = VW; canvas.height = ch; }
+  ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, VW, VH);
+  drawRoom();
+  for (const f of visibleFurniture().filter(f => f.y < 3 && !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  const items = [];
+  for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(fSpr(f), f.x * TILE, f.y * TILE) });
+  SEATS.forEach(s => items.push({ y: s.y + 0.2, d: () => spr(chairSpr(), s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  for (const d of decorNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
+  for (const d of plantsNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
+  const me = S.me;
+  if (me) items.push({ y: me.y + 0.6, d: () => drawChar(0, me.x, me.y, me.dir, me.moving ? 'walk' : 'idle', S.time) });
+  items.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  // 밤엔 가게 불을 켠 느낌으로 살짝만 어둡게
+  if (!S.rows) { ctx.fillStyle = S.dawn ? 'rgba(60,80,145,.12)' : 'rgba(30,36,90,.16)'; ctx.fillRect(0, 0, VW, VH); }
+  const bob = Math.round(Math.sin(S.time * 4) * 1.5);
+  for (const m of S.marks || []) { // 누를 수 있는 물건: 노란 점
+    ctx.fillStyle = 'rgba(59,42,32,.6)'; ctx.fillRect(Math.round(m.x * TILE) - 2, Math.round(m.y * TILE) - 2 + bob, 5, 5);
+    ctx.fillStyle = '#f5d76e'; ctx.fillRect(Math.round(m.x * TILE) - 1, Math.round(m.y * TILE) - 1 + bob, 3, 3);
+  }
+  ctx = keep;
+}
+const shopViewSize = () => ({ w: VW, h: VH });
 // ── js/render/cut.js ──
 // 연출 그리기: 따로 둔 캔버스(#cutCv)에 밤의 골목을 그려요. 움직임 상태는 ui/cutscene.js가 들고 와요.
 
@@ -5903,7 +6002,8 @@ function bookHTML(sel) {
     <p class="bk-foot">맛있게 먹고 ${REGULAR_BACK}번 다시 온 손님은 ★ 단골 후보</p>`;
 }
 // ── js/ui/furn.js ──
-// 미소 가구 창 (마을 · 2장부터): 테마 하나를 골라 그 테마 물건 6칸만 보여 줘요 (한 화면에 정보는 조금만)
+// 미소 가구 창 (마을 · 2장부터): 위에 가게 미리보기 · 가진 물건 한 줄 · 효과 한 줄, 아래 테마 하나의 물건 6칸
+//  물건을 누르면 장바구니에 담겨 미리보기에 바로 보이고, 「구매하기」로 한 번에 사요 (「초기화」로 비우기)
 //  규칙은 sim/furniture.js (runCmd 'furnBuy'), 수치는 data/furniture.js
 
 // 미리보기 그림: 카테고리마다 정한 배율로 (픽셀이 뭉개지지 않게 pixelated)
@@ -5922,34 +6022,60 @@ function furnTheme(th) { if (th) theme = th; return theme || (theme = FURN_THEME
 function furnGrade(g) { if (g) grade = g; return grade; }
 const hearts = n => '♥'.repeat(n);
 
+// 장바구니 { 카테고리: 물건 이름 } — 사기 전엔 미리보기만
+let fcart = {};
+function furnCartReset() { fcart = {}; }
+function furnToggle(cat, key) {
+  if (key === 'miso') { const all = FURN_ORDER.every(c => fcart[c] === 'miso'); for (const c of FURN_ORDER) { if (all) delete fcart[c]; else fcart[c] = 'miso'; } return; }
+  if (fcart[cat] === key) delete fcart[cat];
+  else { if (Object.values(fcart).includes('miso')) for (const c of FURN_ORDER) if (fcart[c] === 'miso') delete fcart[c]; fcart[cat] = key; }
+}
+function furnSetToCart() { const th = furnTheme(), k = grade === 2 ? th + '2' : th; for (const c of FURN_ORDER) if (furnHave(c) !== k) fcart[c] = k; }
+const furnCart = () => fcart;
+// 미리보기 그리기 (창을 그린 뒤 ui/town.js가 불러요)
+function drawFurnPreview() { const cv = document.getElementById('fuPrev'); if (cv) drawShopTo(cv, { preview: fcart, rows: 8, time: 0 }); }
+
 function tile(cat, key) {
-  const I = itemInfo(cat, key), mine = furnHave(cat) === key, lock = itemLocked(cat, key);
+  const I = itemInfo(cat, key), mine = furnHave(cat) === key, lock = key === 'miso' ? bondLv('miso') < MISO_SET.heart : itemLocked(cat, key);
   const k = PIC_K[cat], img = cat === 'table' ? pic(I.spr.replace('table_', 'chair_'), k) + pic(I.spr, k) : pic(I.spr, k);
-  const price = furnPrice(cat, key), poor = price > G.cash;
-  return `<button type="button" class="fu-tile${mine ? ' mine' : ''}${lock ? ' lock' : ''}" data-ts="fbuy" data-c="${cat}" data-k="${key}" ${mine || lock || poor ? 'disabled' : ''}>
-    <i class="fu-m">+${I.mood}</i><span class="fu-pic">${img}</span><b>${I.name}</b>
-    <small>${mine ? '설치됨' : lock ? `${hearts(I.heart)} 필요` : wonShort(price)}</small></button>`;
+  const inCart = fcart[cat] === key;
+  return `<button type="button" class="fu-tile${mine ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}" data-ts="fbuy" data-c="${cat}" data-k="${key}" ${mine || lock ? 'disabled' : ''}>
+    <i class="fu-m">+${I.mood}</i>${inCart ? '<i class="fu-pk">담음</i>' : ''}<span class="fu-pic">${img}</span><b>${I.name}</b>
+    <small>${mine ? '설치됨' : lock ? `${hearts(I.heart)} 필요` : wonShort(furnPrice(cat, key))}</small></button>`;
 }
 
 function themeTab(th) {
-  const T = FURN_THEMES[th], n = themeCount(th), key = c => (grade === 2 ? th + '2' : th);
-  const miss = setMissing(th, grade), sp = setPrice(th, grade), lock = itemLocked('wall', key());
+  const T = FURN_THEMES[th], n = withFurn(fcart, () => themeCount(th)), key = () => (grade === 2 ? th + '2' : th);
+  const miss = setMissing(th, grade), lock = itemLocked('wall', key());
   return `<div class="fu-grade"><button type="button" data-ts="fgr" data-g="1" class="${grade === 1 ? 'sel' : ''}">일반</button><button type="button" data-ts="fgr" data-g="2" class="${grade === 2 ? 'sel' : ''}">고급 <small>${hearts(FURN_PREM_HEART)}</small></button></div>
-    <p class="fu-bonus ${n >= FURN_THEME_NEED ? 'on' : ''}">${n >= FURN_THEME_NEED ? '★' : `${n}/${FURN_THEME_NEED}`} ${T.bonusText}</p>
-    <div class="fu-grid">${FURN_ORDER.map(c => tile(c, key(c))).join('')}</div>
-    <div class="mk-foot">${miss.length > 1 && !lock ? `<button type="button" class="btn primary big mk-buy" data-ts="fset" ${sp > G.cash ? 'disabled' : ''}>${T.short || T.name}${grade === 2 ? ' 고급' : ''} 세트로 ${miss.length}개 · ${won(sp)} <small>${Math.round((1 - FURN_SET_RATE) * 100)}% 싸게</small></button>` : ''}
-    <div class="mk-sum"><span>${miss.length ? '6개 다 맞추면 분위기 +10' : ''}</span><span>잔고 ${wonShort(G.cash)}</span></div></div>`;
+    <p class="fu-bonus ${n >= FURN_THEME_NEED ? 'on' : ''}">${n >= FURN_THEME_NEED ? '★' : `${n}/${FURN_THEME_NEED}`} ${T.bonusText}${miss.length > 1 && !lock ? ` <button type="button" class="fu-setbtn" data-ts="fset">6개 다 담기 · ${Math.round((1 - FURN_SET_RATE) * 100)}% 싸게</button>` : ''}</p>
+    <div class="fu-grid">${FURN_ORDER.map(c => tile(c, key())).join('')}</div>`;
 }
 
 function specialTab() {
-  const lv = bondLv('miso'), own = misoOwned(), lock = lv < MISO_SET.heart, price = misoPrice();
+  const own = misoOwned(), lock = bondLv('miso') < MISO_SET.heart, inCart = FURN_ORDER.every(c => fcart[c] === 'miso');
   const pics = FURN_ORDER.map(c => pic(c === 'table' ? 'chair_miso' : itemInfo(c, 'miso').spr, 1)).join('');
   return `<p class="fu-bonus">친밀도로 여는 물건 · 어느 테마로든 셉니다</p>
     <div class="fu-grid two">${Object.keys(FURN_SPECIAL).map(k => tile(FURN_SPECIAL[k].cat, k)).join('')}</div>
-    <div class="fu-set${own ? ' mine' : ''}${lock ? ' lock' : ''}"><div class="fu-set-pics">${pics}</div>
+    <div class="fu-set${own ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}"><div class="fu-set-pics">${pics}</div>
       <b>${MISO_SET.name}</b><small>${MISO_SET.note}</small><small>6가지 한 번에 · 분위기 ${MISO_SET.mood} · 테마 보너스 넷 다</small>
-      <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fmiso" ${own || lock || price > G.cash ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : won(price)}</button></div>
-    <p class="fu-bonus" style="text-align:right">잔고 ${wonShort(G.cash)}</p>`;
+      <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
+}
+
+// 위: 미리보기 · 가진 물건(아이콘 한 줄) · 효과 한 줄
+function topHTML() {
+  const now = mood(), next = withFurn(fcart, mood), on = withFurn(fcart, themesOn), disc = misoDisc();
+  const owned = FURN_ORDER.map(c => { const k = furnHave(c); return k ? `<span class="fu-own" title="${itemInfo(c, k).name}">${pic(itemInfo(c, k).spr, c === 'wall' || c === 'floor' ? 0.5 : 1)}</span>` : `<span class="fu-own none" title="${FURN_CATS[c].name}"></span>`; }).join('');
+  const eff = `분위기 <b>${now}</b>${next !== now ? ` → <b class="up">${next}</b>` : ''}<small>/100</small>${on.length ? ` · ${on.map(t => `★${FURN_THEMES[t].short || FURN_THEMES[t].name}`).join(' ')}` : ''}${disc ? ` · <span class="fu-disc">♥ ${Math.round(disc * 100)}%</span>` : ''}`;
+  return `<div class="fu-top"><canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
+    <div class="fu-side"><div class="fu-owned">${owned}</div><div class="fu-mood">${eff}</div></div></div>`;
+}
+// 아래: 장바구니 합계 · 초기화 · 구매하기
+function footHTML() {
+  const n = cartList(fcart).length, price = cartPrice(fcart), set = cartIsSet(fcart);
+  return `<div class="mk-foot fu-foot"><div class="mk-sum"><span>${n ? `${n}개 담음${set ? ' · 세트 15% 할인' : ''}` : '물건을 눌러 담아 보세요'}</span><span>잔고 ${wonShort(G.cash)}</span></div>
+    <div class="fu-btns"><button type="button" class="btn" data-ts="freset" ${n ? '' : 'disabled'}>초기화</button>
+    <button type="button" class="btn primary big" data-ts="fcart" ${n && price <= G.cash ? '' : 'disabled'}>${!n ? '구매하기' : price > G.cash ? '잔고가 모자랍니다' : `구매하기 · ${won(price)}`}</button></div></div>`;
 }
 
 function buildTab() {
@@ -5967,14 +6093,32 @@ function buildTab() {
 }
 
 function furnHTML() {
-  const tab = furnTheme(), on = themesOn(), disc = misoDisc();
+  const tab = furnTheme();
   const tabs = FURN_THEME_IDS.map(id => `<button type="button" class="fu-tab${id === tab ? ' sel' : ''}" data-ts="fth" data-t="${id}">${FURN_THEMES[id].short || FURN_THEMES[id].name}${themeCount(id) ? `<i>${themeCount(id)}</i>` : ''}</button>`).join('')
     + `<button type="button" class="fu-tab${tab === 'sp' ? ' sel' : ''}" data-ts="fth" data-t="sp">특별 <small>♥4</small></button><button type="button" class="fu-tab${tab === 'build' ? ' sel' : ''}" data-ts="fth" data-t="build">확장공사</button>`;
   return `<div class="ts-head"><b>미소 가구</b>${heartsHTML('miso')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <div class="fu-mood">분위기 <b>${mood()}</b><small>/100</small>${on.length ? ` · ${on.map(t => `<span class="tag hot">${FURN_THEMES[t].short || FURN_THEMES[t].name}</span>`).join(' ')}` : ''}${disc ? ` · <span class="fu-disc">♥ ${Math.round(disc * 100)}% 할인</span>` : ''}</div>
+    ${topHTML()}
     <div class="fu-tabs">${tabs}</div>
     ${furnLocked() ? '<p class="ts-note">미소 사장님과 조금 더 친해지면 살 수 있습니다</p>' : ''}
-    ${tab === 'sp' ? specialTab() : tab === 'build' ? buildTab() : themeTab(tab)}`;
+    ${tab === 'sp' ? specialTab() : tab === 'build' ? buildTab() : themeTab(tab)}
+    ${tab === 'build' ? '' : footHTML()}`;
+}
+// ── js/ui/sales.js ──
+// 판매 장부 (가게 안 · 계산대): 날마다 매출 · 남은 돈 · 손님, 주마다 합계. 최근 날이 위에 (G.history)
+
+function salesHTML() {
+  const H = (G.history || []).slice().reverse();
+  const head = `<div class="ts-head"><b>판매 장부</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>`;
+  if (!H.length) return `${head}<p class="ts-note">아직 장사한 날이 없습니다</p>`;
+  const weeks = {};
+  for (const h of H) { const w = Math.ceil(h.day / 7); (weeks[w] = weeks[w] || []).push(h); }
+  const body = Object.keys(weeks).sort((a, b) => b - a).map(w => {
+    const L = weeks[w], rev = L.reduce((s, h) => s + h.revenue, 0), net = L.reduce((s, h) => s + h.net, 0);
+    const rows = L.map(h => `<div class="sl-row"><span>${h.day}일차 <small>${WEEKDAYS[(h.day - 1) % 7]}</small></span><b>${wonShort(h.revenue)}</b><b class="${h.net < 0 ? 'neg' : ''}">${wonShort(h.net)}</b><b>${h.served}명</b></div>`).join('');
+    return `<div class="sl-week"><span>${w}주차</span><b>매출 ${wonShort(rev)}</b><b class="${net < 0 ? 'neg' : ''}">남은 돈 ${wonShort(net)}</b></div>${rows}`;
+  }).join('');
+  return `${head}<div class="sl-row sl-th"><span>날</span><b>매출</b><b>남은 돈</b><b>손님</b></div>${body}
+    <p class="ts-note">남은 돈 = 매출 − 재료값 (고정비는 주마다 따로 냅니다)</p>`;
 }
 // ── js/ui/town.js ──
 // 마을 화면: 밤·새벽 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
@@ -6062,11 +6206,78 @@ function facePlace(id) {
   T.me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 3 : 1);
 }
 function goPlace(id) {
-  const ok = walkTo(PLACES[id].door, () => { facePlace(id); openPlace(id); });
-  if (!ok) openPlace(id);
+  const go = () => (id === 'shop' ? enterShop() : openPlace(id)); // 우리 가게는 안으로 들어가요
+  const ok = walkTo(PLACES[id].door, () => { facePlace(id); go(); });
+  if (!ok) go();
+}
+
+// ── 가게 안 (밤·새벽): 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
+const IN_WALK = 6; // 걷는 빠르기 (칸/초)
+function enterShop() {
+  closeSheet();
+  T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+  playSfx('page');
+  renderNav(); layoutTown();
+}
+function leaveShop() {
+  T.inside = null; closeSheet();
+  placeMe('shop'); T.me.dir = 3;
+  playSfx('page');
+  renderNav(); layoutTown();
+}
+// 물건의 칸 · 서는 칸
+function spotTiles(S) {
+  if (S.station) return { tiles: STATIONS[S.station].tiles, stand: STATIONS[S.station].stand };
+  if (S.register) return { tiles: REGISTER.tiles, stand: REGISTER.stand };
+  if (S.door) return { tiles: [[DOOR.x, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1]] };
+  return { tiles: S.tiles, stand: S.stand };
+}
+const spotsNow = () => SHOP_SPOTS.filter(S => S.act === 'exit' || S.act === 'counter' || S.act === 'ledger' || S.act === 'recipe' || ACTS[S.act].when === 'any' || ACTS[S.act].when === G.town.part);
+function inWalk(goals, then) {
+  const I = T.inside, me = I.me;
+  const path = findPath(me, goals, 'player');
+  if (!path) { if (then) then(); return; }
+  me.path = path; I.then = then || null;
+  if (!path.length) { I.then = null; if (then) then(); }
+}
+function goSpot(act) {
+  const S = SHOP_SPOTS.find(s => s.act === act);
+  if (!S) { doShop(act); return; }
+  const { tiles, stand } = spotTiles(S);
+  inWalk(stand, () => { const [tx, ty] = tiles[0], me = T.inside.me; me.dir = Math.abs(tx - me.x) > Math.abs(ty - me.y) ? (tx > me.x ? 0 : 2) : (ty > me.y ? 3 : 1); doShop(act); });
+}
+function doShop(act) {
+  if (act === 'exit') { leaveShop(); return; }
+  T.sheetPlace = 'shop';
+  if (act === 'counter') { openCounter(); playSfx('page'); return; }
+  runCmd('townAct', { place: 'shop', act });
+}
+function updateInside(dt) {
+  const I = T.inside, me = I.me;
+  let step = IN_WALK * dt;
+  me.moving = false;
+  while (step > 0 && me.path.length) {
+    const [tx, ty] = me.path[0], dx = tx - me.x, dy = ty - me.y;
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) { me.x = tx; me.y = ty; me.path.shift(); if (!me.path.length && I.then) { const t = I.then; I.then = null; t(); } continue; }
+    me.moving = true;
+    if (Math.abs(dx) >= 0.001) { const k = Math.min(step, Math.abs(dx)); me.x += Math.sign(dx) * k; step -= k; me.dir = dx > 0 ? 0 : 2; }
+    else { const k = Math.min(step, Math.abs(dy)); me.y += Math.sign(dy) * k; step -= k; me.dir = dy > 0 ? 3 : 1; }
+  }
+  const marks = spotsNow().filter(S => S.act !== 'exit').map(S => { const t = spotTiles(S).tiles; const xs = t.map(a => a[0]), ys = t.map(a => a[1]); return { x: (Math.min(...xs) + Math.max(...xs) + 1) / 2, y: Math.min(...ys) + (S.act === 'recipe' ? 0.3 : 0) }; });
+  drawShopTo($('townCv'), { me, time: T.time, dawn: G.town.part === 'dawn', marks });
+}
+function tapInside(e) {
+  const r = $('townCv').getBoundingClientRect(), V = shopViewSize();
+  const x = Math.floor((e.clientX - r.left) / r.width * V.w / TILE), y = Math.floor((e.clientY - r.top) / r.height * V.h / TILE);
+  playSfx('tap');
+  const S = spotsNow().find(s => spotTiles(s).tiles.some(([a, b]) => a === x && b === y));
+  if (S) { closeSheet(); goSpot(S.act); return; }
+  closeSheet();
+  inWalk([[x, y]]);
 }
 
 function placeMe(id) {
+  if (T) T.inside = null; // 골목으로
   const [tx, ty] = PLACES[id].door;
   T.me.x = tileX(tx); T.me.y = tileY(ty); T.me.path = []; T.me.moving = false; T.me.dir = 3; T.then = null;
 }
@@ -6084,6 +6295,12 @@ function showTown() {
 }
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
+  if (T && T.inside) { // 가게 안: 할 일 버튼
+    const dawn = G.town.part === 'dawn';
+    const B = [['ledger', '오늘의 메뉴'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
+    $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
+    return;
+  }
   $('townNav').innerHTML = Object.keys(PLACES).map(id => `<button type="button" data-go="${id}" class="${placeOpen(id) ? '' : 'off'}">${placeShort(id)}</button>`).join('');
 }
 function hideTown() { if ($('town')) $('town').hidden = true; closeSheet(); }
@@ -6093,6 +6310,11 @@ function layoutTown() {
   const el = $('town'); if (!el || el.hidden || !T) return;
   const cv = $('townCv'), dpr = window.devicePixelRatio || 1;
   const availH = el.clientHeight - $('townBar').offsetHeight - $('townNav').offsetHeight - 8;
+  if (T.inside) { // 가게 안: 가게 전체가 들어가게 (정수 배)
+    const V = shopViewSize(), k = Math.max(1, Math.floor(Math.min(el.clientWidth / V.w, availH / V.h) * dpr)) / dpr;
+    cv.style.width = V.w * k + 'px'; cv.style.height = V.h * k + 'px';
+    return;
+  }
   const s = Math.max(1, Math.floor(el.clientWidth / VIEW_W * dpr)) / dpr;
   T.vw = VIEW_W; T.vh = Math.max(128, Math.min(MAP_H * TILE, Math.floor(availH / s)));
   cv.style.width = T.vw * s + 'px'; cv.style.height = T.vh * s + 'px';
@@ -6164,6 +6386,7 @@ function joyMove(dt, vx, vy) {
 function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
+  if (T.inside) { if (!talking()) updateInside(dt); else drawShopTo($('townCv'), { me: T.inside.me, time: T.time, dawn: G.town.part === 'dawn' }); return; }
   const me = T.me;
   const [vx, vy] = talking() ? [0, 0] : joyVec();
   if (Math.hypot(vx, vy) > 0.25) { if (me.path.length) { me.path = []; T.then = null; } joyMove(dt, vx, vy); }
@@ -6193,6 +6416,7 @@ function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button typ
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
+  if (T.inside) { tapInside(e); return; }
   const r = $('townCv').getBoundingClientRect();
   const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
   closeSheet();
@@ -6239,9 +6463,10 @@ function openPlace(id) {
 }
 // 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
 const COUNTER_ACTS = ['insta', 'blogger'];
-function openCounter() {
-  const rows = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
-  sheet(`<div class="ts-head"><b>계산대 · 홍보</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}<p class="ts-note">어르신은 이웃 이야기(소개 손님)로 옵니다</p>`, 'counter');
+function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(밤)
+  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
+  sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
+    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}`, 'counter');
   T.sheetPlace = 'shop';
 }
 function actRow(id, a) {
@@ -6253,10 +6478,13 @@ function actRow(id, a) {
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
+
+// 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
+function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
 let chatQ = null; // 이웃 이야기 줄들
 function showChat(lines) {
@@ -6316,7 +6544,7 @@ function initTown() {
     const j = T && T.joy;
     if (!j || j.id !== e.pointerId) return;
     let dx = e.clientX - j.sx, dy = e.clientY - j.sy;
-    if (!j.on && Math.hypot(dx, dy) < JOY_START) return;
+    if (!j.on && (Math.hypot(dx, dy) < JOY_START || T.inside)) return; // 가게 안은 누르기만
     if (!j.on) { // 조이스틱 시작: 누른 자리에 받침을 놓아요
       j.on = true; closeSheet();
       const r = $('town').getBoundingClientRect();
@@ -6336,10 +6564,15 @@ function initTown() {
   cv.addEventListener('pointerup', joyEnd);
   cv.addEventListener('pointercancel', joyEnd);
   const KEY = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
-  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
+  addEventListener('keydown', e => { if (townShown() && !(T && T.inside) && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
-  $('townNav').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b || talking()) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap'); });
+  $('townNav').addEventListener('click', e => {
+    if (talking()) return;
+    const inB = e.target.closest('[data-in]');
+    if (inB) { closeSheet(); playSfx('tap'); const a = inB.dataset.in; if (a === 'open') doShop('open'); else goSpot(a); return; }
+    const b = e.target.closest('[data-go]'); if (!b) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap');
+  });
   addEventListener('resize', layoutTown);
   if (window.ResizeObserver) new ResizeObserver(layoutTown).observe($('town'));
   $('townSheet').addEventListener('click', e => {
@@ -6352,11 +6585,12 @@ function initTown() {
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
-    else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); sheet(furnHTML(), 'furn'); }
-    else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); sheet(furnHTML(), 'furn'); }
-    else if (k === 'fbuy') runCmd('furnBuy', { cat: b.dataset.c, key: b.dataset.k });
-    else if (k === 'fset') runCmd('furnBuy', { set: furnTheme(), grade: furnGrade() });
-    else if (k === 'fmiso') runCmd('furnBuy', { miso: true });
+    else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); showFurn(); }
+    else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); showFurn(); }
+    else if (k === 'fbuy') { furnToggle(b.dataset.c, b.dataset.k); playSfx('tap'); showFurn(); }
+    else if (k === 'fset') { furnSetToCart(); playSfx('tap'); showFurn(); }
+    else if (k === 'freset') { furnCartReset(); playSfx('tap'); showFurn(); }
+    else if (k === 'fcart') { if (runCmd('furnBuyCart', { cart: furnCart() })) { furnCartReset(); showFurn(); } }
     else if (k === 'fbuild') runCmd('shopBuild');
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
@@ -6366,7 +6600,8 @@ function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
-    if (what === 'furn') { T.sheetPlace = 'flower'; if (chatQ) chatQ.after = () => sheet(furnHTML(), 'furn'); else sheet(furnHTML(), 'furn'); return; } // 미소 사장님 이야기 뒤에는 가구 창
+    if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
+    if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
@@ -6383,9 +6618,10 @@ function refreshTown() {
   const s = $('townSheet');
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
-  else if (s.classList.contains('furn')) sheet(furnHTML(), 'furn');
+  else if (s.classList.contains('furn')) showFurn();
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
+  else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
@@ -6625,15 +6861,15 @@ function renderLedger(last, after, dawn) {
   const bills = G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : '';
   showScreen(`
     <div class="prep book">
-      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop}</div>
-      <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '가게 장부'}</h2>
+      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
+      <h2>${dawn ? '가게 열기' : '오늘의 메뉴'}</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
       ${qline}
       ${todayCard()}
       ${tools}
       ${bills}
       ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
-      <button class="btn" data-act="toTown">골목으로</button>
+      <button class="btn" data-act="toTown">돌아가기</button>
       <button class="btn ghost small" data-act="toTitle">처음 화면</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
     </div>`, 'scr-prep');
@@ -6701,7 +6937,7 @@ function toolsCard() {
 function leftLine(R) {
   const L = R.leftover || {};
   const left = Object.keys(L).filter(i => L[i] && (INGREDIENTS[i] || MENUS[i])).map(i => `${(INGREDIENTS[i] || MENUS[i]).name} ${L[i]}`).join(' · ');
-  return left ? `<div class="ln note"><span>내일 쓸 재료</span><b class="left-ings">${left}</b></div>` : '';
+  return left ? `<div class="ln note wrap"><span>내일 쓸 재료</span><b class="left-ings">${left}</b></div>` : '';
 }
 // 오늘 원가율: 팔린 음식 재료 + 버린 것 + 급구매 웃돈 (메뉴 원가율보다 얼마나 더 들었는지 보여 줘요)
 const pct = r => `${Math.round(r * 100)}%`;
@@ -6779,19 +7015,21 @@ function renderReceipt() {
     <div class="receipt paged" data-pages="${pages.length}">
       ${PAGES}
       <div class="rc-dots">${dots}</div>
+      <div class="rc-nav"><button class="btn big rc-prev" data-act="rcPrev" hidden>◂ 이전</button>
       <button class="btn primary big rc-next" data-act="rcNext"${last ? '' : ' hidden'}>다음 ▸</button>
-      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button>
+      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button></div>
       ${last ? '<button class="btn ghost small rc-skip" data-act="afterReceipt">건너뛰기</button>' : ''}
     </div>`, 'scr-receipt');
   countUp(document.querySelector('.hero-num'));
 }
 // 영수증 다음 장 (같은 화면에서 숨기고 보여 줘요 — 다시 그리지 않아서 숫자 세기가 다시 돌지 않아요)
 let rcPage = 0;
-function receiptNext() {
+function receiptNext(d = 1) {
   const box = document.querySelector('.receipt.paged');
   if (!box) return;
   const n = +box.dataset.pages;
-  rcPage = Math.min(n - 1, rcPage + 1);
+  rcPage = Math.max(0, Math.min(n - 1, rcPage + d));
+  box.querySelector('.rc-prev').hidden = rcPage === 0; // 이전 장으로
   box.querySelectorAll('.rc-page').forEach(p => { p.hidden = +p.dataset.p !== rcPage; });
   box.querySelectorAll('.rc-dots i').forEach((d, k) => d.classList.toggle('on', k === rcPage));
   const end = rcPage === n - 1;
@@ -7038,6 +7276,7 @@ function initScreens(onStart) {
     else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
     else if (a === 'quests') openQuests();
     else if (a === 'rcNext') receiptNext();
+    else if (a === 'rcPrev') receiptNext(-1);
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

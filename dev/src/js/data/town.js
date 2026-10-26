@@ -66,9 +66,13 @@ export const FATIGUE_SLOW = 0.08;
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 //  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
+//  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
+//   · 계산대 = 판매 장부·손님 수첩·홍보 · 퇴식대 = 청소 · 화구 = 오픈 준비(새벽) · 문 = 골목으로 (SHOP_SPOTS)
+//  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 export const ACTS = {
-  ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
+  ledger: { name: '오늘의 메뉴·가격', cost: 0, when: 'any' },
+  sales: { name: '판매 장부', cost: 0, when: 'any' },
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
@@ -86,11 +90,20 @@ export const ACTS = {
 export const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'book', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
   market: ['market'],
 };
+// 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
+export const SHOP_SPOTS = [
+  { act: 'ledger', name: '냉장고 · 오늘의 메뉴', station: 'fridge' },
+  { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0]], stand: [[8, 3], [9, 3]] },
+  { act: 'counter', name: '계산대', register: true },
+  { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
+  { act: 'setup', name: '화구 · 오픈 준비', station: 'stove' },
+  { act: 'exit', name: '문 · 골목으로', door: true },
+];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
 export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] } };
 export const HYGIENE_DECAY = 25;

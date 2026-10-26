@@ -5,13 +5,17 @@ import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
-import { TILE } from '../data/layout.js';
+import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y } from '../data/layout.js';
+import { drawShopTo, shopViewSize } from '../render/view.js';
+import { findPath } from '../sim/path.js';
+import { salesHTML } from './sales.js';
+import { SHOP_SPOTS } from '../data/town.js';
 import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
 import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs } from '../sim/town.js';
 import { furnOpen } from '../sim/furniture.js';
-import { furnHTML, furnTheme, furnGrade, heartsHTML } from './furn.js';
+import { furnHTML, furnTheme, furnGrade, heartsHTML, drawFurnPreview, furnToggle, furnSetToCart, furnCartReset, furnCart } from './furn.js';
 import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
@@ -104,11 +108,78 @@ function facePlace(id) {
   T.me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 3 : 1);
 }
 function goPlace(id) {
-  const ok = walkTo(PLACES[id].door, () => { facePlace(id); openPlace(id); });
-  if (!ok) openPlace(id);
+  const go = () => (id === 'shop' ? enterShop() : openPlace(id)); // 우리 가게는 안으로 들어가요
+  const ok = walkTo(PLACES[id].door, () => { facePlace(id); go(); });
+  if (!ok) go();
+}
+
+// ── 가게 안 (밤·새벽): 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
+const IN_WALK = 6; // 걷는 빠르기 (칸/초)
+function enterShop() {
+  closeSheet();
+  T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+  playSfx('page');
+  renderNav(); layoutTown();
+}
+function leaveShop() {
+  T.inside = null; closeSheet();
+  placeMe('shop'); T.me.dir = 3;
+  playSfx('page');
+  renderNav(); layoutTown();
+}
+// 물건의 칸 · 서는 칸
+function spotTiles(S) {
+  if (S.station) return { tiles: STATIONS[S.station].tiles, stand: STATIONS[S.station].stand };
+  if (S.register) return { tiles: REGISTER.tiles, stand: REGISTER.stand };
+  if (S.door) return { tiles: [[DOOR.x, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1]] };
+  return { tiles: S.tiles, stand: S.stand };
+}
+const spotsNow = () => SHOP_SPOTS.filter(S => S.act === 'exit' || S.act === 'counter' || S.act === 'ledger' || S.act === 'recipe' || ACTS[S.act].when === 'any' || ACTS[S.act].when === G.town.part);
+function inWalk(goals, then) {
+  const I = T.inside, me = I.me;
+  const path = findPath(me, goals, 'player');
+  if (!path) { if (then) then(); return; }
+  me.path = path; I.then = then || null;
+  if (!path.length) { I.then = null; if (then) then(); }
+}
+function goSpot(act) {
+  const S = SHOP_SPOTS.find(s => s.act === act);
+  if (!S) { doShop(act); return; }
+  const { tiles, stand } = spotTiles(S);
+  inWalk(stand, () => { const [tx, ty] = tiles[0], me = T.inside.me; me.dir = Math.abs(tx - me.x) > Math.abs(ty - me.y) ? (tx > me.x ? 0 : 2) : (ty > me.y ? 3 : 1); doShop(act); });
+}
+function doShop(act) {
+  if (act === 'exit') { leaveShop(); return; }
+  T.sheetPlace = 'shop';
+  if (act === 'counter') { openCounter(); playSfx('page'); return; }
+  runCmd('townAct', { place: 'shop', act });
+}
+function updateInside(dt) {
+  const I = T.inside, me = I.me;
+  let step = IN_WALK * dt;
+  me.moving = false;
+  while (step > 0 && me.path.length) {
+    const [tx, ty] = me.path[0], dx = tx - me.x, dy = ty - me.y;
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) { me.x = tx; me.y = ty; me.path.shift(); if (!me.path.length && I.then) { const t = I.then; I.then = null; t(); } continue; }
+    me.moving = true;
+    if (Math.abs(dx) >= 0.001) { const k = Math.min(step, Math.abs(dx)); me.x += Math.sign(dx) * k; step -= k; me.dir = dx > 0 ? 0 : 2; }
+    else { const k = Math.min(step, Math.abs(dy)); me.y += Math.sign(dy) * k; step -= k; me.dir = dy > 0 ? 3 : 1; }
+  }
+  const marks = spotsNow().filter(S => S.act !== 'exit').map(S => { const t = spotTiles(S).tiles; const xs = t.map(a => a[0]), ys = t.map(a => a[1]); return { x: (Math.min(...xs) + Math.max(...xs) + 1) / 2, y: Math.min(...ys) + (S.act === 'recipe' ? 0.3 : 0) }; });
+  drawShopTo($('townCv'), { me, time: T.time, dawn: G.town.part === 'dawn', marks });
+}
+function tapInside(e) {
+  const r = $('townCv').getBoundingClientRect(), V = shopViewSize();
+  const x = Math.floor((e.clientX - r.left) / r.width * V.w / TILE), y = Math.floor((e.clientY - r.top) / r.height * V.h / TILE);
+  playSfx('tap');
+  const S = spotsNow().find(s => spotTiles(s).tiles.some(([a, b]) => a === x && b === y));
+  if (S) { closeSheet(); goSpot(S.act); return; }
+  closeSheet();
+  inWalk([[x, y]]);
 }
 
 function placeMe(id) {
+  if (T) T.inside = null; // 골목으로
   const [tx, ty] = PLACES[id].door;
   T.me.x = tileX(tx); T.me.y = tileY(ty); T.me.path = []; T.me.moving = false; T.me.dir = 3; T.then = null;
 }
@@ -126,6 +197,12 @@ export function showTown() {
 }
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
+  if (T && T.inside) { // 가게 안: 할 일 버튼
+    const dawn = G.town.part === 'dawn';
+    const B = [['ledger', '오늘의 메뉴'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
+    $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
+    return;
+  }
   $('townNav').innerHTML = Object.keys(PLACES).map(id => `<button type="button" data-go="${id}" class="${placeOpen(id) ? '' : 'off'}">${placeShort(id)}</button>`).join('');
 }
 export function hideTown() { if ($('town')) $('town').hidden = true; closeSheet(); }
@@ -135,6 +212,11 @@ function layoutTown() {
   const el = $('town'); if (!el || el.hidden || !T) return;
   const cv = $('townCv'), dpr = window.devicePixelRatio || 1;
   const availH = el.clientHeight - $('townBar').offsetHeight - $('townNav').offsetHeight - 8;
+  if (T.inside) { // 가게 안: 가게 전체가 들어가게 (정수 배)
+    const V = shopViewSize(), k = Math.max(1, Math.floor(Math.min(el.clientWidth / V.w, availH / V.h) * dpr)) / dpr;
+    cv.style.width = V.w * k + 'px'; cv.style.height = V.h * k + 'px';
+    return;
+  }
   const s = Math.max(1, Math.floor(el.clientWidth / VIEW_W * dpr)) / dpr;
   T.vw = VIEW_W; T.vh = Math.max(128, Math.min(MAP_H * TILE, Math.floor(availH / s)));
   cv.style.width = T.vw * s + 'px'; cv.style.height = T.vh * s + 'px';
@@ -206,6 +288,7 @@ function joyMove(dt, vx, vy) {
 export function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
+  if (T.inside) { if (!talking()) updateInside(dt); else drawShopTo($('townCv'), { me: T.inside.me, time: T.time, dawn: G.town.part === 'dawn' }); return; }
   const me = T.me;
   const [vx, vy] = talking() ? [0, 0] : joyVec();
   if (Math.hypot(vx, vy) > 0.25) { if (me.path.length) { me.path = []; T.then = null; } joyMove(dt, vx, vy); }
@@ -235,6 +318,7 @@ function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button typ
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
+  if (T.inside) { tapInside(e); return; }
   const r = $('townCv').getBoundingClientRect();
   const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
   closeSheet();
@@ -281,9 +365,10 @@ function openPlace(id) {
 }
 // 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
 const COUNTER_ACTS = ['insta', 'blogger'];
-function openCounter() {
-  const rows = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
-  sheet(`<div class="ts-head"><b>계산대 · 홍보</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}<p class="ts-note">어르신은 이웃 이야기(소개 손님)로 옵니다</p>`, 'counter');
+function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(밤)
+  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
+  sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
+    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}`, 'counter');
   T.sheetPlace = 'shop';
 }
 function actRow(id, a) {
@@ -295,10 +380,13 @@ function actRow(id, a) {
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
+
+// 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
+function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
 let chatQ = null; // 이웃 이야기 줄들
 function showChat(lines) {
@@ -358,7 +446,7 @@ export function initTown() {
     const j = T && T.joy;
     if (!j || j.id !== e.pointerId) return;
     let dx = e.clientX - j.sx, dy = e.clientY - j.sy;
-    if (!j.on && Math.hypot(dx, dy) < JOY_START) return;
+    if (!j.on && (Math.hypot(dx, dy) < JOY_START || T.inside)) return; // 가게 안은 누르기만
     if (!j.on) { // 조이스틱 시작: 누른 자리에 받침을 놓아요
       j.on = true; closeSheet();
       const r = $('town').getBoundingClientRect();
@@ -378,10 +466,15 @@ export function initTown() {
   cv.addEventListener('pointerup', joyEnd);
   cv.addEventListener('pointercancel', joyEnd);
   const KEY = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
-  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
+  addEventListener('keydown', e => { if (townShown() && !(T && T.inside) && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
-  $('townNav').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b || talking()) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap'); });
+  $('townNav').addEventListener('click', e => {
+    if (talking()) return;
+    const inB = e.target.closest('[data-in]');
+    if (inB) { closeSheet(); playSfx('tap'); const a = inB.dataset.in; if (a === 'open') doShop('open'); else goSpot(a); return; }
+    const b = e.target.closest('[data-go]'); if (!b) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap');
+  });
   addEventListener('resize', layoutTown);
   if (window.ResizeObserver) new ResizeObserver(layoutTown).observe($('town'));
   $('townSheet').addEventListener('click', e => {
@@ -394,11 +487,12 @@ export function initTown() {
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
-    else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); sheet(furnHTML(), 'furn'); }
-    else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); sheet(furnHTML(), 'furn'); }
-    else if (k === 'fbuy') runCmd('furnBuy', { cat: b.dataset.c, key: b.dataset.k });
-    else if (k === 'fset') runCmd('furnBuy', { set: furnTheme(), grade: furnGrade() });
-    else if (k === 'fmiso') runCmd('furnBuy', { miso: true });
+    else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); showFurn(); }
+    else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); showFurn(); }
+    else if (k === 'fbuy') { furnToggle(b.dataset.c, b.dataset.k); playSfx('tap'); showFurn(); }
+    else if (k === 'fset') { furnSetToCart(); playSfx('tap'); showFurn(); }
+    else if (k === 'freset') { furnCartReset(); playSfx('tap'); showFurn(); }
+    else if (k === 'fcart') { if (runCmd('furnBuyCart', { cart: furnCart() })) { furnCartReset(); showFurn(); } }
     else if (k === 'fbuild') runCmd('shopBuild');
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
@@ -408,7 +502,8 @@ export function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
-    if (what === 'furn') { T.sheetPlace = 'flower'; if (chatQ) chatQ.after = () => sheet(furnHTML(), 'furn'); else sheet(furnHTML(), 'furn'); return; } // 미소 사장님 이야기 뒤에는 가구 창
+    if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
+    if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
@@ -425,9 +520,10 @@ export function refreshTown() {
   const s = $('townSheet');
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
-  else if (s.classList.contains('furn')) sheet(furnHTML(), 'furn');
+  else if (s.classList.contains('furn')) showFurn();
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
+  else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }

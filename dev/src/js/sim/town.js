@@ -68,6 +68,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
   if (act === 'book') { emit('town', 'book'); return true; }
+  if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn('sleep'); return true; }
   if (act === 'furn') { // 미소 가구: 그날 처음 들어갈 때 한 칸 + 이야기(친밀도·소개 손님) — 밤 칸을 다 써도 창은 그대로 (새벽이 돼도 그 창에서는 살 수 있어요)

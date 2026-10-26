@@ -16,7 +16,10 @@ import { BOND_TRADE } from '../data/bond.js';
 export const newFurn = () => ({ have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 });
 // 2장부터 미소 꽃집이 가구점으로
 export const furnOpen = () => !!(G.story && G.story.ch >= 2);
-export const furnHave = cat => (G.furn && G.furn.have[cat]) || null;
+// 미리보기: 장바구니를 잠깐 얹어서 계산·그리기 (저장 안 해요 — withFurn 안에서만)
+let over = null;
+export function withFurn(cart, fn) { const keep = over; over = cart || null; try { return fn(); } finally { over = keep; } }
+export const furnHave = cat => (over && over[cat]) || (G.furn && G.furn.have[cat]) || null;
 
 // 물건 하나: { theme: 테마(null = 어느 테마로든 셈), grade: 1|2|'sp'|'miso', price, mood, name, heart, spr }
 export function itemInfo(cat, key) {
@@ -65,19 +68,30 @@ export const eatMul = () => themesOn().reduce((k, th) => Math.min(k, FURN_THEMES
 export const furnSpr = (cat, base) => (furnHave(cat) ? itemInfo(cat, furnHave(cat)).spr : base);
 export const chairSpr = () => (furnHave('table') ? itemInfo('table', furnHave('table')).spr.replace('table_', 'chair_') : 'chair');
 
-// 사기 (미소 가구 창이 열려 있을 때만 — G.town.furnIn)
-//  { cat, key } 하나 · { set: 테마, grade: 1|2 } 모자란 것 한 번에 · { miso: true } 미소 컬렉션
-defineCmd('furnBuy', ({ cat, key, set, grade, miso }) => {
+// 장바구니 (미소 가구 창: 고르고 미리 보고 「구매하기」) cart = { 카테고리: 물건 이름 }
+//  이미 있는 것은 빼고 셈 · 미소 컬렉션은 6가지 한 벌 값 · 사고 나서 6가지가 다 같은 물건(테마·등급)이면 15% 싸게
+export function cartList(cart) { return Object.entries(cart || {}).filter(([c, k]) => FURN_CATS[c] && k && G.furn.have[c] !== k); }
+export function cartPrice(cart) {
+  const L = cartList(cart);
+  if (!L.length) return 0;
+  const miso = L.filter(([, k]) => k === 'miso').length ? misoPrice() : 0;
+  const rest = L.filter(([, k]) => k !== 'miso').reduce((s, [c, k]) => s + furnPrice(c, k), 0);
+  const after = FURN_ORDER.map(c => (cart[c] || G.furn.have[c]));
+  const set = L.length >= 2 && after.every(k => k && k === after[0]) && after[0] !== 'miso';
+  return Math.round((rest * (set ? FURN_SET_RATE : 1)) / 100) * 100 + miso;
+}
+export const cartIsSet = cart => { const after = FURN_ORDER.map(c => (cart[c] || G.furn.have[c])); return cartList(cart).length >= 2 && after.every(k => k && k === after[0]) && after[0] !== 'miso'; };
+defineCmd('furnBuyCart', ({ cart }) => {
   if (!furnOpen() || G.phase !== 'prep' || !G.town || !G.town.furnIn) return false;
-  let cats, price, k, name;
-  if (miso) { cats = FURN_ORDER.filter(c => furnHave(c) !== 'miso'); k = 'miso'; price = misoPrice(); name = MISO_SET.name; if (bondLv('miso') < MISO_SET.heart) return locked(); }
-  else if (set) { if (!FURN_THEMES[set]) return false; k = keyOf(set, grade); cats = setMissing(set, grade); price = setPrice(set, grade); name = `${FURN_THEMES[set].name}${grade === 2 ? ' 고급' : ''} 세트`; if (itemLocked('wall', k)) return locked(); }
-  else { if (!FURN_CATS[cat] || !key) return false; k = key; cats = [cat]; price = furnPrice(cat, key); name = itemInfo(cat, key).name; if (itemLocked(cat, key)) return locked(); if (FURN_SPECIAL[key] && FURN_SPECIAL[key].cat !== cat) return false; }
-  if (!cats.length || (!set && !miso && furnHave(cat) === k)) return false;
+  const L = cartList(cart);
+  if (!L.length) return false;
+  if (L.some(([c, k]) => (k === 'miso' ? bondLv('miso') < MISO_SET.heart : itemLocked(c, k)) || (FURN_SPECIAL[k] && FURN_SPECIAL[k].cat !== c))) return locked();
+  if (L.some(([, k]) => k === 'miso') && FURN_ORDER.some(c => (cart[c] || G.furn.have[c]) !== 'miso')) return false; // 미소 컬렉션은 한 벌로만
+  const price = cartPrice(cart);
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
-  for (const c of cats) G.furn.have[c] = k;
-  emit('toast', set || miso ? `${josa(name, '으로/로')} 가게를 꾸몄습니다 · 분위기 ${mood()}` : `${josa(name, '을/를')} 들였습니다 · 분위기 ${mood()}`, 'good');
+  for (const [c, k] of L) G.furn.have[c] = k;
+  emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
   emit('sfx', 'coin');
   trade();
   emit('prep');
