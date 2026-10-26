@@ -99,7 +99,7 @@ export const INCIDENTS = {
     win: '박 할머니가 김밥을 받아 들고 웃으며 갔습니다', lose: '박 할머니가 기다리다 그냥 가셨습니다',
   },
   inspect: {
-    kind: 'inspect', name: '구청 위생 점검', short: '점검', from: 200, to: 400, minDay: 5, weight: 2, limit: 90, rating: 0.15,
+    kind: 'inspect', name: '구청 위생 점검', short: '점검', from: 200, to: 400, minDay: 5, weight: 2, limit: 90, reviews: 3,
     text: '구청에서 위생 점검을 나왔습니다',
     intro: [
       [null, '서류철을 든 사람이 가게 문을 열고 들어옵니다.'],

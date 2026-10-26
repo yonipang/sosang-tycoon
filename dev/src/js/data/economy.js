@@ -18,6 +18,13 @@ export const TIP = { min: 500, max: 1500 };
 export const RUSH_QTY = 5;       // 한 번에 몇 인분
 export const RUSH_MUL = 1.6;     // 재료값 배율
 export const RUSH_SEC = 20;      // 도착까지 실제 초
+// 별점 = 리뷰 평균 (실제 지도 앱처럼). 계산한 손님 중 REVIEW_RATE만큼이 그날 만족(반올림)을 별로 남기고, 최근 REVIEW_KEEP개의 평균이 가게 별점 (sim/rating.js)
+//  리뷰가 하나도 없으면 별점은 「—」, 손님 수·가격에는 RATING_NONE(보통)으로 셈
+//  프롤로그(오가네 분식)는 오 사장님이 쌓아 둔 리뷰로 시작하고, 1장에 새 이름으로 바꾸면 리뷰 0개부터 (OH_REVIEWS: 별 5·4·3·2·1 개수)
+export const REVIEW_RATE = 0.35;
+export const REVIEW_KEEP = 100;
+export const RATING_NONE = 3;
+export const OH_REVIEWS = [22, 24, 10, 3, 1];
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 export const ratingSpawnMul = r => 0.55 + 0.15 * r;
 export const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」

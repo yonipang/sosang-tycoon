@@ -6,6 +6,7 @@ import { START_CASH } from '../data/economy.js';
 import { defineCmd, emit } from './events.js';
 import { forceIncident } from './incidents.js';
 import { townEnterNight } from './town.js';
+import { addReviews } from './rating.js';
 
 const PRO = ['p_stir', 'p_serve', 'p_book', 'p_ahead', 'p_keys'];
 // 가 볼 수 있는 곳: day(그날 준비 화면) · ch · title · done · active · queue(보여 줄 장면) · menus · toolsOpen · tools · decor · shop · town(마을 밤부터) · mastery(메뉴 숙련도) · cash(잔고) · bond(친밀도 점수)
@@ -41,6 +42,7 @@ defineCmd('devJump', ({ id }) => {
   for (const q of S.done) S.prog[q] = 99;
   for (const m of S.menus) G.prep[m] = G.prep[m] || PREP_FIRST_DAY[m];
   if (J.ch >= 1) G.cash = START_CASH;
+  if (J.ch >= 2) addReviews(Array.from({ length: 30 }, (_, i) => (i % 3 ? 4 : 5))); // 2장: 리뷰가 조금 쌓인 가게
   if (J.cash) G.cash = J.cash;
   if (J.bond) Object.assign(G.bond.pts, J.bond);
   if (J.mastery) Object.assign(G.mastery, J.mastery);

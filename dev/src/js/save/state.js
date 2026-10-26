@@ -7,6 +7,7 @@ import { migrate } from './migrations.js';
 import { newTown } from '../sim/town.js';
 import { newBond } from '../sim/bond.js';
 import { newFurn } from '../sim/furniture.js';
+import { ohReviews } from '../sim/rating.js';
 
 export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
@@ -22,7 +23,7 @@ export const SAVE_V = 1;
 // bond = 친밀도 { pts: { miso, jung, moon }, day, got } (sim/bond.js) · furn = 미소 가구 { have: { 카테고리: 테마 }, seen, visits } (sim/furniture.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv'];
 
 export const G = { phase: 'title', run: null };
 
@@ -33,8 +34,9 @@ export function newGame(shopName) {
     day: 1,
     cash: START_CASH,
     loan: START_LOAN,
-    rating: 3.0,
+    rating: null,
     ratingN: 0,
+    revs: [],
     prices: Object.fromEntries(MENU_IDS.map(m => [m, MENUS[m].price])),
     prep: { ...PREP_FIRST_DAY },
     inv: Object.fromEntries(ING_IDS.map(i => [i, []])),
@@ -59,6 +61,7 @@ export function newGame(shopName) {
     phase: 'prep',
     run: null,
   });
+  if (!shopName) ohReviews(); // 프롤로그: 오가네 분식은 오 사장님이 쌓아 둔 리뷰로 (1장에 새 이름이면 0개부터)
 }
 
 export function serialize() {

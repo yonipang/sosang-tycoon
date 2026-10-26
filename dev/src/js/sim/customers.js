@@ -21,6 +21,7 @@ import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upg
 import { noteVisit, noteBookSat } from './book.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 import { moodSat, moodEnterMul, eatMul } from './furniture.js';
+import { ratingNow } from './rating.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -180,14 +181,14 @@ export function spareOf(m) {
 export const canSell = m => menuOn(m) && (stockOf(m) > 0 || spareOf(m) > 0);
 
 function reaction(c, m) {
-  const fair = MENUS[m].fair * fairMul(m) * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(G.rating) * (c.reg ? REGULARS[c.reg].priceMul : 1); // 메뉴 레벨만큼 적당한 가격이 올라요
+  const fair = MENUS[m].fair * fairMul(m) * CUSTOMER_TYPES[c.type].priceMul * ratingPriceMul(ratingNow()) * (c.reg ? REGULARS[c.reg].priceMul : 1); // 메뉴 레벨만큼 적당한 가격이 올라요
   return PRICE_REACT.find(p => G.prices[m] / fair <= p.max);
 }
 
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(G.rating)); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
+  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(ratingNow())); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
   let m = weighted(w);
   const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
   if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
@@ -296,7 +297,7 @@ function passerLine() {
   const r = G.run, pick = a => a[Math.floor(fxRand() * a.length)];
   const busy = r.queue.length > 0 || !freeTable();
   if (busy && fxRand() < 0.7) return pick(PASSER_LINES.busy);
-  if (G.ratingN >= 3 && G.rating < 2.8 && fxRand() < 0.6) return pick(PASSER_LINES.bad);
+  if (G.ratingN >= 10 && ratingNow() < 2.8 && fxRand() < 0.6) return pick(PASSER_LINES.bad);
   if (G.day <= 3 && fxRand() < 0.5) return pick(PASSER_LINES.new);
   return pick(fxRand() < 0.5 ? PASSER_LINES.smell : PASSER_LINES.plain);
 }

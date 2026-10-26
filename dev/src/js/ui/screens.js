@@ -280,7 +280,7 @@ export function renderReceipt() {
     `<div class="rc-hero">
         <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
         <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
-        <div class="hero-star">★ ${R.rating.toFixed(1)} ${deltaHtml}</div>
+        <div class="hero-star">★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${deltaHtml}${R.ratingN != null ? `<small class="rv-n">리뷰 ${R.ratingN}개${R.newReviews ? ` (+${R.newReviews})` : ''}</small>` : ''}</div>
         <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
       </div>`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
@@ -340,7 +340,7 @@ function receiptDetail(R, lines, miss, rv, delta) {
         <div class="ln"><span>놓친 손님</span><b>${R.missedTotal}명</b></div>
         ${miss ? `<div class="chips">${miss}</div>` : ''}
         <div class="dash"></div>
-        <div class="ln star"><span>가게 별점</span><b>★ ${R.rating.toFixed(1)} ${Math.abs(delta) < 0.05 ? '<small>−</small>' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`}</b></div>
+        <div class="ln star"><span>가게 별점${R.ratingN != null ? ` · 리뷰 ${R.ratingN}개` : ''}</span><b>★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${Math.abs(delta) < 0.05 ? '<small>−</small>' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`}</b></div>
         ${rv ? `<div class="rvs">${rv}</div>` : ''}
         ${G.story.ch === 0 ? '<div class="rc-foot">오늘 번 돈은 오 사장님 가게 돈입니다</div>' : `<div class="rc-foot">잔고 ${won(G.cash)}</div>`}
       </div>

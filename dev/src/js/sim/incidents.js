@@ -1,6 +1,7 @@
 // 돌발 이벤트 진행 (data/incidents.js): 그날 고르기 · 시작 · 세기 · 성공/실패와 보상.
 // 화면은 만지지 않고 사건만: emit('incident', 'start'|'end', 돌발) · toast
 import { G } from '../save/state.js';
+import { addReviews } from './rating.js';
 import { josa } from '../engine/util.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { INCIDENTS, INCIDENTS_PER_DAY } from '../data/incidents.js';
@@ -122,7 +123,7 @@ function endIncident(x, ok) {
     r.log.sats.push(2);
   }
   // 단체: 계산한 아이마다 팁, 모두 받으면 덤 (성공·실패와 상관없이 받은 만큼은 받아요)
-  if (D.kind === 'inspect' && ok) { G.rating = Math.min(5, G.rating + D.rating); x.bonus = 0; }
+  if (D.kind === 'inspect' && ok) { addReviews(Array(D.reviews).fill(5)); x.bonus = 0; } // 「위생 우수」 소문 → 별 5 리뷰 몇 개
   if (D.kind === 'group') { x.bonus = x.paid * D.perHead + (x.paid >= x.need ? D.allBonus : 0); if (x.bonus) { G.cash += x.bonus; r.log.tips += x.bonus; } }
   else x.bonus = ok ? (D.reward || D.tip || 0) : 0;
   (r.log.incidents = r.log.incidents || []).push({ name: D.name, ok, bonus: x.bonus });

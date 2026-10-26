@@ -23,7 +23,7 @@ export function updateHud() {
   setText('hCash', wonShort(G.cash || 0));
   const alba = !!G.story && G.story.ch === 0; // 프롤로그: 아직 알바라 가게 돈은 오 사장님 것
   if (last.alba !== alba) { last.alba = alba; $('hCash').parentElement.hidden = alba; }
-  setText('hStar', (G.rating || 3).toFixed(1));
+  setText('hStar', G.rating == null ? '—' : G.rating.toFixed(1)); // 리뷰가 없으면 「—」 (sim/rating.js)
   const r = G.run;
   if (!r) return;
   setText('hClock', r.dawn ? '06:00' : clockText(Math.min(r.min, 720)));

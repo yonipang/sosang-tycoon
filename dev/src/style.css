@@ -860,3 +860,4 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .fu-b-row small { color: var(--ink-soft); }
 .fu-b-row.next { background: #fff3c9; }
 .fu-b-arrow { text-align: center; color: var(--ink-soft); padding: 2px 0; }
+.hero-star .rv-n { display: block; margin-top: 2px; font-size: 14px; color: rgba(251,243,226,.7); }

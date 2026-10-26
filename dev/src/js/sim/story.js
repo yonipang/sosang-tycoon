@@ -1,6 +1,7 @@
 // 이야기 규칙: 퀘스트 세기·끝내기, 장면 차례, 메뉴 열기. 화면은 만지지 않고 사건만 남겨요.
 //  emit('story') = 보여 줄 장면이 생겼어요 (ui/story.js가 차례대로 보여 줘요)
 import { G } from '../save/state.js';
+import { ratingNow, resetReviews } from './rating.js';
 import { QUESTS, SCENES } from '../data/story.js';
 import { PREP_FIRST_DAY } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
@@ -34,7 +35,7 @@ function openMenu(m, now) {
 function queueScene(id) {
   const sc = SCENES[id];
   // 조건에 따라 다른 장면 (예: 별점이 3.5 이상이면 좋은 기사)
-  if (sc.alt && sc.alt.cond === 'rating35' && G.rating < 3.5) id = sc.alt.else;
+  if (sc.alt && sc.alt.cond === 'rating35' && ratingNow() < 3.5) id = sc.alt.else;
   G.story.queue.push(id);
 }
 
@@ -101,7 +102,7 @@ defineCmd('sceneDone', ({ name }) => {
   const S = G.story, id = S.queue.shift();
   const sc = SCENES[id];
   if (!sc) return;
-  if (sc.ask === 'shop') G.shop = (name || '').trim().slice(0, 8) || '골목분식';
+  if (sc.ask === 'shop') { G.shop = (name || '').trim().slice(0, 8) || '골목분식'; resetReviews(); emit('toast', '새 이름으로 지도에 올렸습니다. 리뷰 0개부터 시작합니다', 'info'); } // 별점은 새 가게부터 (sim/rating.js)
   for (const q of sc.start || []) start(q);
   if (sc.title) S.title = sc.title;
   if (sc.ch !== undefined) S.ch = sc.ch;
