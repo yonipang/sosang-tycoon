@@ -1,6 +1,6 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER } from '../data/layout.js';
+import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER, FURN_SPOTS } from '../data/layout.js';
 import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
@@ -9,6 +9,7 @@ import { menuOpen, questActive } from '../sim/story.js';
 import { TUT_SPOT } from '../data/tutorial.js';
 import { CAST } from '../data/story.js';
 import { ohInShop, tutAsk } from '../sim/tutorial.js';
+import { furnSpr, furnHave } from '../sim/furniture.js';
 
 export const VW = W * TILE;
 export const VH = H * TILE;
@@ -108,9 +109,13 @@ function tint(min) {
 
 function drawRoom() {
   // 뒷벽(0~1줄), 주방 바닥(2~3줄), 홀(4줄~앞벽 위), 앞벽, 보도
-  for (let x = 0; x < W; x += 3) spr('wall', x * TILE, 0, false, Math.min(48, (W - x) * TILE), 32);
+  const wall = furnSpr('wall', 'wall');
+  for (let x = 0; x < W; x += 3) spr(wall, x * TILE, 0, false, Math.min(48, (W - x) * TILE), 32);
+  // 미소 가구: 뒷벽 창문·액자 (설비 뒤에 걸려요)
+  if (furnHave('window')) for (const [x, y] of FURN_SPOTS.window) spr(furnSpr('window'), x, y);
+  if (furnHave('frame')) for (const [x, y] of FURN_SPOTS.frame) spr(furnSpr('frame'), x, y);
   tileFill('floor_kitchen', 0, 2, W, 4);
-  tileFill('floor_dining', 0, 4, W, FRONT_Y);
+  tileFill(furnSpr('floor', 'floor_dining'), 0, 4, W, FRONT_Y);
   tileFill('sidewalk', 0, FRONT_Y, W, H);
   // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
   for (let x = 0; x < W; x++) {
@@ -169,6 +174,10 @@ function drawCustomerUI(c) {
 }
 
 // 이야기로 생긴 장식: 칸 가운데, 발이 칸 아래쪽에 닿게
+// 미소 가구로 바꾼 식탁·의자·화분 (sim/furniture.js)
+const fSpr = f => (f.spr === 'table' ? furnSpr('table', 'table') : f.spr);
+const chairSpr = () => (furnHave('table') ? 'chair_' + furnHave('table') : 'chair');
+const plantsNow = () => (furnHave('plant') ? FURN_SPOTS.plant.map(([x, y]) => ({ spr: furnSpr('plant'), x, y })) : []);
 const decorNow = () => (G.story ? G.story.decor : []).map(k => DECOR[k]).filter(Boolean);
 function drawDecor(d) { const r = SPR[d.spr]; if (r) spr(d.spr, d.x * TILE + 8 - Math.floor(r[2] / 2), (d.y + 1) * TILE - r[3]); }
 // 이야기 단서: 냉장고 뒤 쪽지 (찾을 때까지 「!」 말풍선이 통통)
@@ -250,10 +259,11 @@ export function drawFrame(dt) {
   }
   // 앞쪽: 탁자·의자·계산대·사람을 y순으로
   const items = [];
-  for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(f.spr, f.x * TILE, f.y * TILE) });
+  for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(fSpr(f), f.x * TILE, f.y * TILE) });
   // 같은 줄은 의자(0.2) → 앉은 손님(0.3) → 탁자(0.375) 순서: 발이 탁자에 올라가 보이지 않게
-  SEATS.forEach((s, i) => items.push({ y: s.y + 0.2, d: () => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
+  SEATS.forEach((s, i) => items.push({ y: s.y + 0.2, d: () => spr(chairSpr(), s.x * TILE, s.y * TILE - 16, s.face === 'left') }));
   for (const d of decorNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
+  for (const d of plantsNow()) items.push({ y: d.y + 1, d: () => drawDecor(d) });
   if (r) {
     for (const c of r.customers) {
       const seated = sittingNow(c);
@@ -307,9 +317,10 @@ export function drawIdle(dt, night) {
   t += dt;
   ctx.clearRect(0, 0, VW, VH);
   drawRoom();
-  for (const f of visibleFurniture().filter(f => !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
-  SEATS.forEach(s => spr('chair', s.x * TILE, s.y * TILE - 16, s.face === 'left'));
+  for (const f of visibleFurniture().filter(f => !f.over)) spr(fSpr(f), f.x * TILE, f.y * TILE);
+  SEATS.forEach(s => spr(chairSpr(), s.x * TILE, s.y * TILE - 16, s.face === 'left'));
   decorNow().forEach(drawDecor);
+  plantsNow().forEach(drawDecor);
   for (const f of visibleFurniture().filter(f => f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   ctx.fillStyle = night ? 'rgba(30,36,90,.45)' : 'rgba(30,36,90,.3)';
   ctx.fillRect(0, 0, VW, VH);

@@ -5,7 +5,7 @@
 # LimeZu 원본 팩(zip)은 저장소에 올리지 않아요 (라이선스: 재배포 금지, 크레딧 필수 — limezu.itch.io).
 # 이 스크립트가 게임에 실제로 쓰는 조각만 골라 묶고, 그 결과(atlas.js)만 저장소에 올려요.
 # 우리가 직접 그리는 그림(분식 음식·계산대·표정 등)은 아래 OWN_* 함수에서 픽셀로 그려요.
-import base64, glob, io, json, os, sys, zipfile
+import base64, colorsys, glob, io, json, os, sys, zipfile
 from PIL import Image, ImageDraw
 
 DEV = os.path.dirname(os.path.abspath(__file__))
@@ -230,6 +230,8 @@ HANGUL = {
     '임': ['.###..#..', '#...#.#..', '#...#.#..', '.###..#..', '.........', '.######..', '.#....#..', '.#....#..', '.######..'],
     '대': ['####.#.#.', '#....#.#.', '#....###.', '#....#.#.', '####.#.#.', '.....#.#.', '.....#.#.', '.....#.#.', '.....#.#.'],
     '자': ['#####..#.', '..#....#.', '..#....#.', '.#.#...##', '#...#..#.', '.......#.', '.......#.', '.......#.', '.......#.'],
+    '가': ['#####..#.', '....#..#.', '....#..#.', '....#..##', '...#...#.', '..#....#.', '.#.....#.', '.......#.', '.......#.'],
+    '구': ['.######..', '......#..', '......#..', '......#..', '.........', '#########', '....#....', '....#....', '....#....'],
     '재': ['####.#.#.', '.#...#.#.', '.#...###.', '#.#..#.#.', '#..#.#.#.', '.....#.#.', '.....#.#.', '.....#.#.', '.....#.#.'],
 }
 
@@ -355,6 +357,51 @@ def own_ings():
     return out
 
 
+# ── 미소 가구 (2장): 테마 4개 × 벽지·바닥·창문·화분·액자·식탁+의자 ─────────
+#  LimeZu 그림을 잘라 쓰고, 식탁·의자는 지금 그림의 색만 바꿔요 (data/furniture.js FURN_THEMES와 이름을 맞춰요)
+GEN = '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png'
+LIV = '1_Interiors/16x16/Theme_Sorter/2_LivingRoom_16x16.png'
+FURN = {
+    'retro': dict(wall=(176, 64), floor=(64, 320), win=(99, 695), plant=(97, 914, 14, 22), frame=(2, 490), tint=dict(hue=0.02, sat=1.15, val=0.85)),
+    'wood': dict(wall=(176, 0), floor=(0, 384), win=(195, 695), plant=(212, 408, 23, 31), frame=(2, 458), tint=dict(sat=0.9, val=1.08)),
+    'pastel': dict(wall=(352, 288), floor=(128, 128), win=(131, 695), plant=(133, 905, 22, 23), frame=(2, 522), tint=dict(hue=0.42, sat=0.45, add=0.12)),
+    'minimal': dict(wall=(0, 64), floor=(192, 480), win=(163, 695), plant=(240, 457, 16, 31), frame=(34, 426), tint=dict(sat=0.12, add=0.18)),
+}
+
+
+def recolor(src, hue=None, sat=1.0, val=1.0, add=0.0):  # 색만 바꾸기 (채도가 있는 픽셀만 색상 hue로)
+    o = src.copy(); px = o.load()
+    for y in range(o.height):
+        for x in range(o.width):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if hue is not None and s_ > 0.12:
+                h = hue
+            s_ = min(1, s_ * sat); v = min(1, v * val + add)
+            r2, g2, b2 = colorsys.hsv_to_rgb(h, s_, v)
+            px[x, y] = (int(r2 * 255), int(g2 * 255), int(b2 * 255), a)
+    return o
+
+
+def furn_sprites():
+    out = {}
+    for th, d in FURN.items():
+        mid = crop(INT, RB + 'Room_Builder_Walls_16x16.png', d['wall'][0] + 16, d['wall'][1], 16, 32)  # 가운데 한 칸만 이어 붙여 이음매 없이
+        w = Image.new('RGBA', (48, 32), (0, 0, 0, 0))
+        for i in range(3):
+            w.paste(mid, (i * 16, 0))
+        out['wall_' + th] = w
+        out['floor_' + th] = crop(INT, RB + 'Room_Builder_Floors_16x16.png', d['floor'][0], d['floor'][1], 48, 32)
+        out['win_' + th] = crop(INT, GEN, d['win'][0], d['win'][1], 25, 20)
+        out['plant_' + th] = crop(INT, GEN, *d['plant'])
+        out['frame_' + th] = crop(INT, LIV, d['frame'][0], d['frame'][1], 13, 14)
+        out['table_' + th] = recolor(crop(INT, KIT % 289), **d['tint'])
+        out['chair_' + th] = recolor(crop(INT, KIT % 280), **d['tint'])
+    return out
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
@@ -410,6 +457,8 @@ def collect():
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     for k, v in own_ings().items():
         s['ing_' + k] = v
+    s.update(furn_sprites())
+    s['sign_furn'] = own_sign('가구', (150, 92, 56, 255), (196, 140, 96, 255))  # 2장: 미소 꽃집 → 미소 가구
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()
     s['register'] = own_register(); s['pot'] = own_pot(); s['mat'] = own_mat(); s['doormat'] = own_doormat()

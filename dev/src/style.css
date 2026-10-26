@@ -810,3 +810,31 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .bk-info > small { color: var(--ink-soft); word-break: keep-all; }
 .bk-info .face { width: 16px; height: 16px; vertical-align: middle; }
 .bk-foot { margin: 6px 0 0; color: var(--ink-soft); }
+
+/* 미소 가구 (2장 · ui/furn.js) */
+.hearts { color: var(--red); letter-spacing: -1px; margin-left: auto; margin-right: 8px; display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; }
+.hearts i { font-style: normal; color: var(--line); }
+.hearts .hbar { display: inline-block; width: 26px; height: 6px; margin-left: 4px; border: 2px solid var(--ink); background: var(--paper-2); }
+.hearts .hbar i { display: block; height: 100%; background: var(--red); }
+.fu-mood { padding-top: 6px; }
+.fu-mood b { font-weight: normal; color: var(--red-dark); font-size: 20px; }
+.fu-mood small { color: var(--ink-soft); }
+.fu-disc { color: var(--red); }
+.fu-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 6px; }
+.fu-tab { position: relative; padding: 4px 0; font: inherit; font-size: 15px; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; word-break: keep-all; }
+.fu-tab.sel { background: var(--mustard); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
+.fu-tab i { position: absolute; top: -8px; right: -4px; font-style: normal; font-size: 13px; line-height: 16px; min-width: 16px; background: var(--ink); color: var(--paper); border-radius: 8px; }
+.fu-bonus { margin: 6px 0 2px; color: var(--ink-soft); word-break: keep-all; }
+.fu-bonus.on { color: var(--green); }
+.fu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+.fu-tile { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 6px 2px 4px; font: inherit; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); box-shadow: 0 3px 0 var(--ink); cursor: pointer; line-height: 1.25; text-align: center; }
+.fu-tile:active:not([disabled]) { transform: translateY(3px); box-shadow: none; }
+.fu-tile[disabled] { cursor: default; }
+.fu-tile:not(.mine)[disabled] { opacity: .5; }
+.fu-tile.mine { background: #e3f0d2; box-shadow: 0 3px 0 var(--green); border-color: var(--green); }
+.fu-tile b { font-weight: normal; font-size: 14px; word-break: keep-all; line-height: 1.2; }
+.fu-tile small { color: var(--ink-soft); font-size: 14px; }
+.fu-tile.mine small { color: var(--green); }
+.fu-m { position: absolute; top: 2px; left: 3px; font-style: normal; font-size: 13px; color: var(--green); }
+.fu-pic { display: flex; align-items: flex-end; justify-content: center; height: 50px; margin-bottom: 2px; }
+.fu-ic { image-rendering: pixelated; flex: none; }

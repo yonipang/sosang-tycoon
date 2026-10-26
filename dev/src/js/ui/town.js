@@ -6,10 +6,12 @@ import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
 import { TILE } from '../data/layout.js';
-import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
+import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
-import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock } from '../sim/town.js';
+import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs } from '../sim/town.js';
+import { furnOpen } from '../sim/furniture.js';
+import { furnHTML, furnTheme, heartsHTML } from './furn.js';
 import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
@@ -124,7 +126,7 @@ export function showTown() {
 }
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
-  $('townNav').innerHTML = Object.keys(PLACES).map(id => `<button type="button" data-go="${id}" class="${placeOpen(id) ? '' : 'off'}">${PLACES[id].short}</button>`).join('');
+  $('townNav').innerHTML = Object.keys(PLACES).map(id => `<button type="button" data-go="${id}" class="${placeOpen(id) ? '' : 'off'}">${placeShort(id)}</button>`).join('');
 }
 export function hideTown() { if ($('town')) $('town').hidden = true; closeSheet(); }
 
@@ -224,7 +226,7 @@ export function updateTown(dt) {
   const dawn = G.town.part === 'dawn';
   const actors = [me];
   for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part) actors.push({ char: CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); }
-  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks() });
+  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: furnOpen() ? { sign_flower: 'sign_furn' } : null });
 }
 
 function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
@@ -268,12 +270,13 @@ function actLabel(place, act) {
 function openPlace(id) {
   const P = PLACES[id], Tn = G.town;
   if (!placeOpen(id)) {
-    sheet(`<div class="ts-head"><b>${P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${P.open === 'dawn' ? '새벽에 문을 엽니다' : '지금은 문을 닫았습니다'}</p>`);
+    sheet(`<div class="ts-head"><b>${placeName(id)}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${P.open === 'dawn' ? '새벽에 문을 엽니다' : '지금은 문을 닫았습니다'}</p>`);
     return;
   }
-  const acts = PLACE_ACTS[id].filter(a => (ACTS[a].when === 'any' || ACTS[a].when === Tn.part) && !COUNTER_ACTS.includes(a)); // 홍보는 계산대 창에서
+  const acts = placeActs(id).filter(a => (ACTS[a].when === 'any' || ACTS[a].when === Tn.part) && !COUNTER_ACTS.includes(a)); // 홍보는 계산대 창에서
   const rows = acts.map(a => actRow(id, a)).join('');
-  sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || `<p class="ts-note">${id === 'board' ? '동네 소식과 행사 안내가 붙어 있습니다' : '지금 할 일이 없습니다'}</p>`}`);
+  const who = P.who && ['miso', 'jung'].includes(P.who) ? heartsHTML(P.who) : ''; // 친밀도 하트 (sim/bond.js)
+  sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : placeName(id)}</b>${who}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || `<p class="ts-note">${id === 'board' ? '동네 소식과 행사 안내가 붙어 있습니다' : '지금 할 일이 없습니다'}</p>`}`);
   T.sheetPlace = id;
 }
 // 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
@@ -291,8 +294,9 @@ function actRow(id, a) {
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
+      : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
       : a === 'book' ? '가게에 온 손님들' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
-    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost ? `<i>${(a === 'market' && Tn.marketIn) ? '' : cost}</i>` : ''}</button>`;
+    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
 
@@ -331,7 +335,7 @@ function marketHTML() {
   const ings = openIngs(), lack = cartFor(plan);
   const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
-  return `<div class="ts-head"><b>정 사장 식자재</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+  return `<div class="ts-head"><b>정 사장 식자재</b>${heartsHTML('jung')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     <small class="mk-h">오늘 팔 양</small>
     <div class="mk-plan">${todayMenus().map(m => `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>재고로 ${invServings(m)}그릇</small></span><div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('')}</div>
     <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기 <small>빨간 점이 모자란 재료</small></button>
@@ -390,6 +394,9 @@ export function initTown() {
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
+    else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); sheet(furnHTML(), 'furn'); }
+    else if (k === 'fbuy') runCmd('furnBuy', { cat: b.dataset.c, theme: furnTheme() });
+    else if (k === 'fset') runCmd('furnBuy', { set: furnTheme() });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
@@ -398,6 +405,7 @@ export function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'furn') { T.sheetPlace = 'flower'; if (chatQ) chatQ.after = () => sheet(furnHTML(), 'furn'); else sheet(furnHTML(), 'furn'); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
@@ -414,6 +422,7 @@ export function refreshTown() {
   const s = $('townSheet');
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
+  else if (s.classList.contains('furn')) sheet(furnHTML(), 'furn');
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');

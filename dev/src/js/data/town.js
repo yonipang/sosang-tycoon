@@ -65,6 +65,7 @@ export const FATIGUE_SLOW = 0.08;
 //  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
+//  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 export const ACTS = {
   ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
@@ -75,6 +76,7 @@ export const ACTS = {
   book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'night' },
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
+  furn: { name: '가구 둘러보기', cost: 1, when: 'night' },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
   market: { name: '장보기', cost: 1, when: 'dawn' },
   setup: { name: '오픈 준비 (진열)', cost: 1, when: 'dawn' },
@@ -89,6 +91,8 @@ export const PLACE_ACTS = {
   board: [],
   market: ['market'],
 };
+// 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
+export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] } };
 export const HYGIENE_DECAY = 25;
 export const CLEAN_GAIN = 60;
 export const HYGIENE_LOW = 40;

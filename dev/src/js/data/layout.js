@@ -48,6 +48,8 @@ export const DOOR_OUT = { x: 5, y: WALK_Y };
 export const PLAYER_START = { x: 4, y: 4 };
 // 장식 (이야기로 생겨요 — G.story.decor). 놓일 칸은 처음부터 막아 둬요 (생겨도 길이 바뀌지 않게)
 export const DECOR = { plant: { spr: 'plant', x: 9, y: 4 } };
+// 미소 가구 자리 (data/furniture.js): 창문·액자는 뒷벽 맨 윗줄(픽셀 x, y) · 화분은 홀 왼쪽 두 칸(놓일 칸은 처음부터 막아 둬요)
+export const FURN_SPOTS = { window: [[68, 0]], frame: [[34, 2], [113, 2]], plant: [[0, 4], [0, 10]] };
 // 사장이 못 가는 칸 (자리·탁자·계산대·설비 줄·벽)
 export function solidForPlayer(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
@@ -56,6 +58,7 @@ export function solidForPlayer(x, y) {
   if (SEATS.some(s => s.x === x && s.y === y)) return true;
   if (REGISTER.tiles.some(([a, b]) => a === x && b === y)) return true;
   if (Object.values(DECOR).some(d => d.x === x && d.y === y)) return true;
+  if (FURN_SPOTS.plant.some(([a, b]) => a === x && b === y)) return true;
   return false;
 }
 // 손님이 못 가는 칸 (자리는 자기 자리만 — sim/path.js에서 따로 허락)

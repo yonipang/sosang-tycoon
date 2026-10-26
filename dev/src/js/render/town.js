@@ -62,7 +62,7 @@ const twSignKey = SIGNS.map(([, x, y]) => {
   return b ? b[2] : y;
 });
 
-// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving}], time, night, dawn, marks:[{x,y}] }
+// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving}], time, night, dawn, marks:[{x,y}], swap:{ 간판: 바꿀 그림 } }
 export function drawTown(canvas, S) {
   if (!twAtlas) { twAtlas = new Image(); twAtlas.src = ATLAS_URL; }
   if (!twAtlas.complete) return;
@@ -79,7 +79,7 @@ export function drawTown(canvas, S) {
   // 건물·간판·물건·사람: 바닥 y 순서
   const items = [];
   for (const [n, x, bot] of BUILDINGS) items.push({ y: bot, d: () => twSpr(n, x, bot - SPR[n][3]) });
-  SIGNS.forEach(([n, x, y], i) => items.push({ y: twSignKey[i] + 0.1, d: () => twSpr(n, x, y) }));
+  SIGNS.forEach(([n, x, y], i) => items.push({ y: twSignKey[i] + 0.1, d: () => twSpr((S.swap && S.swap[n]) || n, x, y) })); // swap: 바뀐 간판 (2장 미소 가구)
   for (const p of MAP_PROPS) items.push({ y: p.y, d: () => twSpr(p.spr, p.x, p.y - SPR[p.spr][3]) });
   for (const a of S.actors) items.push({ y: a.y + 0.5, d: () => twPerson(a, t + a.char) });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());

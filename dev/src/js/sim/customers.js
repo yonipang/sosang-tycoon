@@ -20,6 +20,7 @@ import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
 import { noteVisit, noteBookSat } from './book.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
+import { moodSat, moodEnterMul, eatMul } from './furniture.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -217,7 +218,7 @@ export function serve(c, dish) {
   const i = r.tickets.findIndex(t => t.cid === c.id);
   if (i >= 0) r.tickets.splice(i, 1);
   c.state = 'eating';
-  c.timer = CUSTOMER_TYPES[c.type].eat;
+  c.timer = CUSTOMER_TYPES[c.type].eat * eatMul(); // 미니멀 테마면 빨리 먹고 일어나요
   c.face = dish.q === 2 ? 'love' : dish.q === 1 ? 'happy' : 'meh'; c.faceT = 1.4;
   emit('sfx', 'serve');
   storyNote('served', { menu: c.menu });
@@ -232,6 +233,7 @@ function satisfaction(c) {
   if (c.foodWaitFrac > 0.6) s -= 0.7;
   if (c.payWaited) s -= 0.6;
   if (dirty()) s -= HYGIENE_SAT; // 위생이 낮으면 (data/town.js)
+  s += moodSat(c.type); // 가게 분위기 · 테마 (sim/furniture.js)
   return Math.max(1, Math.min(5, s));
 }
 
@@ -269,7 +271,7 @@ function atDoor(c) {
   r.log.foot += members.length;
   // 들어오는 비율 = 기본 × 손님층 배율(메뉴 궁합·칠판·홍보 — sim/traffic.js) × 재방문(메뉴 레벨). 단골·돌발 손님은 꼭 들어와요
   const hour = nowHour();
-  const enter = c.force || rand() < Math.min(0.95, (r.enterP || 0) * typeEnterMul(c.type, hour) * revisitMul(c.char));
+  const enter = c.force || rand() < Math.min(0.95, (r.enterP || 0) * typeEnterMul(c.type, hour) * revisitMul(c.char) * moodEnterMul(c.type));
   logPass(hour, c.type, members.length, enter);
   if (enter) {
     r.log.entered += members.length;

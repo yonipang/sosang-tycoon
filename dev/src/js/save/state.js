@@ -5,6 +5,8 @@ import { START_CASH, START_LOAN } from '../data/economy.js';
 import { newStory } from '../data/story.js';
 import { migrate } from './migrations.js';
 import { newTown } from '../sim/town.js';
+import { newBond } from '../sim/bond.js';
+import { newFurn } from '../sim/furniture.js';
 
 export const SAVE_KEY = 'sosang-tycoon-save-v1';
 export const SAVE_V = 1;
@@ -17,8 +19,9 @@ export const SAVE_V = 1;
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
 // book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js)
 // board = 가게 앞 칠판 · 오늘의 추천 { lunch, after } (sim/traffic.js)
+// bond = 친밀도 { pts: { miso, jung, moon }, day, got } (sim/bond.js) · furn = 미소 가구 { have: { 카테고리: 테마 }, seen, visits } (sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn'];
 
 export const G = { phase: 'title', run: null };
 
@@ -49,6 +52,8 @@ export function newGame(shopName) {
     fans: {},
     board: { lunch: null, after: null },
     book: {},
+    bond: newBond(),
+    furn: newFurn(),
     phase: 'prep',
     run: null,
   });
