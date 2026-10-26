@@ -54,7 +54,7 @@ export const FURN_SPECIAL = {
 // 미소 컬렉션 (♥♥♥♥♥): 6가지 한 번에 · 분위기 100 · 어느 테마로든 셈(테마 보너스 넷 다)
 export const MISO_SET = { name: '미소 컬렉션', note: '미소 사장님이 사장님 가게만 생각하고 고른 한 벌', price: 1500000, heart: 5, mood: 100 };
 export const MISO_NAMES = { wall: '꽃잎 벽지', floor: '따뜻한 무늬 바닥', window: '꽃 상자 창', plant: '꽃 핀 화분', frame: '말린 꽃 액자', table: '분홍 식탁보·방석' };
-// 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘고, 오늘의 메뉴 칸도 하나 늘어요 (data/layout.js applyShopLv · data/menu.js SLOTS_BY_GRADE)
+// 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘어요 (data/layout.js applyShopLv). 오늘의 메뉴 칸은 따로 — 장마다 늘려요 (v0.46)
 //  rent: 넓어진 만큼 주간 임대료가 더 나가요
 export const SHOP_BUILD = {
   2: { name: '동네 가게', price: 1500000, heart: 2, rent: 70000, tables: 8 },

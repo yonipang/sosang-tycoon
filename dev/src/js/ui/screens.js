@@ -1,6 +1,6 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 고정비 내는 날(고지서)
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOTS_BY_GRADE } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOT_CH } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
@@ -8,7 +8,7 @@ import { runCmd } from '../sim/events.js';
 import { prepCost, weekBills } from '../sim/day.js';
 import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
-import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus } from '../sim/pantry.js';
+import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus, nextSlot } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
 import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
@@ -185,7 +185,7 @@ const LOCK_SVG = '<svg class="lock" viewBox="0 0 10 12" width="15" height="18" s
 function todayCard() {
   const on = todayMenus(), open = slotsOpen();
   const off = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
-  const gradeAt = k => SLOTS_BY_GRADE.findIndex(n => n > k); // 이 칸이 열리는 등급
+  const nx = nextSlot(); // 다음에 늘릴 칸 (지금 장에서 되면 값 · 아니면 몇 장부터)
   const todayIngs = m => recipeOf(m).filter(i => invToday(i) > 0).map(i => INGREDIENTS[i].name);
   const slots = Array.from({ length: MENU_SLOTS }, (_, k) => {
     const m = on[k];
@@ -196,7 +196,8 @@ function todayCard() {
       return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
-    return `<div class="slot locked">${LOCK_SVG}<small>${gradeAt(k)}등급</small></div>`;
+    if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
+    return `<div class="slot locked">${LOCK_SVG}<small>${SLOT_CH[k]}장</small></div>`;
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
     <div class="slots">${slots}</div>
@@ -556,6 +557,7 @@ export function initScreens(onStart) {
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
     else if (a === 'mmOpen') { mmOpen = m; pickOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'slotBuy') runCmd('slotBuy');
     else if (a === 'slotPick') { pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotSet') { pickOpen = null; const off = b.dataset.off; if (off) runCmd('menuSwap', { off, on: m }); else runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }

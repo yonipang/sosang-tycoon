@@ -4,7 +4,7 @@
 import { G } from '../save/state.js';
 import { won, wonShort } from '../engine/util.js';
 import { FURN_ORDER, FURN_THEMES, FURN_THEME_IDS, FURN_THEME_NEED, FURN_SET_RATE, FURN_SPECIAL, MISO_SET, FURN_PREM_HEART, FURN_CATS } from '../data/furniture.js';
-import { SLOTS_BY_GRADE, GRADE_NAMES } from '../data/menu.js';
+import { GRADE_NAMES } from '../data/menu.js';
 import { TABLES } from '../data/layout.js';
 import { BOND_LV } from '../data/bond.js';
 import { furnHave, furnPrice, setMissing, themeCount, themesOn, mood, furnLocked, itemInfo, itemLocked, misoOwned, misoPrice, shopLv, nextBuild, buildPrice, withFurn, cartList, cartPrice, cartIsSet } from '../sim/furniture.js';
@@ -86,13 +86,13 @@ function footHTML() {
 }
 
 function buildTab() {
-  const lv = shopLv(), B = nextBuild(), now = SLOTS_BY_GRADE[lv];
+  const lv = shopLv(), B = nextBuild();
   if (!B) return `<p class="ts-note">지금 가게 「${GRADE_NAMES[lv]}」 · 탁자 ${TABLES.length}개. 더 넓히는 공사는 준비 중입니다</p>`;
   const lock = bondLv('miso') < B.heart, price = buildPrice();
   return `<div class="fu-build">
-      <div class="fu-b-row"><span>지금</span><b>${GRADE_NAMES[lv]}</b><small>탁자 ${TABLES.length}개 · 메뉴 칸 ${now}</small></div>
+      <div class="fu-b-row"><span>지금</span><b>${GRADE_NAMES[lv]}</b><small>탁자 ${TABLES.length}개</small></div>
       <div class="fu-b-arrow">▼ 홀을 두 줄 넓혀요</div>
-      <div class="fu-b-row next"><span>공사 뒤</span><b>${B.name}</b><small>탁자 ${B.tables}개 · 메뉴 칸 ${SLOTS_BY_GRADE[lv + 1]}</small></div>
+      <div class="fu-b-row next"><span>공사 뒤</span><b>${B.name}</b><small>탁자 ${B.tables}개</small></div>
       <p class="fu-bonus">주간 임대료 +${wonShort(B.rent)} · 공사는 오늘 밤에 끝납니다</p>
     </div>
     <div class="mk-foot"><button type="button" class="btn primary big mk-buy" data-ts="fbuild" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hearts(B.heart)} 필요` : `확장공사 · ${won(price)}`}</button>

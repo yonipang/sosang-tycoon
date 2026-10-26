@@ -3,7 +3,7 @@
 // 오늘의 메뉴: G.menuOff = 오늘 쉬는 메뉴 (가게 장부에서 빼고 올려요)
 import { G } from '../save/state.js';
 import { shelfPlus } from './guild.js';
-import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOT_START, SLOT_CH, SLOT_PRICE, MENU_SLOTS } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
 import { menuOpen } from './story.js';
 
@@ -27,7 +27,25 @@ export function useFifo(i, n) {
 }
 
 // ── 오늘의 메뉴 ──
-export const slotsOpen = () => SLOTS_BY_GRADE[(G.shopLv || 1)]; // 가게 등급(확장공사 — sim/furniture.js)
+export const slotsOpen = () => G.menuSlots || SLOT_START; // 늘린 칸 수 (장마다 한 칸씩 늘릴 수 있어요)
+// 다음에 늘릴 칸: { k, ch(필요한 장), price, ok(지금 장에서 늘릴 수 있나) } · 다 늘렸으면 null
+export function nextSlot() {
+  const k = slotsOpen();
+  if (k >= MENU_SLOTS) return null;
+  return { k, ch: SLOT_CH[k], price: SLOT_PRICE[k], ok: !!G.story && G.story.ch >= SLOT_CH[k] };
+}
+defineCmd('slotBuy', () => {
+  const n = nextSlot();
+  if (G.phase !== 'prep' || !n) return false;
+  if (!n.ok) { emit('toast', `${n.ch}장이 되면 늘릴 수 있습니다`, 'info'); return false; }
+  if (G.cash < n.price) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
+  G.cash -= n.price;
+  G.menuSlots = n.k + 1;
+  emit('toast', `오늘의 메뉴 칸을 늘렸습니다 · ${G.menuSlots}칸`, 'good');
+  emit('sfx', 'coin');
+  emit('prep');
+  return true;
+});
 export const menuOn = m => menuOpen(m) && !(G.menuOff || []).includes(m);
 export const todayMenus = () => MENU_IDS.filter(menuOn);
 defineCmd('menuToggle', ({ menu }) => {

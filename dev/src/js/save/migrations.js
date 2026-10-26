@@ -2,7 +2,7 @@
 import { newStory } from '../data/story.js';
 import { newTown } from '../sim/town.js';
 import { TUTORIAL } from '../data/tutorial.js';
-import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE } from '../data/menu.js';
 
 export function migrate(o) {
   if (!o || typeof o !== 'object') throw new Error('세이브 형식이 아니에요');
@@ -67,6 +67,7 @@ export function migrate(o) {
     o.rating = o.revs.reduce((a, b) => a + b, 0) / 40; o.ratingN = Math.max(40, o.ratingN || 0);
   }
   if (!o.shopLv) o.shopLv = 1;
+  if (!o.menuSlots) o.menuSlots = SLOTS_BY_GRADE[o.shopLv] || 4; // 칸 늘리기(v0.46) 이전 세이브: 확장공사로 늘었던 칸은 그대로
   if (!o.guild) o.guild = { seen: false, due: 0, member: false, eq: { stove: 1, mat: 1, fryer: 1, fridge: 1, register: 1 }, tools2: [], visits: 0, tradeDay: 0 }; // 상인회(v0.41) 이전 세이브 // 확장공사(v0.36) 이전 세이브
   // 2장 이야기(v0.44) 이전 세이브: 1장을 끝냈으면 박 할머니 부탁부터, 미소 가구를 봤으면 미소 사장님 부탁도
   if (o.story && o.story.done.includes('c1_week')) {

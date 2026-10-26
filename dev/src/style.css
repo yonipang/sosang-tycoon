@@ -978,3 +978,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .pk-none { color: var(--ink-soft); word-break: keep-all; }
 /* 영업 중 아래 막대: 메뉴가 많아도 버튼이 밀리지 않게 */
 #stockMini { min-width: 0; overflow: hidden; flex-wrap: wrap; row-gap: 0; }
+
+.slot.buy { justify-content: center; gap: 2px; font: inherit; cursor: pointer; border: 2px dashed var(--mustard); background: #fff7d9; }
+.slot.buy small { color: var(--ink-soft); }
+.slot.buy .slot-plus { color: #a06a10; }
