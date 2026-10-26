@@ -952,6 +952,9 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 #townFade { position: absolute; inset: 0; z-index: 40; background: #120e1c; opacity: 0; pointer-events: auto; }
 #townFade.in { opacity: 1; transition: opacity .22s steps(4); }
 #townFade.out { opacity: 0; transition: opacity .22s steps(4); }
+
+.bk-fav { display: flex; align-items: center; gap: 4px; color: var(--ink-soft); }
+.bk-fav .bk-dish { width: 24px; height: 24px; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1230,31 +1233,44 @@ const REGULARS = {
     lines: ['오늘도 왔어~', '늘 먹던 걸로 줘', '아이고 다리야. 앉자 앉자', '오 사장은 잘 지낸대?'],
     bye: ['잘 먹었어. 내일 또 올게', '맛있네. 그 양반 맛이랑 비슷해', '수고해~'],
   },
+  // 2장 단골 (quest: 이 퀘스트를 끝내면 오기 시작해요 — data/story.js)
+  kim: {
+    char: 1, type: 'worker', name: '김 대리', at: [170, 230], chance: 0.75, likes: ['kimbap', 'tteok'], priceMul: 1.15, quest: 'c2_kim',
+    lines: ['사장님, 빨리요! 10분이에요', '늘 먹던 걸로요!', '점심은 역시 여기죠'],
+    bye: ['잘 먹었습니다! 내일 또 올게요', '오늘도 살았다…', '오후도 힘내 보겠습니다'],
+  },
+  doyun: {
+    char: 6, type: 'student', name: '도윤', at: [600, 670], chance: 0.7, likes: ['tteok', 'twigim'], priceMul: 1.0, quest: 'c2_doyun',
+    lines: ['사장님 안녕하세요! 학원 끝났어요', '오늘 쪽지 시험 망했어요… 늘 먹던 걸로요', '배고파요, 사장님!'], // 메뉴 이름은 말하지 않아요 (시키는 것과 어긋나지 않게)
+    bye: ['잘 먹었습니다! 공부하러 가요', '내일 또 올게요', '힘 난다!'],
+  },
 };
 // ── js/data/people.js ──
 // 손님 수첩 (ui/book.js): 가게에 오는 사람마다 이름과 한 줄 소개. 그림 번호 = data/customers.js PEOPLE (13번 박 할머니는 단골)
 // 처음 가게에 들어오면 수첩에 열려요. 세 번 다시 온 손님(맛있게 먹고 또 온 손님)은 「단골 후보」 — 2장 단골과 이어져요
 const PEOPLE_INFO = {
-  1: { name: '김 대리', bio: '근처 사무실 회사원입니다. 점심시간이 짧아 늘 서둘러 먹습니다.' },
-  2: { name: '민준', bio: '학원 가기 전에 들르는 중학생입니다.' },
-  3: { name: '서연', bio: '비니를 즐겨 쓰는 고등학생입니다. 친구와 나눠 먹습니다.' },
-  4: { name: '박 과장', bio: '야근이 잦아 저녁을 분식으로 때웁니다.' },
-  5: { name: '지호', bio: '동아리방 간식을 사 가는 대학생입니다.' },
-  6: { name: '도윤', bio: '자전거로 학원을 다니는 고등학생입니다.' },
-  7: { name: '최 사장님', bio: '옆 세탁소 사장님입니다. 말수가 적습니다.' },
-  8: { name: '이 기사님', bio: '골목을 도는 택배 기사님입니다. 김밥을 들고 가며 먹습니다.' },
-  9: { name: '미소 사장님', bio: '옆집 미소 꽃집 사장님입니다.' },
-  10: { name: '정 주임', bio: '길 건너 은행에 다닙니다.' },
-  11: { name: '태민', bio: '야구부 중학생입니다. 늘 배가 고픕니다.' },
-  12: { name: '준호 쌤', bio: '헬스장 트레이너입니다. 「오늘만 먹는다」고 매번 말합니다.' },
-  13: { name: '박 할머니', bio: '오 사장님 시절부터 오던 단골입니다. 김밥을 좋아합니다.' },
-  14: { name: '한 약사님', bio: '골목 약국 약사님입니다.' },
-  15: { name: '유나', bio: '미대 입시를 준비하는 고등학생입니다.' },
-  16: { name: '카메라 든 손님', bio: '먹기 전에 사진부터 찍습니다. 블로그를 한다는 소문이 있습니다.' },
-  17: { name: '소율', bio: '분홍 모자를 쓴 초등학생입니다. 용돈을 모아 옵니다.' },
-  19: { name: '강 할아버지', bio: '경로당에 다니는 어르신입니다. 천천히 드십니다.' },
+  1: { name: '김 대리', bio: '근처 사무실 회사원입니다. 점심시간이 짧아 늘 서둘러 먹습니다.', fav: 'kimbap' },
+  2: { name: '민준', bio: '학원 가기 전에 들르는 중학생입니다.', fav: 'tteok' },
+  3: { name: '서연', bio: '비니를 즐겨 쓰는 고등학생입니다. 친구와 나눠 먹습니다.', fav: 'twigim' },
+  4: { name: '박 과장', bio: '야근이 잦아 저녁을 분식으로 때웁니다.', fav: 'tteok' },
+  5: { name: '지호', bio: '동아리방 간식을 사 가는 대학생입니다.', fav: 'twigim' },
+  6: { name: '도윤', bio: '자전거로 학원을 다니는 고등학생입니다.', fav: 'tteok' },
+  7: { name: '최 사장님', bio: '옆 세탁소 사장님입니다. 말수가 적습니다.', fav: 'kimbap' },
+  8: { name: '이 기사님', bio: '골목을 도는 택배 기사님입니다. 김밥을 들고 가며 먹습니다.', fav: 'kimbap' },
+  9: { name: '미소 사장님', bio: '옆집 미소 꽃집 사장님입니다.', fav: 'tteok' },
+  10: { name: '정 주임', bio: '길 건너 은행에 다닙니다.', fav: 'kimbap' },
+  11: { name: '태민', bio: '야구부 중학생입니다. 늘 배가 고픕니다.', fav: 'tteok' },
+  12: { name: '준호 쌤', bio: '헬스장 트레이너입니다. 「오늘만 먹는다」고 매번 말합니다.', fav: 'twigim' },
+  13: { name: '박 할머니', bio: '오 사장님 시절부터 오던 단골입니다. 김밥을 좋아합니다.', fav: 'kimbap' },
+  14: { name: '한 약사님', bio: '골목 약국 약사님입니다.', fav: 'kimbap' },
+  15: { name: '유나', bio: '미대 입시를 준비하는 고등학생입니다.', fav: 'tteok' },
+  16: { name: '카메라 든 손님', bio: '먹기 전에 사진부터 찍습니다. 블로그를 한다는 소문이 있습니다.', fav: 'twigim' },
+  17: { name: '소율', bio: '분홍 모자를 쓴 초등학생입니다. 용돈을 모아 옵니다.', fav: 'tteok' },
+  19: { name: '강 할아버지', bio: '경로당에 다니는 어르신입니다. 천천히 드십니다.', fav: 'kimbap' },
 };
 const BOOK_ORDER = [1, 4, 8, 10, 12, 14, 16, 2, 3, 5, 6, 11, 15, 17, 9, 7, 13, 19];
+// fav: 좋아하는 메뉴 — 오늘의 메뉴에 있으면 주로 그걸 시켜요 (sim/customers.js decide)
+const FAV_CHANCE = 0.7;
 const REGULAR_BACK = 3; // 세 번 다시 오면 단골 후보
 // ── js/data/economy.js ──
 // 돈과 하루 (단위: 원·초)
@@ -1284,6 +1300,12 @@ const REVIEW_RATE = 0.35;
 const REVIEW_KEEP = 100;
 const RATING_NONE = 3;
 const OH_REVIEWS = [22, 24, 10, 3, 1];
+const OH_REVIEW_TOTAL = 400;   // 오가네 분식이 30년 동안 받은 리뷰 수 (평균은 위 60개로)
+// 리뷰가 적은 새 가게는 별점이 보통(RATING_NONE) 쪽으로 끌려요 (v0.44 사용자 지적: 5일차 ★4.8은 말이 안 됨)
+//  별점 = (리뷰 별 합 + 보통 × 무게) ÷ (리뷰 수 + 무게) · 무게 = RATING_PRIOR_W × HALF ÷ (HALF + 지금까지 리뷰 수)
+//  예: 리뷰 15개 평균 4.8 → ★3.7 · 100개 평균 4.5 → ★4.3 · 300개 → ★4.4
+const RATING_PRIOR_W = 30;
+const RATING_PRIOR_HALF = 80;
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 const ratingSpawnMul = r => 0.55 + 0.15 * r;
 const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」
@@ -1413,7 +1435,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.43';
+const GAME_VERSION = '0.44';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1788,7 +1810,9 @@ const CAST = {
   // 뒤의 장에서 나와요 (1장까지는 오 사장님이 멘토로 거의 다 이끌어요 — 사람이 한꺼번에 많이 나오지 않게)
   choi: { name: '최 사장 · 옆 세탁소', char: 7 },
   miso: { name: '미소 사장 · 옆 가게', char: 9 },
-  moon: { name: '문 회장 · 문 철물', char: 20 }, // 2장: 세탁소 자리에 철물점 · 골목 상인회장 (그림은 dev/art_pack.py가 캐릭터 생성기로 만들어요)
+  moon: { name: '문 회장 · 문 철물', char: 20 },
+  kim: { name: '김 대리', char: 1 },   // 2장 단골: 점심마다 뛰어오는 회사원 (손님 수첩 1번)
+  doyun: { name: '도윤', char: 6 },    // 2장 단골: 학원 끝나고 오는 고등학생 (손님 수첩 6번) // 2장: 세탁소 자리에 철물점 · 골목 상인회장 (그림은 dev/art_pack.py가 캐릭터 생성기로 만들어요)
 };
 
 // 장: 준비 화면 이야기 카드 머리에 보여요
@@ -1798,12 +1822,21 @@ const CHAPTERS = [
   { name: '2장', sub: '골목 사람들' },
 ];
 
+// 2장 퀘스트 수치: 점심(게임 분, 0 = 09:00) · 저녁 · 「그 시절 그 맛」 떡볶이 만족 +
+const LUNCH_FROM = 180;
+const LUNCH_TO = 300;
+const LATE_FROM = 600;
+const OLD_TASTE_SAT = 0.2;
+const WEEK_RATING = 3.5;     // 2장 끝: 주간 정산 때 별점
+
 // 퀘스트
 //  kind: 무엇을 세나 (sim/story.js storyNote) — cook(완벽 조리) · paid(계산한 손님 수) · receipt(마감 영수증) · dayEnd(마친 영업일)
 //        dayServed(하루 받은 손님, 그날 최고) · note(냉장고 뒤 쪽지) · served(그 메뉴를 내준 수) · cleanDay(재료가 안 떨어진 날)
 //        weekly(고정비 내기) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기) · ahead(미리 만든 음식 내주기)
+//        cookStreak(그 메뉴 「완벽」 연달아 — 아니면 0부터) · lunchClean(12~14시에 기다리다 간 손님이 없는 날) · lateServed(저녁 7시 넘어 계산한 손님)
+//        mood(가게 분위기 — 가장 높았던 값) · weeklyRating(주간 정산 때 별점 3.5 이상)
 //  menu: 그 메뉴만 셈 · need: 몇 번 · needs: 이 퀘스트들이 끝나면 저절로 시작 · after: 이 퀘스트들이 끝나야 완료
-//  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴)
+//  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴) · bond([누구, 점수]) · guild · perk(오래 가는 효과 — sim/story.js storyPerk)
 const QUESTS = {
   p_stir: { who: 'oh', title: '떡볶이는 팔로 저어', goal: '떡볶이 완벽 조리', kind: 'cook', menu: 'tteok', need: 3 },
   p_serve: { who: 'oh', title: '손님은 끝까지', goal: '계산까지 마친 손님', kind: 'paid', need: 5 },
@@ -1819,6 +1852,12 @@ const QUESTS = {
   // 2장: 골목 상인회 (문 회장님 · data/guild.js)
   c2_moon: { who: 'moon', title: '상인회 회의 김밥', goal: '김밥 내주기 (상인회 회의 간식)', kind: 'served', menu: 'kimbap', need: 10, give: { scenes: ['moon2'], bond: ['moon', 5] } },
   c2_join: { who: 'moon', title: '골목 상인회 가입', goal: '가입비 5만 원 내기', kind: 'pay', cost: 50000, need: 1, give: { scenes: ['moon3'], guild: true } },
+  // 2장: 첫 단골 (박 할머니 → 김 대리 → 도윤) · 미소 가구 · 상인회를 다 하고 별점이 좋으면 「동네 사장」
+  c2_park: { who: 'park', title: '그 시절 그 맛', goal: '떡볶이 「완벽」 연달아', kind: 'cookStreak', menu: 'tteok', need: 5, give: { scenes: ['park2', 'kim1'], perk: 'oldTaste' } },
+  c2_kim: { who: 'kim', title: '점심은 10분이에요', goal: '12~14시에 기다리다 간 손님 없는 날', kind: 'lunchClean', need: 3, give: { scenes: ['kim2', 'doyun1'] } },
+  c2_doyun: { who: 'doyun', title: '시험 기간 야식', goal: '저녁 7시 넘어 계산한 손님', kind: 'lateServed', need: 12, give: { scenes: ['doyun2'] } },
+  c2_miso: { who: 'miso', title: '가게 분위기 바꾸기', goal: '가게 분위기 30 만들기', kind: 'mood', need: 30, give: { scenes: ['miso2'], bond: ['miso', 5] } },
+  c2_end: { who: 'me', title: '동네에서 소문', goal: '주간 정산 때 별점 3.5 이상', kind: 'weeklyRating', need: 1, needs: ['c2_doyun', 'c2_join', 'c2_miso'], give: { scenes: ['table', 'paper2', 'ch3soon'] } },
   c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
@@ -2024,6 +2063,14 @@ const SCENES = {
       ['miso', '이제 벽지, 바닥, 식탁 같은 것도 해요. 가게 분위기가 좋으면 손님이 더 오래 기억하거든요.'],
       ['miso', '첫 손님은 사장님이었으면 좋겠어요. 밤에 한번 들러요!'],
       [null, '미소 가구에서 가게를 꾸밀 수 있습니다. 꾸밀수록 분위기가 올라 손님 만족이 오르고, 같은 테마를 네 가지 넘게 맞추면 그 테마를 좋아하는 손님이 더 반깁니다.'],
+      ['miso', '사장님 가게, 분위기만 조금 바꿔도 확 달라질 거예요. 제가 장담해요!'],
+    ],
+    start: ['c2_miso'],
+  },
+  miso2: {
+    lines: [
+      ['miso', '와, 사장님 가게 완전 달라졌네요! 지나가다 한 번 더 보게 돼요.'],
+      ['miso', '다음엔 테마도 맞춰 봐요. 같은 느낌끼리 모으면 그걸 좋아하는 손님들이 더 반겨요.'],
     ],
   },
   // 2장: 최 사장님 세탁소 → 문 회장님 「문 철물」 (sim/guild.js guildNight)
@@ -2052,11 +2099,80 @@ const SCENES = {
       [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 매주 고정비와 함께 나갑니다.'],
     ],
   },
+  // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
   ch2soon: {
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
-      ['ohPhone', '근데 단골이 생겨야 진짜 장사야. 그건 다음에 얘기하자.'],
-      [null, '프로토타입은 여기까지입니다. 2장 「첫 단골」은 준비 중이며, 영업은 계속할 수 있습니다.'],
+      ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
+      ['ohPhone', '박 할머니가 그러더라. 요즘 떡볶이가 옛날 그 맛이 아니라고. 섭섭해하시더라.'],
+      ['ohPhone', '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
+      [null, '2장 「골목 사람들」이 시작됩니다. 자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
+    ],
+    start: ['c2_park'],
+  },
+  park2: {
+    lines: [
+      ['park', '아이고, 이거야 이거. 그 양반 떡볶이 맛이 나네.'],
+      ['park', '노인정 가서 소문 좀 내야겠어. 새 사장 손맛이 좋다고.'],
+      [null, '떡볶이를 먹은 손님의 만족이 조금 오릅니다.'],
+    ],
+  },
+  kim1: {
+    lines: [
+      [null, '가게 불을 끄려는데 넥타이를 맨 손님이 문을 두드립니다.'],
+      ['kim', '사장님, 저 오늘 점심에 왔다가 그냥 갔어요. 줄이 길어서요….'],
+      ['kim', '점심시간이 한 시간인데 회사까지 왔다 갔다 하면 먹을 시간이 10분이에요.'],
+      ['kim', '점심때 안 기다리고 먹을 수 있으면 매일 올게요. 진짜로요!'],
+    ],
+    start: ['c2_kim'],
+  },
+  kim2: {
+    lines: [
+      ['kim', '사장님, 요즘 점심 진짜 빨라졌어요. 팀 사람들도 데려올게요.'],
+      [null, '김 대리가 단골이 되었습니다. 점심 무렵 자주 찾아옵니다.'],
+    ],
+  },
+  doyun1: {
+    lines: [
+      [null, '마감 무렵, 자전거를 세워 둔 학생이 가게 안을 들여다봅니다.'],
+      ['doyun', '저… 혹시 저녁 늦게도 하세요? 다음 주부터 시험 기간이라 학원 끝나면 배고파서요.'],
+      ['doyun', '친구들도 늦게까지 하는 데를 찾고 있어요. 이 근처엔 떡볶이 사 먹을 데가 없어요.'],
+    ],
+    start: ['c2_doyun'],
+  },
+  doyun2: {
+    lines: [
+      ['doyun', '사장님 덕분에 시험 잘 봤어요! …아마도요.'],
+      ['doyun', '앞으로 학원 끝나면 여기 올게요.'],
+      [null, '도윤이 단골이 되었습니다. 저녁 무렵 찾아옵니다.'],
+    ],
+  },
+  // 2장 끝: 세 단골이 한 탁자에 (합석은 이때만)
+  table: {
+    lines: [
+      [null, '오늘 점심이 지난 한가한 오후, 박 할머니와 김 대리와 도윤이 한꺼번에 들어왔습니다. 빈자리가 하나뿐이라 셋이 한 탁자에 앉았습니다.'],
+      ['park', '아이고, 젊은 사람들이랑 앉으니 좋네. 학생은 시험 잘 봤어?'],
+      ['doyun', '네? 아… 그럭저럭요. 할머니도 여기 단골이세요?'],
+      ['park', '단골이 뭐야, 오 사장 때부터 30년이야. 우리 아들도 어릴 때 여기서 떡볶이 먹고 컸어.'],
+      ['kim', '혹시… 아드님이 박 부장님이세요? 저희 회사 영업부 박 부장님이요.'],
+      ['park', '어머, 우리 아들 회사 사람이야? 세상 좁네!'],
+      ['kim', '…할머님, 제가 점심에 여기 오는 건 부장님한테 비밀로 해 주세요.'],
+      ['meThink', '처음 보는 사람들이 우리 가게에서 이렇게 이어지는구나.'],
+    ],
+  },
+  paper2: {
+    at: 'dawn',
+    paper: {
+      no: 3, head: '{shop}, 골목 사랑방 되다', sub: '「점심은 빠르고 저녁은 늦게까지」 동네 단골 늘어',
+      body: '점심엔 회사원이, 저녁엔 학원 끝난 학생들이 찾는다. 단골 박 할머니는 「그 양반 맛이 돌아왔다」고 했다. 골목 상인회 문 회장은 「요즘 골목에 사람 냄새가 난다」고 전했다.',
+    },
+    title: '동네 사장',
+  },
+  ch3soon: {
+    lines: [
+      ['ohPhone', '신문 또 났더라. 동네 사장 다 됐네.'],
+      ['ohPhone', '근데 길 건너 빈 가게, 요새 사람들이 드나들더라. 공사하는 것 같던데.'],
+      [null, '프로토타입은 여기까지입니다. 3장 「길 건너 대결」은 준비 중이며, 영업은 계속할 수 있습니다.'],
     ],
   },
 };
@@ -2510,6 +2626,12 @@ function migrate(o) {
   }
   if (!o.shopLv) o.shopLv = 1;
   if (!o.guild) o.guild = { seen: false, due: 0, member: false, eq: { stove: 1, mat: 1, fryer: 1, fridge: 1, register: 1 }, tools2: [], visits: 0, tradeDay: 0 }; // 상인회(v0.41) 이전 세이브 // 확장공사(v0.36) 이전 세이브
+  // 2장 이야기(v0.44) 이전 세이브: 1장을 끝냈으면 박 할머니 부탁부터, 미소 가구를 봤으면 미소 사장님 부탁도
+  if (o.story && o.story.done.includes('c1_week')) {
+    const S = o.story, has = id => S.done.includes(id) || S.active.includes(id) || (S.queue || []).includes(id);
+    if (!has('c2_park') && !(S.queue || []).includes('ch2soon')) { S.active.push('c2_park'); S.prog.c2_park = 0; }
+    if (o.furn && o.furn.seen && !has('c2_miso')) { S.active.push('c2_miso'); S.prog.c2_miso = 0; }
+  }
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;
@@ -2760,7 +2882,7 @@ function summaryLine(text) {
   return `${s.day}일차 · ${s.shop}${when}`;
 }
 // ── js/sim/rating.js ──
-// 가게 별점 = 리뷰 평균 (data/economy.js REVIEW_*). 리뷰가 없으면 별점은 없음(null)
+// 가게 별점 = 리뷰 평균 (data/economy.js REVIEW_*) — 리뷰가 적으면 보통(3) 쪽으로 끌려요(RATING_PRIOR_*). 리뷰가 없으면 별점은 없음(null)
 //  G.revs = 최근 리뷰 별(1~5) 목록 · G.ratingN = 지금까지 리뷰 수 · G.rating = 최근 리뷰 평균 (없으면 null)
 
 // 손님 수·가격에 쓰는 별점 (리뷰가 없으면 보통)
@@ -2768,7 +2890,8 @@ const ratingNow = () => (G.rating == null ? RATING_NONE : G.rating);
 const hasRating = () => G.rating != null;
 function recalc() {
   const R = G.revs || [];
-  G.rating = R.length ? R.reduce((a, b) => a + b, 0) / R.length : null;
+  const w = RATING_PRIOR_W * RATING_PRIOR_HALF / (RATING_PRIOR_HALF + (G.ratingN || R.length)); // 리뷰가 적을수록 보통 쪽으로
+  G.rating = R.length ? (R.reduce((a, b) => a + b, 0) + RATING_NONE * w) / (R.length + w) : null;
 }
 // 리뷰 넣기 (별 1~5)
 function addReviews(list) {
@@ -2789,7 +2912,7 @@ function ohReviews() {
   const list = [];
   OH_REVIEWS.forEach((n, i) => { for (let k = 0; k < n; k++) list.push(5 - i); });
   for (let i = list.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [list[i], list[j]] = [list[j], list[i]]; } // 섞기 (보이기만 — 평균은 같아요)
-  G.revs = []; G.ratingN = 0; addReviews(list);
+  G.revs = []; G.ratingN = OH_REVIEW_TOTAL - list.length; addReviews(list); // 오래된 가게라 리뷰가 많아요
 }
 function resetReviews() { G.revs = []; G.ratingN = 0; G.rating = null; }
 // ── js/sim/story.js ──
@@ -2798,6 +2921,8 @@ function resetReviews() { G.revs = []; G.ratingN = 0; G.rating = null; }
 
 // 메뉴가 열렸는지 (조리대·주문·손님 메뉴가 모두 이걸 봐요)
 const menuOpen = m => G.story ? G.story.menus.includes(m) : m === 'tteok';
+// 끝낸 퀘스트가 남긴 오래 가는 효과 (예: 'oldTaste' — 떡볶이 만족 +)
+const storyPerk = k => !!(G.story && (G.story.perks || []).includes(k));
 const questActive = id => !!G.story && G.story.active.includes(id);
 const isDone = id => G.story.done.includes(id);
 // 진행도 (화면용): [지금, 목표]
@@ -2810,7 +2935,11 @@ function start(id) {
   if (isDone(id) || S.active.includes(id)) return;
   S.active.push(id);
   S.prog[id] = S.prog[id] || 0;
+  if (QUESTS[id].kind === 'mood' && moodNow) S.prog[id] = Math.min(QUESTS[id].need, Math.max(S.prog[id], moodNow()));
 }
+// 분위기는 sim/furniture.js가 알려 줘요 (서로 부르지 않게 함수만 받아 둬요)
+let moodNow = null;
+function setMoodSource(f) { moodNow = f; }
 
 function openMenu(m, now) {
   const S = G.story;
@@ -2837,6 +2966,7 @@ function complete(id) {
   if (g.menuNext) openMenu(g.menuNext, false);
   if (g.menuNow) openMenu(g.menuNow, true);
   if (g.bond) addBond(g.bond[0], g.bond[1], '부탁', true); // 부탁 퀘스트 +5 (sim/bond.js)
+  if (g.perk) S.perks = (S.perks || []).concat(g.perk);
   if (g.guild && G.guild) { G.guild.member = true; emit('toast', '골목 상인회에 가입했습니다', 'good'); }
   for (const s of g.scenes || []) queueScene(s);
   // 기다리던 퀘스트 시작 · 기다리던 완료
@@ -2857,6 +2987,11 @@ function storyNote(kind, d = {}) {
     if (q.kind !== kind || (q.menu && d.menu !== q.menu)) continue;
     const before = S.prog[id] || 0;
     if (kind === 'cook') S.prog[id] = before + (d.q === 2 ? 1 : 0);
+    else if (kind === 'cookStreak') S.prog[id] = d.q === 2 ? before + 1 : 0; // 연달아: 「완벽」이 아니면 처음부터
+    else if (kind === 'lunchClean') S.prog[id] = before + (d.clean ? 1 : 0);
+    else if (kind === 'lateServed') S.prog[id] = before + (d.n || 1);
+    else if (kind === 'mood') S.prog[id] = Math.max(before, d.mood || 0);
+    else if (kind === 'weeklyRating') S.prog[id] = before + (d.ok ? 1 : 0);
     else if (kind === 'paid') S.prog[id] = before + (d.n || 1);
     else if (kind === 'dayServed') S.prog[id] = Math.max(before, d.served || 0);
     else if (kind === 'cleanDay') S.prog[id] = before + (d.clean ? 1 : 0);
@@ -3113,10 +3248,11 @@ function typeEnterMul(type, hour) {
   return fit * Math.min(STRATEGY_CAP, board * promoMul(type));
 }
 // 칠판·인스타 덕에 들어온 손님이 하는 말 (보이기만 — 규칙은 위 배율)
+//  [말, 그 말로 정한 메뉴(없으면 null)] — 메뉴를 말했으면 그 메뉴를 시켜요
 function enterLine(type, hour) {
   const bm = boardMenuAt(hour);
-  if (bm && likeShare(type, bm) >= 0.75) return `${MENUS[bm].name} 추천이래. 먹어 볼까?`;
-  if (instaOn() && PROMO.insta.types.includes(type)) return '인스타 보고 왔어요!';
+  if (bm && likeShare(type, bm) >= 0.75) return [`${MENUS[bm].name} 추천이래. 먹어 볼까?`, bm];
+  if (instaOn() && PROMO.insta.types.includes(type)) return ['인스타 보고 왔어요!', null];
   return null;
 }
 // 손님이 메뉴를 고를 때: 칠판 메뉴는 조금 더 끌려요
@@ -3394,6 +3530,7 @@ function mood() {
 }
 
 // ── 영업에 주는 영향 (sim/customers.js) — 테마 보너스는 켜진 테마마다 ──
+setMoodSource(() => mood()); // 퀘스트가 시작될 때 지금 분위기로 (sim/story.js)
 function moodSat(type) {
   return Math.min(MOOD_SAT_MAX, mood() / MOOD_SAT_DIV) + themesOn().reduce((s, th) => s + ((FURN_THEMES[th].sat && FURN_THEMES[th].sat[type]) || 0), 0);
 }
@@ -3430,6 +3567,7 @@ defineCmd('furnBuyCart', ({ cart }) => {
   G.cash -= price;
   for (const [c, k] of L) G.furn.have[c] = k;
   emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
+  storyNote('mood', { mood: mood() }); // 2장 미소 사장님 부탁
   emit('sfx', 'coin');
   trade();
   emit('prep');
@@ -3902,6 +4040,7 @@ function miss(c, reason, menu, quiet) {
   const L = G.run.log;
   incidentNote('missed', c, reason);
   L.missed[reason]++;
+  if (reason === 'wait' && G.run.min >= LUNCH_FROM && G.run.min < LUNCH_TO) L.lunchWait = (L.lunchWait || 0) + 1; // 2장 김 대리 (12~14시)
   L.sats.push(MISS_SAT[reason]);
   if (!quiet) {
     L.events.push({ kind: reason, menu, who: CUSTOMER_TYPES[c.type].name });
@@ -3948,8 +4087,9 @@ function decide(c) {
   const w = {};
   for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(ratingNow())); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
   let m = weighted(w);
-  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
-  if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
+  const info = PEOPLE_INFO[c.char], fav = info && info.fav && menuOn(info.fav) && canSell(info.fav) && rand() < FAV_CHANCE ? info.fav : null; // 좋아하는 메뉴 (손님 수첩)
+  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x))) || fav;
+  if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것, 메뉴를 말한 손님은 그것, 아니면 좋아하는 메뉴 (오늘 메뉴에 없으면 고르던 대로)
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
@@ -3993,6 +4133,7 @@ function satisfaction(c) {
   if (c.payWaited) s -= 0.6;
   if (dirty()) s -= HYGIENE_SAT; // 위생이 낮으면 (data/town.js)
   s += moodSat(c.type); // 가게 분위기 · 테마 (sim/furniture.js)
+  if (c.menu === 'tteok' && storyPerk('oldTaste')) s += OLD_TASTE_SAT; // 2장 박 할머니 「그 시절 그 맛」
   return Math.max(1, Math.min(5, s));
 }
 
@@ -4020,6 +4161,7 @@ function pay(c) {
   emit('float', c.x, c.y - 1.6, '+' + (total + tips).toLocaleString('ko-KR') + '원' + (tips ? ' 팁!' : ''), 'cash');
   emit('sfx', 'coin');
   storyNote('paid', { n: group.length });
+  if (r.min >= LATE_FROM) storyNote('lateServed', { n: group.length }); // 2장 도윤 (저녁 7시 넘어)
   for (const m of group) leave(m, false);
   tutNote('paid');
 }
@@ -4039,8 +4181,9 @@ function atDoor(c) {
     else if (c.blog) emit('say', c.id, '여기 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?');
     else if (!c.force) {
       const back = noteBack(c.char), line = enterLine(c.type, hour);
-      if (back && fxRand() < 0.5) emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`);
-      else if (line && fxRand() < 0.35) emit('say', c.id, line);
+      // 메뉴 이름을 말한 손님은 그 메뉴를 시켜요 (말과 주문이 어긋나지 않게)
+      if (back && fxRand() < 0.5) { emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`); c.wants = back; }
+      else if (line && fxRand() < 0.35) { emit('say', c.id, line[0]); if (line[1]) c.wants = line[1]; }
     }
     return;
   }
@@ -4147,7 +4290,7 @@ function updateCustomers(dt) {
 
 // ── 단골 ── 영업 시작 때 오늘 올지·언제 올지 정하고, 그 시각이 되면 보도에서 걸어와요
 function planRegulars(r) {
-  r.regulars = Object.keys(REGULARS).filter(id => rand() < REGULARS[id].chance)
+  r.regulars = Object.keys(REGULARS).filter(id => (!REGULARS[id].quest || (G.story && G.story.done.includes(REGULARS[id].quest))) && rand() < REGULARS[id].chance)
     .map(id => ({ id, at: REGULARS[id].at[0] + rand() * (REGULARS[id].at[1] - REGULARS[id].at[0]), came: false }));
 }
 function tickRegulars() {
@@ -4583,7 +4726,7 @@ function endDay() {
   // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
   const clean = !L.missed.soldout && todayMenus().every(m => stockOf(m) > 0);
   tutEndDay(); // 오늘 못 한 길잡이 차례는 건너뛰어요 (주는 퀘스트는 받고 — 영수증 퀘스트도 셀 수 있게 먼저)
-  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
+  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
   G.run = null;
@@ -4620,7 +4763,7 @@ defineCmd('afterWeekly', () => {
     W.paid = true;
     emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
-    storyNote('weekly');
+    storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
   }
   nextDay();
 });
@@ -4814,7 +4957,7 @@ function finishCook(q, note) {
   emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}${two ? ' ×2' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
-  storyNote('cook', { menu: c.menu, q });
+  storyNote('cook', { menu: c.menu, q }); storyNote('cookStreak', { menu: c.menu, q });
   incidentNote('cook', { menu: c.menu }, q);
   tutNote('cookEnd');
 }
@@ -4937,7 +5080,9 @@ const DEV_JUMPS = [
   { id: 'c2m', name: '10일차 전날 밤 · 문 철물 개업 (상인회 부탁부터)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { due: 10 }, cash: 1500000 },
   { id: 'c2g', name: '10일차 전날 밤 · 상인회원 (문 회장 ♥♥♥♥ · 돈 300만 원)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 30 }, cash: 3000000 },
   { id: 'c2j', name: '10일차 전날 밤 · 정 사장 ♥♥♥♥♥ (특가 2개·빼 둔 재료·새벽 배달)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 80 }, cash: 3000000 },
-  { id: 'c2', name: '8일차 · 1장 끝 (2장 준비 중)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
+  { id: 'c2k', name: '12일차 전날 밤 · 2장 김 대리 부탁 (점심에 기다리다 간 손님 없는 날)', day: 12, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join'], active: ['c2_kim', 'c2_miso'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 20, miso: 10, jung: 20 }, cash: 1500000 },
+  { id: 'c2e', name: '14일차 전날 밤 · 2장 끝 직전 (주간 정산 때 별점 3.5 이상이면 「동네 사장」)', day: 14, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join', 'c2_kim', 'c2_doyun', 'c2_miso'], active: ['c2_end'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 30, miso: 20, jung: 30 }, cash: 2000000 },
+  { id: 'c2', name: '8일차 · 2장 첫날 (박 할머니 부탁)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
 defineCmd('devJump', ({ id }) => {
@@ -4950,8 +5095,9 @@ defineCmd('devJump', ({ id }) => {
   Object.assign(S, {
     ch: J.ch, title: J.title, done: J.done || [], active: J.active || [], prog: { ...(J.prog || {}) },
     queue: J.queue || [], menus: J.menus || ['tteok'], fresh: J.fresh || [], decor: J.decor || [],
-    toolsOpen: !!J.toolsOpen, tools: J.tools || [],
+    toolsOpen: !!J.toolsOpen, tools: J.tools || [], perks: J.perks || [],
   });
+  if (J.ch >= 2 && !J.active) S.active = ['c2_park'].concat(J.furnSeen ? ['c2_miso'] : []); // 2장: 박 할머니 부탁부터
   for (const q of S.done) S.prog[q] = 99;
   for (const m of S.menus) G.prep[m] = G.prep[m] || PREP_FIRST_DAY[m];
   if (J.ch >= 1) G.cash = START_CASH;
@@ -6275,6 +6421,7 @@ function bookHTML(sel) {
     const P = PEOPLE_INFO[sel], b = G.book[sel], f = G.fans && G.fans[sel];
     info = `<div class="bk-info"><div class="bk-name"><b>${P.name}</b><small>${CUSTOMER_TYPES[typeOf(sel)].name}</small>${regularCandidate(sel) ? '<span class="tag hot">단골 후보</span>' : ''}</div>
       <p>${P.bio}</p>
+      ${P.fav ? `<p class="bk-fav">좋아하는 메뉴 ${icon(P.fav, 'bk-dish')}${MENUS[P.fav].name}</p>` : ''}
       <small>${b.visits}번 왔습니다${b.sat != null ? ` · 마지막 ${icon('face_' + satFace(b.sat), 'face')}` : ''}${f ? ` · ${josa(MENUS[f.m].name, '을/를')} 맛있게 먹었습니다 · 다시 온 ${f.n}번` : ''}</small></div>`;
   }
   return `<div class="ts-head"><b>손님 수첩</b><small class="bk-count">${seen}/${BOOK_ORDER.length}명</small><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
