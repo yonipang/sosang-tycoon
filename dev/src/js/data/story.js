@@ -22,13 +22,14 @@ export const CAST = {
   // 뒤의 장에서 나와요 (1장까지는 오 사장님이 멘토로 거의 다 이끌어요 — 사람이 한꺼번에 많이 나오지 않게)
   choi: { name: '최 사장 · 옆 세탁소', char: 7 },
   miso: { name: '미소 사장 · 옆 가게', char: 9 },
+  moon: { name: '문 회장 · 문 철물', char: 20 }, // 2장: 세탁소 자리에 철물점 · 골목 상인회장 (그림은 dev/art_pack.py가 캐릭터 생성기로 만들어요)
 };
 
 // 장: 준비 화면 이야기 카드 머리에 보여요
 export const CHAPTERS = [
   { name: '프롤로그', sub: '알바 마지막 사흘' },
   { name: '1장', sub: '개업' },
-  { name: '2장', sub: '첫 단골 (준비 중)' },
+  { name: '2장', sub: '골목 사람들' },
 ];
 
 // 퀘스트
@@ -49,6 +50,9 @@ export const QUESTS = {
   c1_tools: { who: 'oh', title: '도구를 들여라', goal: '장사 도구 하나 사기', kind: 'buyTool', need: 1 },
   c1_fryer: { who: 'oh', title: '튀김기 살리기', goal: '수리비 3만 원 내기', kind: 'pay', cost: 30000, need: 1, give: { scenes: ['fryer'], menuNow: 'twigim' } },
   c1_stock: { who: 'oh', title: '내일 장 보기', goal: '재료가 떨어지지 않은 날', kind: 'cleanDay', need: 1 },
+  // 2장: 골목 상인회 (문 회장님 · data/guild.js)
+  c2_moon: { who: 'moon', title: '상인회 회의 김밥', goal: '김밥 내주기 (상인회 회의 간식)', kind: 'served', menu: 'kimbap', need: 10, give: { scenes: ['moon2'], bond: ['moon', 5] } },
+  c2_join: { who: 'moon', title: '골목 상인회 가입', goal: '가입비 5만 원 내기', kind: 'pay', cost: 50000, need: 1, give: { scenes: ['moon3'], guild: true } },
   c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
@@ -254,6 +258,32 @@ export const SCENES = {
       ['miso', '이제 벽지, 바닥, 식탁 같은 것도 해요. 가게 분위기가 좋으면 손님이 더 오래 기억하거든요.'],
       ['miso', '첫 손님은 사장님이었으면 좋겠어요. 밤에 한번 들러요!'],
       [null, '미소 가구에서 가게를 꾸밀 수 있습니다. 꾸밀수록 분위기가 올라 손님 만족이 오르고, 같은 테마를 네 가지 넘게 맞추면 그 테마를 좋아하는 손님이 더 반깁니다.'],
+    ],
+  },
+  // 2장: 최 사장님 세탁소 → 문 회장님 「문 철물」 (sim/guild.js guildNight)
+  moon1: {
+    lines: [
+      [null, '세탁소 간판이 내려가고 「문 철물」 간판이 걸렸습니다. 최 사장님은 아들네 동네로 가게를 옮겼다고 합니다.'],
+      ['moon', '자네가 오가네 이어받은 사장인가? 문 철물 문경수야. 이 골목 상인회장이고.'],
+      ['moon', '오 사장 튀김기, 그거 내가 몇 번을 고쳤는지 몰라. 자네 가게 설비도 손볼 데 있으면 말해.'],
+      ['moon', '상인회 들어오면 설비를 공동구매로 들여 줄 수 있어. 대신 부탁 하나 들어 줄 텐가?'],
+      ['moon', '다음 주 상인회 회의가 있는데, 간식으로 자네 김밥을 돌리고 싶어. 김밥 맛있게 열 줄만 말아 줘.'],
+    ],
+    start: ['c2_moon'],
+  },
+  moon2: {
+    lines: [
+      ['moon', '김밥 잘 받았어. 다들 오 사장 때 맛이 난다더라고.'],
+      ['moon', '이제 정식으로 상인회 들어오지. 가입비는 5만 원, 회비는 주에 만 원이야.'],
+      [null, '가입비는 문 철물이나 오늘의 메뉴 화면의 할 일에서 낼 수 있습니다.'],
+    ],
+    start: ['c2_join'],
+  },
+  moon3: {
+    lines: [
+      ['moon', '환영하네, 사장. 이제 우리 골목 사람이야.'],
+      ['moon', '설비는 밤에 철물점으로 와서 맡기게. 그날 밤에 손봐서 다음 장사부터 쓰게 해 줄게.'],
+      [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 매주 고정비와 함께 나갑니다.'],
     ],
   },
   ch2soon: {

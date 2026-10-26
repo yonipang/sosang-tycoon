@@ -22,6 +22,7 @@ import { noteVisit, noteBookSat } from './book.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 import { moodSat, moodEnterMul, eatMul } from './furniture.js';
 import { ratingNow } from './rating.js';
+import { payWaitMul } from './guild.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
@@ -369,7 +370,7 @@ export function updateCustomers(dt) {
         c.state = 'payLine';
         freeSeat(c); // 일행이 아직 앉아 있으면 탁자는 비지 않아요
         c.path = findPath(c, [PAY_SPOTS[r.payLine.length - 1]], 'customer') || [];
-        c.patMax = c.patience = PATIENCE.pay * P(c);
+        c.patMax = c.patience = PATIENCE.pay * P(c) * payWaitMul(); // 카드 단말기(계산대 Lv3)
         tutNote('payLine');
         break;
       }

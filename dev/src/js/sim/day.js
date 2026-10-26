@@ -23,6 +23,7 @@ import { bookEndDay } from './book.js';
 import { townOpenRest } from './town.js';
 import { furnOpen, buildRent, syncLayout } from './furniture.js';
 import { ratingNow, reviewsFromDay } from './rating.js';
+import { rushMul, rushSec, guildDues } from './guild.js';
 import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
 import { bloggerToday, bloggerEndDay } from './traffic.js';
 import { PROMO } from '../data/town.js';
@@ -30,7 +31,7 @@ import { PROMO } from '../data/town.js';
 export const openMenus = () => MENU_IDS.filter(m => menuOpen(m));
 export const prepCost = () => todayMenus().reduce((s, m) => s + G.prep[m] * costOf(m), 0); // 주문 금액 (아침 도착 때 결제 — 프롤로그·1장 첫날, 메뉴 한 벌씩)
 const ingZeros = () => Object.fromEntries(ING_IDS.map(i => [i, 0]));
-export const rushCost = m => Math.round(costOf(m) * RUSH_QTY * RUSH_MUL / 100) * 100;
+export const rushCost = m => Math.round(costOf(m) * RUSH_QTY * rushMul() / 100) * 100; // 냉장고 Lv3(상인회)면 웃돈이 적어요
 export const isWeeklyNight = () => G.day % 7 === 0;
 
 export function setPhase(p) { G.phase = p; emit('phase', p); }
@@ -124,7 +125,7 @@ defineCmd('rushBuy', ({ menu }) => {
   if (cost > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return; }
   G.cash -= cost;
   r.rushExtra += cost - costOf(menu) * RUSH_QTY;
-  r.rush.push({ menu, n: RUSH_QTY, t: RUSH_SEC });
+  r.rush.push({ menu, n: RUSH_QTY, t: rushSec() });
   emit('toast', `${MENUS[menu].ing} ${RUSH_QTY}인분을 급하게 주문했습니다. 곧 도착합니다`, 'info');
   emit('fridge');
 });
@@ -167,7 +168,7 @@ export function tickDay(dt) {
     if (f.done || r.closing || r.min < f.at) continue;
     const chars = freeChars().slice(0, 2);
     f.done = true;
-    if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+    if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
   }
   // 파워블로거가 와요 (점심 무렵)
   if (r.blog && !r.blog.done && !r.closing && r.min >= r.blog.at) {
@@ -277,7 +278,8 @@ export function weekBills(upTo = G.day) {
   const dishes = G.history.filter(h => h.day > G.day - 7 && h.day <= upTo).reduce((s, h) => s + Object.values(h.sold).reduce((a, b) => a + b, 0), 0);
   const util = Math.round((UTIL_BASE + dishes * UTIL_PER_DISH) / 100) * 100;
   const rent = WEEK_RENT + buildRent(); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
-  return { rent, interest, principal, util, dishes, total: rent + interest + principal + util };
+  const dues = guildDues(); // 상인회 회비 (sim/guild.js)
+  return { rent, interest, principal, util, dues, dishes, total: rent + interest + principal + util + dues };
 }
 
 // 영수증 다음: 7일째 밤이면 고정비 내는 날(고지서), 아니면 다음 날 준비

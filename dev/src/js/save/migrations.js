@@ -66,7 +66,8 @@ export function migrate(o) {
     o.revs = Array.from({ length: 40 }, (_, i) => Math.min(5, i < hi ? lo + 1 : lo));
     o.rating = o.revs.reduce((a, b) => a + b, 0) / 40; o.ratingN = Math.max(40, o.ratingN || 0);
   }
-  if (!o.shopLv) o.shopLv = 1; // 확장공사(v0.36) 이전 세이브
+  if (!o.shopLv) o.shopLv = 1;
+  if (!o.guild) o.guild = { seen: false, due: 0, member: false, eq: { stove: 1, mat: 1, fryer: 1, fridge: 1, register: 1 }, tools2: [], visits: 0, tradeDay: 0 }; // 상인회(v0.41) 이전 세이브 // 확장공사(v0.36) 이전 세이브
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

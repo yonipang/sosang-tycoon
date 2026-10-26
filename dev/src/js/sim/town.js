@@ -10,6 +10,7 @@ import { FURN_FIRST, FURN_CHATS } from '../data/furniture.js';
 import { BOND_TALK, BOND_TRADE, BOND_FIRST } from '../data/bond.js';
 import { addBond, jungDisc } from './bond.js';
 import { furnOpen } from './furniture.js';
+import { guildOpen, guildNight, moonChat } from './guild.js';
 import { seedRand, rand } from '../engine/random.js';
 import { emit, defineCmd } from './events.js';
 import { ingCost } from './market.js';
@@ -29,7 +30,7 @@ export const slotsHardMax = () => TURN_SLOTS + FATIGUE_MAX;
 // 장소가 지금 열려 있나 · 지금 할 수 있는 일
 export const placeOpen = id => !PLACES[id].open || PLACES[id].open === G.town.part;
 // 2장부터 바뀐 곳 (미소 꽃집 → 미소 가구)
-const ch2 = id => (furnOpen() && PLACE_CH2[id]) || null;
+const ch2 = id => ((id === 'flower' ? furnOpen() : id === 'laundry' ? guildOpen() : false) && PLACE_CH2[id]) || null;
 export const placeName = id => (ch2(id) || PLACES[id]).name;
 export const placeShort = id => (ch2(id) || PLACES[id]).short;
 export const placeActs = id => (ch2(id) || PLACE_ACTS)[ch2(id) ? 'acts' : id];
@@ -43,10 +44,12 @@ export function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.bought = {}; T.deal = null; T.referral = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.referral = [];
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 이제 새벽 시장에서 (밤 주문 없음)
   if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
-  if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); } // 2장 첫 밤: 미소 가구 개업
+  if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
+  else if (furnOpen() && G.guild && !G.guild.due) G.guild.due = G.day; // 미소 가구 이후 세이브
+  guildNight(); // 문 회장님 (sim/guild.js)
   return true;
 }
 
@@ -79,6 +82,16 @@ defineCmd('townAct', ({ place, act }) => {
       if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
     }
     emit('town', 'furn');
+    if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
+    emit('prep'); return true;
+  }
+  if (act === 'guild') { // 문 철물: 그날 처음 들어갈 때 한 칸 + 문 회장님 이야기(친밀도·소개 손님)
+    if (!T.guildIn) {
+      useSlots(A.cost); T.guildIn = true; T.talked.push('moon'); T.referral.push('moon');
+      emit('town', 'chat', moonChat());
+      addBond('moon', BOND_TALK, '이야기');
+    }
+    emit('town', 'guild');
     if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
     emit('prep'); return true;
   }

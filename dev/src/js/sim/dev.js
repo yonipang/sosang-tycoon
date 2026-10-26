@@ -9,7 +9,7 @@ import { townEnterNight } from './town.js';
 import { addReviews } from './rating.js';
 
 const PRO = ['p_stir', 'p_serve', 'p_book', 'p_ahead', 'p_keys'];
-// 가 볼 수 있는 곳: day(그날 준비 화면) · ch · title · done · active · queue(보여 줄 장면) · menus · toolsOpen · tools · decor · shop · town(마을 밤부터) · mastery(메뉴 숙련도) · cash(잔고) · bond(친밀도 점수)
+// 가 볼 수 있는 곳: day(그날 준비 화면) · ch · title · done · active · queue(보여 줄 장면) · menus · toolsOpen · tools · decor · shop · town(마을 밤부터) · mastery(메뉴 숙련도) · cash(잔고) · bond(친밀도 점수) · furnSeen(미소 가구 장면 건너뛰기) · guild(상인회 상태)
 export const DEV_JUMPS = [
   { id: 'p1', name: '프롤로그 1일차 · 첫 연출부터', day: 1, fresh: true },
   { id: 'p1b', name: '프롤로그 1일차 · 연출 없이 영업 (오 사장님 가게 길잡이)', day: 1, ch: 0, title: '알바생', active: ['p_keys'], queue: [] },
@@ -24,6 +24,8 @@ export const DEV_JUMPS = [
   { id: 'c2u', name: '9일차 전날 밤 · 메뉴 연구 칠판 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
   { id: 'c2f', name: '9일차 전날 밤 · 미소 가구 개업 (돈 60만 원, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 600000 },
   { id: 'c2f5', name: '9일차 전날 밤 · 미소 가구 ♥♥♥♥♥ (고급·특별·확장공사, 돈 400만 원)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 4000000, bond: { miso: 80, jung: 30 } },
+  { id: 'c2m', name: '10일차 전날 밤 · 문 철물 개업 (상인회 부탁부터)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { due: 10 }, cash: 1500000 },
+  { id: 'c2g', name: '10일차 전날 밤 · 상인회원 (문 회장 ♥♥♥♥ · 돈 300만 원)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 30 }, cash: 3000000 },
   { id: 'c2', name: '8일차 · 1장 끝 (2장 준비 중)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
@@ -44,6 +46,8 @@ defineCmd('devJump', ({ id }) => {
   if (J.ch >= 1) G.cash = START_CASH;
   if (J.ch >= 2) addReviews(Array.from({ length: 30 }, (_, i) => (i % 3 ? 4 : 5))); // 2장: 리뷰가 조금 쌓인 가게
   if (J.cash) G.cash = J.cash;
+  if (J.furnSeen) G.furn.seen = true;
+  if (J.guild) Object.assign(G.guild, J.guild);
   if (J.bond) Object.assign(G.bond.pts, J.bond);
   if (J.mastery) Object.assign(G.mastery, J.mastery);
   if (J.town) { G.history.push({ day: J.day - 1, revenue: 150000, net: 60000, served: 35, missed: 2, rating: 4, prep: {}, sold: { tteok: 15, kimbap: 10, twigim: 8 } }); townEnterNight(); } // 마을 첫 밤부터

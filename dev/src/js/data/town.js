@@ -81,6 +81,7 @@ export const ACTS = {
   insta: { name: '인스타 올리기', cost: 1, when: 'night' },
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
   furn: { name: '가구 둘러보기', cost: 1, when: 'night' },
+  guild: { name: '철물점 · 상인회', cost: 1, when: 'night' },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
   market: { name: '장보기', cost: 1, when: 'dawn' },
   setup: { name: '오픈 준비 (진열)', cost: 1, when: 'dawn' },
@@ -105,7 +106,7 @@ export const SHOP_SPOTS = [
   { act: 'exit', name: '문 · 골목으로', door: true },
 ];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
-export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] } };
+export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] }, laundry: { name: '문 철물 · 상인회', short: '철물점', acts: ['guild'] } }; // laundry는 문 회장님이 온 뒤(sim/guild.js guildOpen)
 export const HYGIENE_DECAY = 25;
 export const CLEAN_GAIN = 60;
 export const HYGIENE_LOW = 40;

@@ -2,6 +2,7 @@
 // 메뉴 한 그릇 = recipe 재료 하나씩 (data/menu.js). 먼저 받은 것부터 쓰고, 기한이 지나면 마감 때 버려요 (sim/day.js endDay)
 // 오늘의 메뉴: G.menuOff = 오늘 쉬는 메뉴 (가게 장부에서 빼고 올려요)
 import { G } from '../save/state.js';
+import { shelfPlus } from './guild.js';
 import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
 import { menuOpen } from './story.js';
@@ -17,7 +18,7 @@ export const invServings = m => Math.min(...recipeOf(m).map(invOf));
 export const openIngs = () => ING_IDS.filter(i => menusUsing(i).some(m => menuOpen(m)));
 
 // 재료를 n인분 들여놓아요 (오늘부터 shelf일 동안 쓸 수 있어요)
-export function stockIn(i, n) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 }); }
+export function stockIn(i, n) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 + shelfPlus() }); } // 냉장고 Lv2(상인회) +1일
 export function stockInMenu(m, n) { for (const i of recipeOf(m)) stockIn(i, n); }
 // 먼저 받은 재료부터 n인분 써요
 export function useFifo(i, n) {

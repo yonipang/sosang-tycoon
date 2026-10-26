@@ -2,6 +2,7 @@
 //  emit('story') = 보여 줄 장면이 생겼어요 (ui/story.js가 차례대로 보여 줘요)
 import { G } from '../save/state.js';
 import { ratingNow, resetReviews } from './rating.js';
+import { addBond } from './bond.js';
 import { QUESTS, SCENES } from '../data/story.js';
 import { PREP_FIRST_DAY } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
@@ -48,6 +49,8 @@ function complete(id) {
   const g = q.give || {};
   if (g.menuNext) openMenu(g.menuNext, false);
   if (g.menuNow) openMenu(g.menuNow, true);
+  if (g.bond) addBond(g.bond[0], g.bond[1], '부탁', true); // 부탁 퀘스트 +5 (sim/bond.js)
+  if (g.guild && G.guild) { G.guild.member = true; emit('toast', '골목 상인회에 가입했습니다', 'good'); }
   for (const s of g.scenes || []) queueScene(s);
   // 기다리던 퀘스트 시작 · 기다리던 완료
   for (const qid in QUESTS) if (QUESTS[qid].needs && QUESTS[qid].needs.every(isDone)) start(qid);

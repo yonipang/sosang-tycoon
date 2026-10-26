@@ -900,3 +900,18 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .fu-btns { display: flex; gap: 8px; margin-top: 6px; }
 .fu-btns .btn { flex: 0 0 28%; }
 .fu-btns .btn.primary { flex: 1; }
+
+/* 문 철물 · 상인회 (ui/guild.js) */
+.gd-sub { margin: 10px 0 4px; padding-bottom: 2px; border-bottom: 2px solid var(--ink); }
+.gd-sub small { color: var(--ink-soft); font-size: 14px; margin-left: 4px; }
+.gd-list { display: flex; flex-direction: column; }
+.gd-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
+.gd-row.max { opacity: .7; }
+.gd-ic { height: 32px; width: auto; max-width: 32px; object-fit: contain; image-rendering: pixelated; flex: none; }
+.gd-tx { flex: 1; min-width: 0; line-height: 1.3; }
+.gd-tx b { font-weight: normal; }
+.gd-tx small { display: block; color: var(--ink-soft); font-size: 14px; word-break: keep-all; }
+.gd-tx i.lv { font-style: normal; font-size: 13px; background: var(--mustard); border: 2px solid var(--ink); padding: 0 4px; }
+.gd-row .btn.small { flex: none; min-width: 72px; }
+.gd-done { flex: none; color: var(--green); }
+.gd-foot { margin: 8px 0 0; color: var(--ink-soft); text-align: right; font-size: 14px; }

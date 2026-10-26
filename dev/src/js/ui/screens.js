@@ -389,6 +389,7 @@ export function renderWeekly() {
         ${bill('대출 이자', `남은 대출 ${wonShort(G.loan)} · 연 ${Math.round(LOAN_RATE * 100)}%`, B.interest)}
         ${bill('대출 원금', '창업 대출 나눠 갚기', B.principal)}
         ${bill('공과금', `전기·가스·수도 · 이번 주 ${B.dishes}그릇`, B.util)}
+        ${B.dues ? bill('상인회 회비', '골목 상인회 · 매주', B.dues) : ''}
         <div class="bill total"><b>합계</b><b>${won(B.total)}</b></div>
       </div>
       <div class="paper">

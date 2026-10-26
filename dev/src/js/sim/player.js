@@ -11,6 +11,7 @@ import { findPath, standAround, walk } from './path.js';
 import { custById, serve, pay } from './customers.js';
 import { menuOpen, storyNote, storyFridge } from './story.js';
 import { handsMax, cookRule } from './tools.js';
+import { stirSpeedMul, cookTwice, payStepSec } from './guild.js';
 import { costOf } from './market.js';
 import { incidentNote, handTakeout } from './incidents.js';
 import { tutNote } from './tutorial.js';
@@ -110,7 +111,7 @@ function startCook(st) {
     emit('cook', false, m, MENUS[m].game, q);
     return;
   }
-  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0 };
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook * (MENUS[m].game === 'stir' ? stirSpeedMul() : 1), pos: 0, taps: 0 };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
   tutNote('cookStart');
@@ -126,7 +127,7 @@ function toHands(m, q) {
 // 새벽에 미리 끓이기 (sim/day.js dawnCook) — 주문 없이, 손에 들지 않고 보온 통에 담아요
 export function startDawnCook(m) {
   const r = G.run;
-  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook, pos: 0, taps: 0, dawn: true };
+  r.cook = { menu: m, game: MENUS[m].game, t: 0, speed: MENUS[m].cook * (MENUS[m].game === 'stir' ? stirSpeedMul() : 1), pos: 0, taps: 0, dawn: true };
   emit('cook', true, m, r.cook.game);
   emit('sfx', 'cookStart');
 }
@@ -179,8 +180,11 @@ function finishCook(q, note) {
     return;
   }
   toHands(c.menu, q);
+  // 설비 Lv3(상인회): 한 번에 2그릇 — 손에 자리가 있고 주문이나 재료가 있을 때
+  const two = cookTwice(MENUS[c.menu].station) && r.hands.length < handsMax() && (ticketsCount(c.menu) > handsCount(c.menu) || stockOf(c.menu) > 0);
+  if (two) toHands(c.menu, q);
   const p = r.player;
-  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
+  emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}${two ? ' ×2' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
   storyNote('cook', { menu: c.menu, q });
@@ -251,7 +255,7 @@ export function updatePlayer(dt) {
     const c = custById(r.payLine[0]);
     if (c && c.state === 'payLine' && !c.moving) {
       p.payT += dt;
-      if (p.payT >= PAY_STEP_SEC) { p.payT = 0; pay(c); }
+      if (p.payT >= payStepSec()) { p.payT = 0; pay(c); }
     } else p.payT = 0;
   }
 }
