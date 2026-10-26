@@ -575,7 +575,10 @@ body[data-phase="title"] .gear { visibility: hidden; }
 #stage { position: relative; }
 body.in-town #bar { display: none; }
 #town { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; background: #0e1022; overflow: hidden; }
-#townCv { display: block; image-rendering: pixelated; cursor: pointer; margin-top: 4px; }
+#townCv { display: block; image-rendering: pixelated; cursor: pointer; margin-top: 4px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* 마을 조이스틱: 누른 자리에 받침, 민 쪽으로 손잡이 */
+#townJoy { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%; background: rgba(251,243,226,.18); border: 3px solid rgba(251,243,226,.55); pointer-events: none; z-index: 3; }
+#townJoy i { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: rgba(251,243,226,.9); border: 3px solid var(--ink); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
 #townBar { width: 100%; display: flex; align-items: center; gap: 6px; padding: 6px 10px; color: var(--paper); line-height: 1.2; flex-wrap: wrap; }
 .tb-time { padding: 2px 8px; border: 2px solid var(--paper); }
 .tb-time.night { background: var(--night); }
@@ -604,6 +607,9 @@ body.in-town #bar { display: none; }
 .mk-txt b { font-weight: normal; display: block; }
 .mk-txt small { color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
 .mk-sum { display: flex; justify-content: space-between; padding-top: 8px; }
+.mk-sum b { font-weight: normal; color: var(--red-dark); }
+.mk-buy { display: block; width: 100%; margin-top: 8px; }
+.mk-buy[disabled] { opacity: .5; }
 .mk-sum b { font-weight: normal; }
 .prep-town { display: flex; gap: 8px; }
 .prep-town .btn { flex: 1; }
@@ -625,3 +631,4 @@ body.in-town #bar { display: none; }
 .tip-pic img { display: block; width: 48px; height: auto; image-rendering: pixelated; }
 .tip-card p { margin: 0 0 12px; font-size: 16px; word-break: keep-all; }
 .tip-card .btn { display: inline-block; min-width: 120px; background: #ff3d8b; text-shadow: 0 2px 0 #a3134f; }
+body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 위에 (아래 창을 가리지 않게) */

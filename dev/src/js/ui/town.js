@@ -153,10 +153,55 @@ function townMarks() {
   return out;
 }
 
+// ── 조이스틱: 화면을 누른 채로 끌면 그 자리에 조이스틱이 생기고, 민 쪽으로 걸어요 (짧게 누르면 그곳까지 걸어가요)
+//  가게 문 앞에서 위로 밀거나 사람에게 부딪히면 할 일 창이 열려요 (포켓몬처럼). 키보드 방향키·WASD도 돼요
+const JOY_R = 40;      // 조이스틱 반지름 (CSS 픽셀)
+const JOY_START = 10;  // 이만큼 끌어야 조이스틱 (그보다 짧으면 누르기)
+const keys = new Set();
+function joyVec() {
+  const j = T.joy;
+  let x = 0, y = 0;
+  if (j && j.on) { x = j.dx / JOY_R; y = j.dy / JOY_R; }
+  if (keys.has('l')) x -= 1; if (keys.has('r')) x += 1; if (keys.has('u')) y -= 1; if (keys.has('d')) y += 1;
+  const m = Math.hypot(x, y);
+  return m > 1 ? [x / m, y / m] : [x, y];
+}
+// 발 둘레(가로 10 · 세로 5픽셀)가 막힌 칸에 걸리는지
+function blockedAt(x, y, m) {
+  for (const px of [x - 5, x + 5]) for (const py of [y - 5, y]) {
+    const tx = Math.floor(px / TILE), ty = Math.floor(py / TILE);
+    if (tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H || m[ty * MAP_W + tx]) return true;
+  }
+  return false;
+}
+function joyMove(dt, vx, vy) {
+  const me = T.me, m = walls(), sp = WALK * Math.min(1, Math.hypot(vx, vy)) / Math.hypot(vx, vy);
+  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt;
+  let hitUp = false, hitX = 0, hitY = 0;
+  if (!blockedAt(nx, me.y, m)) me.x = nx; else hitX = Math.sign(vx);
+  if (!blockedAt(me.x, ny, m)) me.y = ny; else { hitY = Math.sign(vy); hitUp = vy < 0; }
+  me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
+  me.moving = true;
+  // 부딪힌 곳: 이웃이면 그 가게 · 문 앞에서 위로 밀면 그 가게 (같은 칸에서는 한 번만)
+  const [tx, ty] = meTile();
+  const key = tx + ',' + ty;
+  if (T.bumped && T.bumped !== key) T.bumped = null;
+  if ((!hitX && !hitY) || T.bumped || T.sheet) return;
+  const bx = tx + (Math.abs(vx) >= Math.abs(vy) ? hitX : 0), by = ty + (Math.abs(vy) > Math.abs(vx) ? hitY : 0);
+  const npc = Object.keys(TOWN_NPC).find(id => TOWN_NPC[id].open === G.town.part && TOWN_NPC[id].at[0] === bx && TOWN_NPC[id].at[1] === by);
+  let place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : null;
+  if (!place && hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
+  if (place) { T.bumped = key; me.moving = false; facePlace(place); openPlace(place); playSfx('tap'); return; }
+  if (hitUp && vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) { T.bumped = key; me.moving = false; showVacant(); }
+}
+
 export function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
   const me = T.me;
+  const [vx, vy] = talking() ? [0, 0] : joyVec();
+  if (Math.hypot(vx, vy) > 0.25) { if (me.path.length) { me.path = []; T.then = null; } joyMove(dt, vx, vy); }
+  else if (!me.path.length) me.moving = false;
   if (me.path.length && !talking()) {
     let step = WALK * dt;
     while (step > 0 && me.path.length) {
@@ -174,6 +219,8 @@ export function updateTown(dt) {
   drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks() });
 }
 
+function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
+
 // 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
@@ -186,7 +233,7 @@ function tapTown(e) {
   const place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
   if (place) { goPlace(place); return; }
   if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.tw_vacant[3], SPR.tw_vacant[2], SPR.tw_vacant[3]])) {
-    walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); });
+    walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; showVacant(); });
     return;
   }
   const to = nearestOpen(Math.floor(wx / TILE), Math.floor(wy / TILE));
@@ -237,22 +284,61 @@ function drawChat() {
   sheet(`<div class="ts-chat">${lineHTML(who, text)}</div>`, 'chat');
 }
 
-// 시장: 메뉴마다 5인분씩 사고 무르기 (오늘 산 것만)
+// 시장: 메뉴마다 5인분씩 장바구니에 담고, 아래 「구매하기」로 한 번에 사요 (장바구니는 화면에만 — 사기 전엔 돈이 안 나가요)
+let cart = {};
 function marketHTML() {
   const Tn = G.town, last = G.history[G.history.length - 1];
-  const rows = MENU_IDS.filter(m => menuOpen(m)).map(m => {
-    const unit = marketUnit(m), deal = Tn.deal === m, bought = Tn.bought[m] || 0;
+  const ms = MENU_IDS.filter(m => menuOpen(m));
+  const rows = ms.map(m => {
+    const unit = marketUnit(m), deal = Tn.deal === m, k = cart[m] || 0, bought = Tn.bought[m] || 0;
     return `<div class="mk-row">${icon(m)}<div class="mk-txt"><b>${MENUS[m].ing}${deal ? ' <span class="tag hot">오늘 특가</span>' : ''}</b>
-      <small>${MARKET_PACK}인분 ${won(unit * MARKET_PACK)}${deal ? ` (${Math.round((1 - MARKET_DEAL) * 100)}% 싸게)` : ''} · 재고 ${invCount(m)}${last ? ` · 어제 ${last.sold[m] || 0}그릇` : ''}</small></div>
-      <div class="step"><button type="button" data-ts="buy" data-m="${m}" data-d="-1" ${bought ? '' : 'disabled'} aria-label="${MENUS[m].ing} 무르기">−</button><b>${bought}</b><button type="button" data-ts="buy" data-m="${m}" data-d="1" aria-label="${MENUS[m].ing} 사기">+</button></div></div>`;
+      <small>${MARKET_PACK}인분 ${won(unit * MARKET_PACK)}${deal ? ` (${Math.round((1 - MARKET_DEAL) * 100)}% 싸게)` : ''} · 재고 ${invCount(m)}${bought ? ` (오늘 ${bought} 삼)` : ''}${last ? ` · 어제 ${last.sold[m] || 0}그릇` : ''}</small></div>
+      <div class="step"><button type="button" data-ts="cart" data-m="${m}" data-d="-1" ${k ? '' : 'disabled'} aria-label="${MENUS[m].ing} 빼기">−</button><b>${k * MARKET_PACK}인분</b><button type="button" data-ts="cart" data-m="${m}" data-d="1" aria-label="${MENUS[m].ing} 담기">+</button></div></div>`;
   }).join('');
+  const total = ms.reduce((s, m) => s + marketUnit(m) * (cart[m] || 0) * MARKET_PACK, 0);
+  const short = total > G.cash;
   return `<div class="ts-head"><b>정 사장 식자재</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <p class="ts-note">5인분씩 삽니다. 먼저 산 재료부터 쓰고, 유통기한이 지나면 버립니다.</p>${rows}
-    <div class="mk-sum"><span>잔고</span><b>${won(G.cash)}</b></div>`;
+    <p class="ts-note">5인분씩 담아서 한 번에 삽니다. 먼저 산 재료부터 쓰고, 유통기한이 지나면 버립니다.</p>${rows}
+    <div class="mk-sum"><span>합계 <b>${won(total)}</b></span><span class="${short ? 'neg' : ''}">잔고 ${won(G.cash)}</span></div>
+    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '살 재료를 담아 보세요'}</button>`;
 }
 
 export function initTown() {
-  $('townCv').addEventListener('click', tapTown);
+  // 누르기·끌기 (조이스틱)
+  const cv = $('townCv'), joyEl = $('townJoy');
+  cv.addEventListener('pointerdown', e => {
+    if (!T || talking()) return;
+    e.preventDefault();
+    cv.setPointerCapture(e.pointerId);
+    T.joy = { id: e.pointerId, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, on: false, ev: e };
+  });
+  cv.addEventListener('pointermove', e => {
+    const j = T && T.joy;
+    if (!j || j.id !== e.pointerId) return;
+    let dx = e.clientX - j.sx, dy = e.clientY - j.sy;
+    if (!j.on && Math.hypot(dx, dy) < JOY_START) return;
+    if (!j.on) { // 조이스틱 시작: 누른 자리에 받침을 놓아요
+      j.on = true; closeSheet();
+      const r = $('town').getBoundingClientRect();
+      joyEl.style.left = (j.sx - r.left) + 'px'; joyEl.style.top = (j.sy - r.top) + 'px'; joyEl.hidden = false;
+    }
+    const d = Math.hypot(dx, dy);
+    if (d > JOY_R) { dx *= JOY_R / d; dy *= JOY_R / d; }
+    j.dx = dx; j.dy = dy;
+    joyEl.firstElementChild.style.transform = `translate(${dx}px, ${dy}px)`;
+  });
+  const joyEnd = e => {
+    const j = T && T.joy;
+    if (!j || j.id !== e.pointerId) return;
+    T.joy = null; joyEl.hidden = true; T.bumped = null;
+    if (!j.on && e.type === 'pointerup') tapTown(e); // 짧게 눌렀으면 그곳까지 걸어가요
+  };
+  cv.addEventListener('pointerup', joyEnd);
+  cv.addEventListener('pointercancel', joyEnd);
+  const KEY = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
+  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
+  addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
+  addEventListener('blur', () => keys.clear());
   $('townNav').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b || talking()) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap'); });
   addEventListener('resize', layoutTown);
   if (window.ResizeObserver) new ResizeObserver(layoutTown).observe($('town'));
@@ -263,12 +349,13 @@ export function initTown() {
     const k = b.dataset.ts;
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
-    else if (k === 'buy') runCmd('marketBuy', { menu: b.dataset.m, packs: +b.dataset.d });
+    else if (k === 'cart') { const m = b.dataset.m; cart[m] = Math.max(0, (cart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
-    if (what === 'market') { T.sheetPlace = 'market'; if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'market') { T.sheetPlace = 'market'; cart = {}; if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
     if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });

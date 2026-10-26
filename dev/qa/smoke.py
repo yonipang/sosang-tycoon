@@ -70,9 +70,17 @@ def town_night_dawn(pg):
     R('townAct', "{place:'home',act:'sleep'}"); talk(pg)
     R('townAct', "{place:'market',act:'market'}"); town_chat(pg)
     if 'market' not in seen: seen.append('market'); pg.wait_for_timeout(200); shot(pg, '9b-market')
+    cart = {}
     for m in pg.evaluate("__T.G.story.menus"):
-        want = pg.evaluate("(m=>{const h=__T.G.history[__T.G.history.length-1]; const inv=(__T.G.inv[m]||[]).reduce((s,b)=>s+b.n,0); return Math.max(0, Math.ceil(((h&&h.sold[m]||10)+10-inv)/5));})('%s')" % m)
-        for _ in range(want): R('marketBuy', "{menu:'%s',packs:1}" % m)
+        cart[m] = pg.evaluate("(m=>{const h=__T.G.history[__T.G.history.length-1]; const inv=(__T.G.inv[m]||[]).reduce((s,b)=>s+b.n,0); return Math.max(0, Math.ceil(((h&&h.sold[m]||10)+10-inv)/5));})('%s')" % m)
+    if 'cart' not in seen:  # 처음 한 번은 화면에서: + 로 담고 아래 「구매하기」
+        seen.append('cart')
+        for m, k in cart.items():
+            for _ in range(k): pg.click('[data-ts=cart][data-m=%s][data-d="1"]' % m)
+        shot(pg, '9c-market-cart'); before = pg.evaluate('__T.G.cash')
+        pg.click('[data-ts=buyCart]'); pg.wait_for_timeout(100)
+        if pg.evaluate('__T.G.cash') >= before and any(cart.values()): errs.append('시장 구매하기 버튼이 돈을 쓰지 않았어요')
+    else: R('marketBuyCart', '{cart:%s}' % json.dumps(cart))
     R('townAct', "{place:'shop',act:'setup'}")
     R('townAct', "{place:'shop',act:'open'}"); talk(pg)
 def open_shop(pg):

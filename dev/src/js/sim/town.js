@@ -81,6 +81,25 @@ function goDawn() {
 
 // 시장: 오늘 1인분 값 (특가면 15% 싸게, 10원 단위)
 export const marketUnit = m => Math.round(costOf(m) * (G.town.deal === m ? MARKET_DEAL : 1) / 10) * 10;
+// 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 메뉴: 몇 묶음(5인분) }
+defineCmd('marketBuyCart', ({ cart }) => {
+  const T = G.town;
+  if (!townMode() || T.part !== 'dawn' || !T.marketIn) return false;
+  const list = Object.entries(cart || {}).filter(([m, k]) => k > 0 && menuOpen(m));
+  if (!list.length) return false;
+  const total = list.reduce((s, [m, k]) => s + marketUnit(m) * k * MARKET_PACK, 0);
+  if (total > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
+  for (const [m, k] of list) {
+    const n = k * MARKET_PACK;
+    G.cash -= marketUnit(m) * n;
+    G.inv[m].push({ n, exp: G.day + MENUS[m].shelf - 1 });
+    T.bought[m] = (T.bought[m] || 0) + n;
+  }
+  emit('toast', `재료를 샀습니다 · ${list.map(([m, k]) => `${MENUS[m].ing} ${k * MARKET_PACK}인분`).join(' · ')}`, 'good');
+  emit('sfx', 'coin');
+  emit('prep');
+  return true;
+});
 defineCmd('marketBuy', ({ menu, packs }) => {
   const T = G.town;
   if (!townMode() || T.part !== 'dawn' || !T.marketIn || !menuOpen(menu)) return false;
