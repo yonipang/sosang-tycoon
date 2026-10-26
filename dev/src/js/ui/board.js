@@ -3,7 +3,7 @@
 import { MENUS, MENU_IDS, MENU_LEVELS, MASTERY_PERFECT } from '../data/menu.js';
 import { wonShort } from '../engine/util.js';
 import { menuOpen } from '../sim/story.js';
-import { menuLv, lvInfo, mastery, upState } from '../sim/upgrade.js';
+import { menuLv, mastery, upState } from '../sim/upgrade.js';
 import { icon } from './icons.js';
 
 const pctTxt = v => `${Math.round(v * 100)}%`;
@@ -17,10 +17,12 @@ export function boardHTML() {
       : `<button type="button" class="ch-btn" data-ts="menuUp" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'need' ? '숙련 모자람' : st === 'cash' ? '잔고 모자람' : '올리기'}<small>${wonShort(next.cost)}</small></button>`;
     return `<div class="urow${st === 'ok' ? ' ready' : ''}" data-m="${m}">${icon(m, 'dish')}<div class="u-txt"><b>${MENUS[m].name} <i class="lv">Lv${lv}</i> <span class="stars">${stars}</span></b>
       <div class="ubar"><i style="width:${bar}%"></i></div>
-      <small>숙련 ${have}${next ? ` / ${next.need}` : ''}</small>
-      <small>${next ? `Lv${lv + 1} → ${effTxt(next)}` : effTxt(lvInfo(m))}</small></div>${btn}</div>`;
+      <small>숙련 ${have}${next ? ` / ${next.need}` : ''}</small></div>${btn}</div>`;
   }).join('');
   return `<div class="ts-head"><b>메뉴 연구 칠판</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     ${rows}
-    <p class="u-foot">숙련도는 내준 그릇 수입니다 (완벽 조리는 ${MASTERY_PERFECT}그릇). 숙련도가 차면 돈을 내고 올립니다. 다음 영업부터 효과가 납니다</p>`;
+    <details class="u-more"><summary>레벨마다 효과</summary>
+      <p>${MENU_LEVELS.slice(2).map((L, k) => `Lv${k + 2} · ${effTxt(L)}`).join('<br>')}</p>
+      <p>숙련도는 내준 그릇 수입니다 (완벽 조리는 ${MASTERY_PERFECT}그릇). 숙련도가 차면 돈을 내고 올립니다</p>
+    </details>`;
 }

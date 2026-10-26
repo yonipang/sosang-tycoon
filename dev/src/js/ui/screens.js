@@ -1,6 +1,6 @@
 // 영업 밖 화면: 처음 화면 · 새벽 준비 · 마감 영수증 · 고정비 내는 날(고지서)
 import { G, newGame } from '../save/state.js';
-import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOTS_BY_GRADE, GRADE_NAMES, SHOP_GRADE } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, MENU_SLOTS, SLOTS_BY_GRADE } from '../data/menu.js';
 import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
@@ -23,7 +23,8 @@ import { setMusic, musicWant } from './music.js';
 import { LEVELS, setting, stepSetting, setOption, canVibrate, vibeKind, vibrate, installState, promptInstall, WEBAPP_URL } from './settings.js';
 import { menuOpen } from '../sim/story.js';
 import { costOf, costRatio, marketOn } from '../sim/market.js';
-import { questCard, doneCard, incidentCard, talking } from './story.js';
+import { questCard, doneCard, incidentCard, talking, openQuests } from './story.js';
+import { QUESTS, CHAPTERS } from '../data/story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
 import { INCIDENTS } from '../data/incidents.js';
 import { DEV_JUMPS } from '../sim/dev.js';
@@ -106,6 +107,7 @@ export function renderPrep() {
       </details>
     </div>`;
   }).join('');
+  if (town) { renderLedger(last, after, dawn); return; } // 1장부터: 오늘의 메뉴 칸 하나로 (화면 정리 — 기획서 「화면 정리」)
   showScreen(`
     <div class="prep">
       <div class="phase-tag night">${dawn ? '새벽 · ' : town ? '밤 · 가게 장부 · ' : '전날 밤 22:00 · '}${G.shop}</div>
@@ -127,14 +129,50 @@ export function renderPrep() {
     </div>`, 'scr-prep');
 }
 
-// 가게 앞 칠판 · 오늘의 추천 (1장부터, sim/traffic.js): 점심·오후에 하나씩 — 그 메뉴를 좋아하는 손님층이 더 들어와요 (다시 누르면 비워요)
-function boardCard() {
-  const on = todayMenus(), B = G.board || {};
-  const row = k => {
-    const S = BOARD_SLOTS[k];
-    return `<div class="brow"><span class="b-slot"><b>${S.name}</b><small>${S.from}~${S.to}시</small></span><span class="b-pick">${on.map(m => `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}">${icon(m, 'dish')}<small>${MENUS[m].name}</small></button>`).join('')}</span></div>`;
-  };
-  return `<div class="tcard bcard" data-guide="board"><div class="q-head"><small>가게 앞 칠판</small><b>오늘의 추천</b></div>${row('lunch')}${row('after')}<p class="b-note">점심엔 직장인, 오후엔 학생이 많이 지나갑니다. 추천 메뉴를 좋아하는 손님이 더 들어옵니다</p></div>`;
+// ── 가게 장부 (1장부터, 마을): 한 화면에 결정 하나 — 오늘의 메뉴 칸이 곧 장부 ──
+//  칸 = 이름 · 가격 · 재고 그릇 · 칠판 표시 · 경고 점. 칸을 누르면 메뉴 창(가격 · 원가율 · 칠판 추천 · 쉬기), 이유는 창의 「자세히」에
+//  할 일은 한 줄(누르면 퀘스트 창, 낼 돈이 있는 퀘스트만 카드로) · 장사 도구는 살 게 있을 때만
+let mmOpen = null; // 열린 메뉴 창
+function renderLedger(last, after, dawn) {
+  const S = G.story;
+  const payQ = S.active.some(id => QUESTS[id].kind === 'pay');
+  const qline = payQ ? questCard() : (S.active.length ? `<button type="button" class="qline" data-act="quests" data-guide="quest"><small>${CHAPTERS[S.ch].name}</small><b>할 일${S.active.length ? ` ${S.active.length}` : ''}</b><i>▸</i></button>` : '');
+  const tools = S.toolsOpen && TOOL_IDS.some(id => !S.tools.includes(id)) ? toolsCard() : '';
+  const bills = G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : '';
+  showScreen(`
+    <div class="prep book">
+      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop}</div>
+      <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '가게 장부'}</h2>
+      <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
+      ${qline}
+      ${todayCard()}
+      ${tools}
+      ${bills}
+      ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
+      <button class="btn" data-act="toTown">골목으로</button>
+      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
+      ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
+    </div>`, 'scr-prep');
+}
+// 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
+function menuSheet(m, last) {
+  const M = MENUS[m], on = menuOn(m), B = G.board || {}, lv = menuLv(m);
+  const inv = invServings(m);
+  const step = `<div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 줄이기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 늘리기">+</button></div>`;
+  const board = Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
+  const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} ${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} <small>· ${I.shelf}일</small>`; }).join('<br>');
+  return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="${M.name}">
+    <div class="mm-head">${icon(m, 'dish')}<b>${M.name}</b>${lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : ''}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
+    <div class="row"><span>가격</span>${step}</div>
+    ${ledgerLine(m)}
+    <div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>
+    <div class="row"><span>재고</span><b class="stock-n">${inv}그릇</b></div>
+    <details class="more"><summary>자세히</summary>
+      <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>
+      <p class="recipe">${recipe}</p>
+    </details>
+    ${on && todayMenus().length > 1 ? `<button type="button" class="btn" data-act="menuToggle" data-m="${m}">오늘은 쉬기</button>` : !on ? `<button type="button" class="btn primary" data-act="menuToggle" data-m="${m}">오늘 팔기</button>` : ''}
+  </div></div>`;
 }
 
 // 오늘의 메뉴 (1장부터, 데이브 더 다이버 초밥 칸처럼): 칸 8개 중 가게 등급만큼 열려 있고 나머지는 자물쇠
@@ -148,16 +186,18 @@ function todayCard() {
   const slots = Array.from({ length: MENU_SLOTS }, (_, k) => {
     const m = on[k];
     if (m) {
-      const t = todayIngs(m), n = invServings(m);
-      return `<div class="slot on${t.length ? ' hurry' : ''}">${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${t.length ? `<em class="today">오늘까지 ${t.join('·')}</em>` : ''}${on.length > 1 ? `<button type="button" class="slot-x" data-act="menuToggle" data-m="${m}" aria-label="${MENUS[m].name} 빼기">빼기</button>` : ''}</div>`;
+      const t = todayIngs(m), n = invServings(m), B = G.board || {};
+      const marks = Object.keys(BOARD_SLOTS).filter(k => B[k] === m).map(k => `<i class="bmark">★${BOARD_SLOTS[k].name}</i>`).join('');
+      const warn = t.length || !n; // 오늘까지 써야 하는 재료 · 재료 없음
+      return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="mmOpen" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<div class="slot empty"><small>빈 칸</small></div>`;
     return `<div class="slot locked">${LOCK_SVG}<small>${gradeAt(k)}등급</small></div>`;
   }).join('');
-  const rest = off.map(m => `<button type="button" class="tm-off" data-act="menuToggle" data-m="${m}">${icon(m, 'dish')}<span>${MENUS[m].name}<small>${invServings(m)}그릇</small></span><b>올리기</b></button>`).join('');
-  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${GRADE_NAMES[SHOP_GRADE]} · ${on.length}/${open}칸</b></div>
+  const rest = off.map(m => `<button type="button" class="tm-off" data-act="mmOpen" data-m="${m}">${icon(m, 'dish')}<span>${MENUS[m].name}<small>${invServings(m)}그릇</small></span><b>쉬는 중</b></button>`).join('');
+  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">눌러서 가격 · 추천</span></div>
     <div class="slots">${slots}</div>
-    ${rest ? `<div class="tm-rest"><small>쉬는 메뉴 · 올리면 오늘 팝니다</small>${rest}</div>` : ''}
+    ${rest ? `<div class="tm-rest">${rest}</div>` : ''}
   </div>`;
 }
 
@@ -227,26 +267,57 @@ export function renderReceipt() {
   const best = MENU_IDS.filter(m => R.sales[m].n).sort((a, b) => R.sales[b].n - R.sales[a].n)[0];
   const topMiss = Object.entries(R.missed).sort((a, b) => b[1] - a[1])[0];
   const deltaHtml = Math.abs(delta) < 0.05 ? '' : `<small class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}</small>`;
-  const cards = [
-    doneCard(R.quests),
-    incidentCard(R.incidents),
-    best ? `<div class="hl">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : `<div class="hl"><small>오늘의 인기 메뉴</small><b>아직 없음</b></div>`,
-    costCard(R.cost),
-    blogCard(R.blog),
-    hourCard(R.hourly),
-    masteryCard(R.mastery),
-    R.missedTotal ? `<div class="hl warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl good"><small>놓친 손님</small><b>없음!</b></div>`,
-    R.foot ? `<div class="hl"><small>가게 앞 유동인구</small><b>${R.foot}명 중 ${R.entered}명 입장</b></div>` : '',
-    R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '',
-  ].join('');
-  showScreen(`
-    <div class="receipt">
-      <div class="rc-hero">
+  // 한 장씩 넘겨요 (화면 정리): ① 오늘 남은 돈 → ② 오늘의 일(퀘스트·돌발·블로거 · 없으면 인기 메뉴·놓친 손님) → ③ 시간대 그래프 → ④ 리뷰·숙련 + 영수증 자세히
+  const DETAIL = receiptDetail(R, lines, miss, rv, delta);
+  const events = [doneCard(R.quests), incidentCard(R.incidents), blogCard(R.blog), R.cost && R.cost.total > 0.4 ? costCard(R.cost) : ''].filter(Boolean);
+  const plain = [
+    best ? `<div class="hl wide">${icon(best, 'hl-ic')}<small>오늘의 인기 메뉴</small><b>${MENUS[best].name} ${R.sales[best].n}그릇</b></div>` : '',
+    R.missedTotal ? `<div class="hl wide warn"><small>놓친 손님</small><b>${R.missedTotal}명 · 주로 ${MISS_NAME[topMiss[0]]}</b></div>` : `<div class="hl wide good"><small>놓친 손님</small><b>없음!</b></div>`,
+  ];
+  const day2 = (events.length ? events : plain).slice(0, 3).join('');
+  const review = R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '';
+  const pages = [
+    `<div class="rc-hero">
         <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
         <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
         <div class="hero-star">★ ${R.rating.toFixed(1)} ${deltaHtml}</div>
-      </div>
-      <div class="hls">${cards}</div>
+        <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
+      </div>`,
+    `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
+    R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',
+    `<div class="hls">${review}${masteryCard(R.mastery)}</div>`,
+  ].filter(Boolean);
+  rcPage = 0;
+  const last = pages.length - 1;
+  const PAGES = pages.map((h, k) => `<section class="rc-page" data-p="${k}"${k ? ' hidden' : ''}>${h}${k === last ? DETAIL : ''}</section>`).join('');
+  const dots = pages.map((_, k) => `<i class="${k ? '' : 'on'}"></i>`).join('');
+  showScreen(`
+    <div class="receipt paged" data-pages="${pages.length}">
+      ${PAGES}
+      <div class="rc-dots">${dots}</div>
+      <button class="btn primary big rc-next" data-act="rcNext"${last ? '' : ' hidden'}>다음 ▸</button>
+      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button>
+      ${last ? '<button class="btn ghost small rc-skip" data-act="afterReceipt">건너뛰기</button>' : ''}
+    </div>`, 'scr-receipt');
+  countUp(document.querySelector('.hero-num'));
+}
+// 영수증 다음 장 (같은 화면에서 숨기고 보여 줘요 — 다시 그리지 않아서 숫자 세기가 다시 돌지 않아요)
+let rcPage = 0;
+function receiptNext() {
+  const box = document.querySelector('.receipt.paged');
+  if (!box) return;
+  const n = +box.dataset.pages;
+  rcPage = Math.min(n - 1, rcPage + 1);
+  box.querySelectorAll('.rc-page').forEach(p => { p.hidden = +p.dataset.p !== rcPage; });
+  box.querySelectorAll('.rc-dots i').forEach((d, k) => d.classList.toggle('on', k === rcPage));
+  const end = rcPage === n - 1;
+  box.querySelector('.rc-next').hidden = end;
+  box.querySelector('[data-final]').hidden = !end;
+  const sk = box.querySelector('.rc-skip'); if (sk) sk.hidden = end;
+  playSfx('page');
+}
+function receiptDetail(R, lines, miss, rv, delta) {
+  return `
       <details class="more rc-more"><summary>영수증 자세히</summary>
       <div class="paper">
         <div class="rc-head"><b>${G.shop}</b><small>${dayLabel(R.day)} 영업 마감 · ${clockText(R.closeMin ?? 720)}${(R.closeMin ?? 720) < 720 ? ' (일찍 마감)' : ''}</small></div>
@@ -273,10 +344,7 @@ export function renderReceipt() {
         ${rv ? `<div class="rvs">${rv}</div>` : ''}
         ${G.story.ch === 0 ? '<div class="rc-foot">오늘 번 돈은 오 사장님 가게 돈입니다</div>' : `<div class="rc-foot">잔고 ${won(G.cash)}</div>`}
       </div>
-      </details>
-      <button class="btn primary big" data-act="afterReceipt">${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button>
-    </div>`, 'scr-receipt');
-  countUp(document.querySelector('.hero-num'));
+      </details>`;
 }
 
 // 큰 숫자를 0에서 세어 올려요 (끝나면 동전 소리)
@@ -477,11 +545,15 @@ export function initScreens(onStart) {
     else if (a === 'continue') { if (loadGame()) { playSfx('page'); onStart(); } }
     else if (a === 'price') { runCmd('setPrice', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
-    else if (a === 'open') runCmd('openShop');
+    else if (a === 'open') { mmOpen = null; runCmd('openShop'); }
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
+    else if (a === 'mmOpen') { mmOpen = m; playSfx('page'); renderPrep(); }
+    else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
+    else if (a === 'quests') openQuests();
+    else if (a === 'rcNext') receiptNext();
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }
@@ -508,7 +580,7 @@ export function initScreens(onStart) {
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
     else if (a === 'devMarket') { runCmd('devMarket'); }
-    else if (a === 'toTown') { playSfx('page'); hideScreen(); showTown(); }
+    else if (a === 'toTown') { mmOpen = null; playSfx('page'); hideScreen(); showTown(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }

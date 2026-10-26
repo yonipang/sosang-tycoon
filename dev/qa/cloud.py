@@ -91,7 +91,7 @@ with sync_playwright() as p:
     check(pg.evaluate('__T.G.phase') == 'day' and pg.evaluate('!!__T.CLOUD.pending'), '영업은 그대로, 클라우드 세이브는 기다림')
     pg.evaluate("__T.runCmd('closeEarly'); __T.runFor(600)"); pg.wait_for_timeout(500)
     for _ in range(5):
-        if pg.locator('[data-act=afterReceipt]').count(): pg.click('[data-act=afterReceipt]'); pg.wait_for_timeout(400); break
+        if pg.locator('[data-act=afterReceipt]:visible').count(): pg.locator('[data-act=afterReceipt]:visible').first.click(); pg.wait_for_timeout(400); break
         pg.evaluate("__T.runFor(300)"); pg.wait_for_timeout(300)
     if pg.locator('[data-act=afterWeekly]').count(): pg.click('[data-act=afterWeekly]')
     skip_cut(pg); pg.wait_for_timeout(600)

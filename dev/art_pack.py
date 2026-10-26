@@ -297,6 +297,64 @@ def own_notice():  # 창문에 붙은 「알바 구함」 종이 (12x14)
     return im
 
 
+# 원재료 아이콘 (정 사장 식자재 진열대 타일 · 16x16) — data/menu.js INGREDIENTS와 같은 이름 (ing_떡 …)
+def own_ings():
+    W = (246, 242, 232, 255); G = (210, 202, 188, 255)
+    out = {}
+    def new():
+        im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); return im, ImageDraw.Draw(im)
+    im, d = new()  # 떡: 가래떡 두 줄
+    for y in (4, 9):
+        d.rounded_rectangle((1, y, 14, y + 4), radius=2, fill=W, outline=INK); d.line((3, y + 3, 12, y + 3), fill=G)
+    out['ddeok'] = im
+    im, d = new()  # 어묵: 꼬치에 접힌 어묵
+    d.line((8, 0, 8, 15), fill=(150, 110, 70, 255))
+    d.polygon([(3, 3), (13, 3), (11, 7), (13, 11), (3, 11), (5, 7)], fill=(222, 176, 104, 255), outline=INK)
+    d.line((5, 5, 11, 5), fill=(246, 210, 150, 255)); d.line((5, 9, 11, 9), fill=(186, 130, 70, 255))
+    out['fishcake'] = im
+    im, d = new()  # 대파: 흰 줄기 + 초록 잎
+    d.polygon([(2, 14), (5, 15), (11, 6), (8, 5)], fill=W, outline=INK)
+    d.polygon([(8, 5), (11, 6), (15, 0), (12, 0)], fill=(80, 160, 70, 255), outline=INK)
+    d.line((10, 4, 14, 0), fill=(130, 200, 100, 255)); d.point((3, 15), fill=(200, 190, 150, 255))
+    out['scallion'] = im
+    im, d = new()  # 당근
+    d.polygon([(4, 4), (11, 4), (8, 15)], fill=(236, 120, 40, 255), outline=INK)
+    d.line((6, 7, 8, 7), fill=(190, 80, 20, 255)); d.line((7, 10, 9, 10), fill=(190, 80, 20, 255))
+    d.polygon([(5, 4), (6, 0), (8, 3), (10, 0), (10, 4)], fill=(80, 160, 70, 255), outline=INK)
+    out['carrot'] = im
+    im, d = new()  # 양파
+    d.ellipse((2, 4, 13, 15), fill=(214, 168, 112, 255), outline=INK)
+    d.arc((4, 6, 11, 15), 200, 340, fill=(240, 210, 160, 255)); d.line((7, 1, 8, 4), fill=INK); d.line((8, 1, 9, 4), fill=(120, 90, 60, 255))
+    out['onion'] = im
+    im, d = new()  # 계란
+    d.ellipse((3, 1, 12, 15), fill=(250, 244, 228, 255), outline=INK); d.point((6, 5), fill=(255, 255, 255, 255)); d.point((5, 6), fill=(255, 255, 255, 255))
+    d.arc((4, 3, 11, 14), 20, 120, fill=(220, 200, 170, 255))
+    out['egg'] = im
+    im, d = new()  # 고추장: 빨간 통
+    d.rectangle((2, 5, 13, 15), fill=(196, 52, 40, 255), outline=INK); d.rectangle((1, 2, 14, 5), fill=(150, 30, 24, 255), outline=INK)
+    d.rectangle((5, 8, 10, 12), fill=(246, 220, 120, 255)); d.point((7, 10), fill=(196, 52, 40, 255)); d.point((8, 10), fill=(196, 52, 40, 255))
+    out['gochujang'] = im
+    im, d = new()  # 쌀: 쌀자루
+    d.polygon([(3, 3), (12, 3), (14, 15), (1, 15)], fill=(232, 220, 190, 255), outline=INK)
+    d.line((4, 5, 11, 5), fill=(150, 110, 70, 255)); d.rectangle((5, 8, 10, 12), fill=(250, 248, 240, 255), outline=(170, 150, 110, 255))
+    d.point((7, 10), fill=(120, 120, 120, 255)); d.point((8, 10), fill=(120, 120, 120, 255))
+    out['rice'] = im
+    im, d = new()  # 김: 겹친 김 두 장
+    d.rectangle((1, 4, 11, 14), fill=(34, 56, 44, 255), outline=INK); d.rectangle((4, 1, 14, 11), fill=(46, 74, 56, 255), outline=INK)
+    for y in (3, 6, 9): d.line((6, y, 12, y), fill=(70, 104, 80, 255))
+    out['gim'] = im
+    im, d = new()  # 튀김가루: 종이 봉투 + 노란 띠
+    d.rectangle((3, 2, 12, 15), fill=(244, 236, 214, 255), outline=INK); d.line((3, 4, 12, 4), fill=(200, 190, 160, 255))
+    d.rectangle((3, 8, 12, 11), fill=(240, 190, 60, 255)); d.point((6, 9), fill=(200, 120, 30, 255)); d.point((9, 10), fill=(200, 120, 30, 255))
+    out['batter'] = im
+    im, d = new()  # 식용유: 노란 병
+    d.rectangle((6, 0, 9, 2), fill=(200, 60, 40, 255), outline=INK); d.rectangle((6, 3, 9, 4), fill=(240, 220, 120, 255), outline=INK)
+    d.rounded_rectangle((3, 5, 12, 15), radius=2, fill=(244, 206, 70, 255), outline=INK)
+    d.line((5, 7, 5, 13), fill=(252, 236, 150, 255)); d.rectangle((6, 9, 10, 12), fill=(250, 248, 240, 255))
+    out['oil'] = im
+    return out
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
@@ -350,6 +408,8 @@ def collect():
     s['board'] = own_board()
     s['notice'] = own_notice()
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
+    for k, v in own_ings().items():
+        s['ing_' + k] = v
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()
     s['register'] = own_register(); s['pot'] = own_pot(); s['mat'] = own_mat(); s['doormat'] = own_doormat()

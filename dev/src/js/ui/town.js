@@ -304,7 +304,7 @@ function drawChat() {
 }
 
 // 시장: 원재료를 묶음으로 장바구니에 담고, 아래 「구매하기」로 한 번에 사요 (장바구니는 화면에만 — 사기 전엔 돈이 안 나가요)
-//  위 「오늘 팔 양」: 메뉴마다 몇 그릇 팔지 정하고 「모자란 재료 담기」를 누르면, 창고 재고를 빼고 모자란 재료만 담아요 (sim/pantry.js cartFor)
+//  「모자란 만큼 담기」: 오늘 팔 양(어제 판 만큼 + 넉넉히, planDefault)에서 창고 재고를 빼고 모자란 재료만 담아요 (sim/pantry.js cartFor)
 let cart = {}, plan = {};
 const PLAN_STEP = 5;
 function planDefault() {
@@ -312,28 +312,27 @@ function planDefault() {
   plan = {};
   for (const m of todayMenus()) plan[m] = Math.max(PLAN_STEP, Math.ceil(((last && last.sold[m]) || 10) / PLAN_STEP) * PLAN_STEP + PLAN_STEP);
 }
-function ingRow(i) {
-  const I = INGREDIENTS[i], Tn = G.town, unit = marketUnit(i), deal = Tn.deal === i, k = cart[i] || 0;
-  const inv = invOf(i), today = invToday(i), news = ingNews(i);
-  const uses = menusUsing(i).filter(m => menuOpen(m)).map(m => MENUS[m].name).join('·');
-  return `<div class="mk-row"><div class="mk-txt"><b>${I.name}${deal ? ' <span class="tag hot">특가</span>' : ''}${news ? ` <span class="tag ${news.mul > 1 ? 'warn' : 'new'}">시세${news.mul > 1 ? '▲' : '▼'}</span>` : ''}</b>
-    <small>${I.pack}인분 ${won(unit * I.pack)} · ${I.shelf}일 보관 · 재고 ${inv}${today ? ` <em class="today">오늘까지 ${today}</em>` : ''} · ${uses}</small></div>
-    <div class="step"><button type="button" data-ts="cart" data-i="${i}" data-d="-1" ${k ? '' : 'disabled'} aria-label="${I.name} 빼기">−</button><b>${k ? '+' + k * I.pack : 0}</b><button type="button" data-ts="cart" data-i="${i}" data-d="1" aria-label="${I.name} 담기">+</button></div></div>`;
+// 진열대 타일 (화면 정리): 누를 때마다 한 묶음 담기 · 담은 타일에 +수량과 − · 내일 모자랄 재료는 빨간 점 · 특가·시세는 구석에
+function ingTile(i, lack) {
+  const I = INGREDIENTS[i], unit = marketUnit(i), k = cart[i] || 0, news = ingNews(i);
+  const inv = invOf(i), today = invToday(i), short = (lack[i] || 0) > k;
+  const tag = G.town.deal === i ? '<i class="mk-tag deal">특가</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
+  return `<div class="mk-tile${k ? ' in' : ''}" data-ts="cart" data-i="${i}" data-d="1" role="button" aria-label="${I.name} 한 묶음 담기">
+    ${short ? '<i class="mk-dot"></i>' : ''}${tag}${icon('ing_' + i, 'mk-ic')}
+    <b>${I.name}</b><small>${won(unit * I.pack)}</small>
+    <div class="mk-row">${k ? `<span class="mk-n">+${k * I.pack}</span><button type="button" class="mk-minus" data-ts="cart" data-i="${i}" data-d="-1" aria-label="${I.name} 빼기">−</button>`
+      : today ? `<small class="mk-inv today">오늘까지 ${today}</small>` : inv ? `<small class="mk-inv">재고 ${inv}</small>` : ''}</div>
+  </div>`;
 }
 function marketHTML() {
-  const ings = openIngs();
-  const planRows = todayMenus().map(m => `<div class="mk-row plan">${icon(m)}<div class="mk-txt"><b>${MENUS[m].name}</b><small>재료로 ${invServings(m)}그릇 · ${MENUS[m].recipe.map(i => INGREDIENTS[i].name).join('·')}</small></div>
-    <div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('');
-  const fresh = ings.filter(i => !INGREDIENTS[i].keep), keep = ings.filter(i => INGREDIENTS[i].keep);
+  const ings = openIngs(), lack = cartFor(plan);
   const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
   return `<div class="ts-head"><b>정 사장 식자재</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <small class="mk-h">오늘 팔 양</small>${planRows}
-    <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기</button>
-    <small class="mk-h">신선 재료 <i>매일</i></small>${fresh.map(ingRow).join('')}
-    ${keep.length ? `<small class="mk-h">오래가는 재료 <i>가끔</i></small>${keep.map(ingRow).join('')}` : ''}
+    <button type="button" class="btn small mk-fill" data-ts="fill">모자란 만큼 담기 <small>어제 판 만큼 + 넉넉히 · 빨간 점이 모자란 재료</small></button>
+    <div class="mk-shelf">${ings.map(i => ingTile(i, lack)).join('')}</div>
     <div class="mk-foot"><div class="mk-sum"><span>합계 <b>${won(total)}</b></span><span class="${short ? 'neg' : ''}">잔고 ${won(G.cash)}</span></div>
-    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '살 재료를 담아 보세요'}</button></div>`;
+    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '재료를 눌러 담아 보세요'}</button></div>`;
 }
 
 export function initTown() {
@@ -383,7 +382,6 @@ export function initTown() {
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
-    else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }

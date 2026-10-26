@@ -35,7 +35,7 @@ def talk(pg):
         else: pg.click('#talk')
     raise RuntimeError('대화가 끝나지 않아요')
 def to_prep(pg):
-    pg.click('[data-act=afterReceipt]')
+    pg.locator('[data-act=afterReceipt]:visible').first.click()
     if pg.locator('[data-act=afterWeekly]').count():
         shot(pg, '7-weekly'); pg.click('[data-act=afterWeekly]')
     talk(pg)
@@ -71,9 +71,9 @@ def town_night_dawn(pg):
     R('townAct', "{place:'home',act:'sleep'}"); talk(pg)
     R('townAct', "{place:'market',act:'market'}"); town_chat(pg)
     if 'market' not in seen: seen.append('market'); pg.wait_for_timeout(200); shot(pg, '9b-market')
-    # 화면 그대로: 「오늘 팔 양」을 메뉴마다 한 칸(+5그릇)씩 넉넉히 → 「모자란 재료 담기」 → 「구매하기」
-    for k in range(pg.locator('[data-ts=plan][data-d="1"]').count()): pg.locator('[data-ts=plan][data-d="1"]').nth(k).click()
+    # 화면 그대로: 「모자란 만큼 담기」 → 떡 한 묶음 더(진열대 타일) → 「구매하기」
     pg.click('[data-ts=fill]'); pg.wait_for_timeout(50)
+    pg.locator('.mk-tile[data-i=ddeok]').click(); pg.wait_for_timeout(50)
     if 'cart' not in seen: seen.append('cart'); shot(pg, '9c-market-cart')
     before = pg.evaluate('__T.G.cash')
     if pg.locator('[data-ts=buyCart]:not([disabled])').count():
