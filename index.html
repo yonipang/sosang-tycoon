@@ -701,8 +701,8 @@ button.slot:active { transform: translateY(2px); }
 .mm-card .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
 .mm-card .btn { display: block; width: 100%; margin-top: 10px; }
 /* 칠판 추천 버튼 (메뉴 창) */
-.b-pick { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
-.b-m { display: flex; flex-direction: column; align-items: center; min-width: 72px; padding: 2px; font: inherit; color: var(--ink); background: var(--paper-2); border: 2px dashed var(--ink-soft); cursor: pointer; line-height: 1.2; }
+.b-pick { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.b-m { display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 2px; font: inherit; color: var(--ink); background: var(--paper-2); border: 2px dashed var(--ink-soft); cursor: pointer; line-height: 1.2; }
 .b-m.on { background: #2f4a3c; color: #f1eee2; border: 2px solid #8a5a32; }
 .b-m b { font-weight: normal; }
 .b-m small { color: inherit; opacity: .8; }
@@ -1287,9 +1287,9 @@ const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 const FOOT_PER_HOUR = { 9: 14, 10: 12, 11: 16, 12: 24, 13: 20, 14: 12, 15: 14, 16: 18, 17: 16, 18: 22, 19: 18, 20: 12, 21: 10, 22: 8 };
 // 시각(9~20시)마다 들어오는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심이 가장 많고, 하교·퇴근에도 몰려요 (아침에 조금 나눠 둠)
 // 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
-// 가게 앞 칠판 · 오늘의 추천 (1장부터, 가게 장부): 점심·오후 두 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
+// 가게 앞 칠판 · 오늘의 추천 (1장부터, 가게 장부): 아침·점심·오후 세 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
 //  들어오는 비율 × (1 + BOARD_MUL × 그 손님층이 그 메뉴를 좋아하는 정도(가장 좋아하는 메뉴 = 1))
-const BOARD_SLOTS = { lunch: { name: '점심', from: 11, to: 14 }, after: { name: '오후', from: 14, to: 18 } };
+const BOARD_SLOTS = { morning: { name: '아침', from: 9, to: 11 }, lunch: { name: '점심', from: 11, to: 14 }, after: { name: '오후', from: 14, to: 18 } }; // 아침: v0.47 사용자 요청 (출근길 직장인 김밥)
 const BOARD_MUL = 0.25;
 // 메뉴 궁합: 그 손님층이 가장 좋아하는 메뉴가 오늘의 메뉴에 없으면 그 손님층이 덜 들어와요
 const FIT_MISS = 0.8;
@@ -1308,7 +1308,7 @@ const PASSER_LINES = {
 };
 // 시각마다 손님 구성 (주택가 골목 기준)
 function typeMix(hour) {
-  if (hour < 11) return { elder: 5, worker: 4, student: 1 };
+  if (hour < 11) return { worker: 5, elder: 4, student: 1 }; // 아침: 출근길 직장인이 가장 많아요
   if (hour < 14) return { worker: 6, elder: 3, student: 1 };
   if (hour < 15) return { elder: 5, worker: 3, student: 2 };
   if (hour < 18) return { student: 6, elder: 2, worker: 2 };
@@ -1537,7 +1537,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.46';
+const GAME_VERSION = '0.47';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2765,7 +2765,7 @@ const SAVE_V = 1;
 // prep = 오늘 아침 도착할 재료 주문량(메뉴마다 인분 — 프롤로그·1장 첫날) · inv = 원재료 창고 { 재료: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] } (sim/pantry.js)
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
 // book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js)
-// board = 가게 앞 칠판 · 오늘의 추천 { lunch, after } (sim/traffic.js)
+// board = 가게 앞 칠판 · 오늘의 추천 { morning, lunch, after } (sim/traffic.js)
 // bond = 친밀도 { pts: { miso, jung, moon }, day, got } (sim/bond.js) · furn = 미소 가구 { have: { 카테고리: 테마 }, seen, visits } (sim/furniture.js)
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
@@ -2800,7 +2800,7 @@ function newGame(shopName) {
     menuLv: Object.fromEntries(MENU_IDS.map(m => [m, 1])),
     mastery: Object.fromEntries(MENU_IDS.map(m => [m, 0])),
     fans: {},
-    board: { lunch: null, after: null },
+    board: { morning: null, lunch: null, after: null },
     book: {},
     bond: newBond(),
     furn: newFurn(),
@@ -3378,7 +3378,7 @@ function upgradeEndDay() {
 // 손님층 배율 = 메뉴 궁합(그 손님층이 가장 좋아하는 메뉴가 오늘 없으면 ↓) × 전략(칠판 추천 메뉴 · 홍보 — 합쳐 STRATEGY_CAP까지)
 // 시간대 기록: G.run.log.hourly { 시: { pass: {손님층: 명}, in: {손님층: 명} } } → 영수증 시간대 그래프
 
-// ── 가게 앞 칠판 · 오늘의 추천 (G.board { lunch, after }) ──
+// ── 가게 앞 칠판 · 오늘의 추천 (G.board { morning, lunch, after }) ──
 const boardOpen = () => townMode();
 function boardMenuAt(hour) {
   if (!boardOpen() || !G.board) return null;
@@ -4149,7 +4149,7 @@ function spawnParty(members, opts) {
   members.forEach((ch, k) => {
     const sx = (fromLeft ? -1 - k : W + k) + (fromLeft ? -1 : 1) * (opts.delay || 0);
     r.customers.push({
-      force: !!opts.force, blog: !!opts.blog, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null,
+      force: !!opts.force, blog: !!opts.blog, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null, ref: opts.ref || null,
       id: r.nextId++, char: ch, type: opts.type || PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
       path: sidewalk(sx, DOOR_OUT.x), state: 'walk', moving: true, lane: fromLeft ? -0.12 : 0.08,
@@ -4276,10 +4276,11 @@ function decide(c) {
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
-  if (re.leave && !c.tag && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 이벤트 손님은 가격 때문에 그냥 가지 않아요 (기분은 남아요)
+  const lead = c.lead ? c : r.customers.find(x => x.party === c.party && x.lead) || c; // 일행은 앞사람을 따라요
+  if (re.leave && !c.tag && !lead.ref && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 손님 · 이웃 소개 손님은 비싸도 사 먹어요 (기분은 남아요 — v0.47)
   if (!canSell(m)) {
     const alts = MENU_IDS.filter(x => x !== m && canSell(x) && !reaction(c, x).leave);
-    if (alts.length && (c.tag || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님은 다른 메뉴라도 먹어요
+    if (alts.length && (c.tag || lead.ref || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님 · 소개 손님은 다른 메뉴라도 먹어요
     else { partyLeaves(c, 'soldout', m); return; }
   }
   if (!spareOf(m)) takeMenu(m); // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
@@ -4813,7 +4814,7 @@ function tickDay(dt) {
     if (f.done || r.closing || r.min < f.at) continue;
     const chars = freeChars().slice(0, 2);
     f.done = true;
-    if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+    if (chars.length && spawnParty(chars, { force: true, ref: f.who })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
   }
   // 파워블로거가 와요 (점심 무렵)
   if (r.blog && !r.blog.done && !r.closing && r.min >= r.blog.at) {
