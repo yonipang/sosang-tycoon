@@ -22,7 +22,7 @@ import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
 import { toast } from './feedback.js';
-import { boardHTML } from './board.js';
+import { boardHTML, boardTab } from './board.js';
 import { bookHTML } from './book.js';
 let bookSel = 0; // 손님 수첩에서 고른 사람
 import { lineHTML, talking } from './story.js';
@@ -408,11 +408,11 @@ function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(
 function actRow(id, a) {
   const Tn = G.town;
   {
-    const A = ACTS[a], ok = actNow(id, a);
+    const A = ACTS[a], ok = actNow(id, a), day = Tn.part === 'dawn' ? '오늘' : '내일'; // 홍보 효과는 다가오는 영업일
     const cost = a === 'market' ? (marketCost() ? `${marketCost()}칸` : '') : A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 한 칸' : '새벽 배달 · 칸을 쓰지 않습니다')
-      : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
+      : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
       : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
@@ -545,6 +545,8 @@ export function initTown() {
     else if (k === 'toolUp') runCmd('toolUp', { id: b.dataset.id });
     else if (k === 'join') runCmd('questPay', { id: 'c2_join' });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
+    else if (k === 'menuDev') runCmd('menuDev', { menu: b.dataset.m });
+    else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }

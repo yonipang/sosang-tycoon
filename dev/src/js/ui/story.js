@@ -127,7 +127,7 @@ function marketEffect(id) {
     const base = MENUS[m].cost, now = costOf(m), pr = G.prices[m];
     return `<b>${MENUS[m].name} 1인분 원가 ${won(base)} → ${won(now)}</b><span>지금 가격이면 원가율 ${Math.round(base / pr * 100)}% → ${Math.round(now / pr * 100)}%</span>`;
   }).join('');
-  return `<div class="np-effect ${up ? 'up' : 'down'}"><small>${G.shop} · ${ings} 값 ${up ? '오름' : '내림'} · ${n.days}일 동안</small>${rows}</div>`;
+  return `<div class="np-effect ${up ? 'up' : 'down'}"><small>${G.shop} · ${ings} 값 ${up ? '오름' : '내림'} · ${n.days === 1 ? "오늘 하루" : `${n.days}일 동안`}</small>${rows}</div>`;
 }
 
 function paperHTML(sc) {

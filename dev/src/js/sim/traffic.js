@@ -4,11 +4,12 @@
 // 시간대 기록: G.run.log.hourly { 시: { pass: {손님층: 명}, in: {손님층: 명} } } → 영수증 시간대 그래프
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
-import { CUSTOMER_TYPES, BOARD_SLOTS, BOARD_MUL, FIT_MISS, STRATEGY_CAP } from '../data/customers.js';
+import { CUSTOMER_TYPES, typeLike, BOARD_SLOTS, BOARD_MUL, FIT_MISS, STRATEGY_CAP } from '../data/customers.js';
 import { PROMO } from '../data/town.js';
 import { emit, defineCmd } from './events.js';
 import { menuOn, todayMenus } from './pantry.js';
 import { townMode } from './town.js';
+import { menuOpen } from './story.js';
 
 // ── 가게 앞 칠판 · 오늘의 추천 (G.board { lunch, after }) ──
 export const boardOpen = () => townMode();
@@ -26,7 +27,8 @@ defineCmd('boardSet', ({ slot, menu }) => {
   return true;
 });
 // 이 손님층이 그 메뉴를 얼마나 좋아하나 (가장 좋아하는 메뉴 = 1)
-const likeShare = (type, m) => { const L = CUSTOMER_TYPES[type].likes; return (L[m] || 0) / Math.max(...MENU_IDS.map(x => L[x] || 0)); };
+//  (열린 메뉴 중에서 — 아직 개발하지 않은 새 메뉴는 세지 않아요)
+const likeShare = (type, m) => typeLike(type, m) / Math.max(0.01, ...MENU_IDS.filter(menuOpen).map(x => typeLike(type, x)));
 
 // ── 홍보 (계산대) ──
 const TW = () => G.town;
@@ -52,8 +54,8 @@ export function bloggerEndDay() {
 // ── 들어오는 비율: 손님층 배율 ──
 // why: 들어온 까닭(말풍선용) — 'board' · 'insta' 중 하나 (없으면 null)
 export function typeEnterMul(type, hour) {
-  const L = CUSTOMER_TYPES[type].likes, top = Math.max(...MENU_IDS.map(x => L[x] || 0));
-  const fit = MENU_IDS.some(m => (L[m] || 0) === top && menuOn(m)) ? 1 : FIT_MISS;
+  const open = MENU_IDS.filter(menuOpen), top = Math.max(...open.map(x => typeLike(type, x)));
+  const fit = open.some(m => typeLike(type, m) === top && menuOn(m)) ? 1 : FIT_MISS;
   const bm = boardMenuAt(hour), board = bm ? 1 + BOARD_MUL * likeShare(type, bm) : 1;
   return fit * Math.min(STRATEGY_CAP, board * promoMul(type));
 }

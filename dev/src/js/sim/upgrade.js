@@ -3,9 +3,11 @@
 // 저장: G.menuLv { 메뉴: 레벨 } · G.mastery { 메뉴: 숙련도 } · G.fans { 사람(그림 번호): { m: 맛있게 먹은 메뉴, n: 다시 온 횟수 } }
 // 영업 중에는 G.run.log에만 모아 두고 마감 때 더해요 (영업 중에 끄면 그날 것은 없던 일)
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MASTERY_PERFECT, REVISIT_SAT } from '../data/menu.js';
+import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MASTERY_PERFECT, REVISIT_SAT, INGREDIENTS, DEV_OPEN_CH } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
-import { menuOpen } from './story.js';
+import { menuOpen, storyOpenMenu } from './story.js';
+import { todayMenus, slotsOpen } from './pantry.js';
+import { josa } from '../engine/util.js';
 
 // 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「메뉴 연구 칠판」에서 — 장과 상관없이 Lv5까지
 export const upgradeOpen = () => !!(G.story && G.story.ch >= 1);
@@ -48,6 +50,39 @@ defineCmd('menuUp', ({ menu }) => {
   return true;
 });
 
+// ── 새 메뉴 개발 (2장부터 · 메뉴 연구 칠판): 기본 메뉴 레벨 + 개발비 → 메뉴가 하나 더 생겨요 (data/menu.js VARIANT_IDS) ──
+export const devOpen = () => !!(G.story && G.story.ch >= DEV_OPEN_CH);
+// ok · done(이미 있음) · base(기본 메뉴가 아직) · lv(기본 메뉴 레벨 모자람) · cash · closed
+export function devState(m) {
+  const M = MENUS[m];
+  if (!devOpen() || !M.base) return 'closed';
+  if (menuOpen(m)) return 'done';
+  if (!menuOpen(M.base)) return 'base';
+  if (menuLv(M.base) < M.lv) return 'lv';
+  if (G.cash < M.dev) return 'cash';
+  return 'ok';
+}
+export const anyDevReady = () => MENU_IDS.some(m => devState(m) === 'ok');
+defineCmd('menuDev', ({ menu }) => {
+  if (G.phase !== 'prep' || !MENUS[menu]) return false;
+  const st = devState(menu), M = MENUS[menu];
+  if (st !== 'ok') {
+    const why = { lv: `${MENUS[M.base].name} Lv${M.lv}이 되어야 개발할 수 있습니다`, cash: '잔고가 모자랍니다' }[st];
+    if (why) emit('toast', why, 'warn');
+    return false;
+  }
+  G.cash -= M.dev;
+  storyOpenMenu(menu);
+  const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
+  if (full) G.menuOff.push(menu);
+  const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
+  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 새벽 시장에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
+  emit('sfx', 'perfect');
+  emit('prep');
+  emit('menuUp', menu);
+  return true;
+});
+
 // ── 영업 중 ──
 // 음식을 내줄 때: 숙련도 (완벽 조리는 1.5그릇)
 export function noteServed(m, q) {
@@ -75,7 +110,7 @@ export function noteBack(char) {
 export function upgradeEndDay() {
   const L = G.run.log, gain = {};
   for (const m in L.mastery) { G.mastery[m] = (G.mastery[m] || 0) + L.mastery[m]; gain[m] = L.mastery[m]; }
-  for (const ch in L.back) if (G.fans[ch]) G.fans[ch].n++;
+  for (const ch in L.back) if (G.fans[ch]) G.fans[ch].n = L.fans[ch] ? G.fans[ch].n + 1 : Math.max(0, G.fans[ch].n - 1); // 다시 와서 또 맛있게 먹어야 셉니다 (실망하면 한 번 빠져요)
   for (const ch in L.fans) G.fans[ch] = { m: L.fans[ch], n: (G.fans[ch] && G.fans[ch].n) || 0 };
   return gain;
 }

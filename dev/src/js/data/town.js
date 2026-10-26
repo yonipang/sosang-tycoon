@@ -76,10 +76,10 @@ export const ACTS = {
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
-  counter: { name: '계산대 · 홍보', cost: 0, when: 'night' },
+  counter: { name: '계산대 · 홍보', cost: 0, when: 'any' },
   book: { name: '손님 수첩', cost: 0, when: 'any' },
-  insta: { name: '인스타 올리기', cost: 1, when: 'night' },
-  blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
+  insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 홍보는 밤·새벽 언제든 (v0.45 사용자 요청) — 효과는 다가오는 영업일
+  blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
   furn: { name: '가구 둘러보기', cost: 1, when: 'night' },
   guild: { name: '철물점 · 상인회', cost: 1, when: 'night' },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
@@ -99,7 +99,7 @@ export const PLACE_ACTS = {
 // 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
 export const SHOP_SPOTS = [
   { act: 'ledger', name: '냉장고 · 오늘의 메뉴', station: 'fridge' },
-  { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0]], stand: [[8, 3], [9, 3]] },
+  { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
   { act: 'counter', name: '계산대', register: true },
   { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
   { act: 'setup', name: '화구 · 오픈 준비', station: 'stove' },

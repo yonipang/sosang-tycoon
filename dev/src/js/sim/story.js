@@ -36,8 +36,10 @@ function openMenu(m, now) {
   if (S.menus.includes(m) || S.soon.includes(m)) return;
   if (!now) { S.soon.push(m); return; }
   S.menus.push(m); S.fresh.push(m);
-  G.prep[m] = PREP_FIRST_DAY[m];
+  G.prep[m] = PREP_FIRST_DAY[m] || 0;
 }
+// 새 메뉴 개발로 바로 열기 (sim/upgrade.js menuDev)
+export function storyOpenMenu(m) { openMenu(m, true); }
 
 function queueScene(id) {
   const sc = SCENES[id];

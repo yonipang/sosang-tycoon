@@ -45,6 +45,15 @@ defineCmd('menuToggle', ({ menu }) => {
   return true;
 });
 
+// 칸의 메뉴를 다른 메뉴로 바꾸기 (오늘의 메뉴 칸을 눌러 고를 때)
+defineCmd('menuSwap', ({ off, on }) => {
+  if (G.phase !== 'prep' || !menuOpen(on) || !menuOpen(off) || !menuOn(off) || menuOn(on)) return false;
+  G.menuOff = G.menuOff.filter(x => x !== on).concat(off);
+  emit('sfx', 'tap');
+  emit('prep');
+  return true;
+});
+
 // ── 영업 중 ── (G.run.ing: 영업을 시작할 때 창고에서 꺼낸 재료 수)
 export const stockOf = m => Math.min(...recipeOf(m).map(i => G.run.ing[i] || 0));
 export function takeMenu(m, n = 1) { for (const i of recipeOf(m)) G.run.ing[i] -= n; }

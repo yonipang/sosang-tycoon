@@ -15,7 +15,7 @@ import { stirSpeedMul, cookTwice, payStepSec } from './guild.js';
 import { costOf } from './market.js';
 import { incidentNote, handTakeout } from './incidents.js';
 import { tutNote } from './tutorial.js';
-import { stockOf, takeMenu, shortIng, menuOn } from './pantry.js';
+import { stockOf, takeMenu, shortIng, menuOn, todayMenus } from './pantry.js';
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
 export const handsCount = m => G.run.hands.filter(d => d.menu === m).length;
@@ -94,9 +94,17 @@ defineCmd('cookStop', () => cookTap()); // 옛 이름
 
 // ── 조리 미니게임 ──
 // 주문이 없어도 미리 만들 수 있어요 (손에 들 수 있는 만큼만). 주문 없이 만든 몫은 손에 드는 순간 재료를 써요
+// 한 조리대에서 만드는 오늘의 메뉴들 (기본 메뉴 + 새 메뉴 — 같은 조리대를 써요)
+export const stationMenus = st => todayMenus().filter(m => MENUS[m].station === MENUS[st.menu].station);
+// 이 조리대에서 지금 만들 메뉴: 먼저 들어온 주문 → 보온 통에 미리 끓여 둔 것 → 재료가 있는 것
+export function stationPick(st) {
+  const r = G.run, ms = stationMenus(st);
+  for (const t of r.tickets) if (ms.includes(t.menu) && ticketsCount(t.menu) > handsCount(t.menu)) return t.menu;
+  return ms.find(m => r.ready && r.ready[m] && r.ready[m].length) || ms.find(m => stockOf(m) > 0) || ms[0] || null;
+}
 function startCook(st) {
-  const r = G.run, m = st.menu;
-  if (!menuOn(m)) { emit('toast', `${josa(MENUS[m].name, '은/는')} 오늘 쉬는 메뉴입니다`, 'info'); return; }
+  const r = G.run, m = stationPick(st);
+  if (!m) { emit('toast', `${josa(MENUS[st.menu].name, '은/는')} 오늘 쉬는 메뉴입니다`, 'info'); return; }
   if (r.hands.length >= handsMax()) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
   const forOrder = ticketsCount(m) > handsCount(m);
   if (!forOrder && stockOf(m) <= 0) { emit('toast', `${josa(INGREDIENTS[shortIng(m)].name, '이/가')} 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }

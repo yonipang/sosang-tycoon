@@ -1,5 +1,5 @@
 // 손님 수첩 (ui/book.js): 가게에 오는 사람마다 이름과 한 줄 소개. 그림 번호 = data/customers.js PEOPLE (13번 박 할머니는 단골)
-// 처음 가게에 들어오면 수첩에 열려요. 세 번 다시 온 손님(맛있게 먹고 또 온 손님)은 「단골 후보」 — 2장 단골과 이어져요
+// 처음 가게에 들어오면 수첩에 열려요. 맛있게 먹고 여섯 번 다시 온 손님은 「단골 후보」 (다시 와서 실망하면 한 번 빠져요) — 2장 단골과 이어져요
 export const PEOPLE_INFO = {
   1: { name: '김 대리', bio: '근처 사무실 회사원입니다. 점심시간이 짧아 늘 서둘러 먹습니다.', fav: 'kimbap' },
   2: { name: '민준', bio: '학원 가기 전에 들르는 중학생입니다.', fav: 'tteok' },
@@ -23,4 +23,4 @@ export const PEOPLE_INFO = {
 export const BOOK_ORDER = [1, 4, 8, 10, 12, 14, 16, 2, 3, 5, 6, 11, 15, 17, 9, 7, 13, 19];
 // fav: 좋아하는 메뉴 — 오늘의 메뉴에 있으면 주로 그걸 시켜요 (sim/customers.js decide)
 export const FAV_CHANCE = 0.7;
-export const REGULAR_BACK = 3; // 세 번 다시 오면 단골 후보
+export const REGULAR_BACK = 6; // 맛있게 먹고 여섯 번 다시 오면 단골 후보 (v0.45: 3 → 6, 다시 와서 실망하면 한 번 빠져요)

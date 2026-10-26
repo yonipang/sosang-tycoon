@@ -7,7 +7,7 @@ import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost, weekBills } from '../sim/day.js';
 import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
-import { upgradeOpen, menuLv, lvBasePrice, anyUpReady } from '../sim/upgrade.js';
+import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
@@ -121,6 +121,7 @@ export function renderPrep() {
 //  칸 = 이름 · 가격 · 재고 그릇 · 칠판 표시 · 경고 점. 칸을 누르면 메뉴 창(가격 · 원가율 · 칠판 추천 · 쉬기), 이유는 창의 「자세히」에
 //  할 일은 한 줄(누르면 퀘스트 창, 낼 돈이 있는 퀘스트만 카드로) · 장사 도구는 살 게 있을 때만
 let mmOpen = null; // 열린 메뉴 창
+let pickOpen = null; // 열린 칸 고르기 창: 그 칸의 메뉴 또는 '' (빈 칸)
 function renderLedger(last, after, dawn) {
   const S = G.story;
   const payQ = S.active.some(id => QUESTS[id].kind === 'pay');
@@ -138,8 +139,24 @@ function renderLedger(last, after, dawn) {
       ${bills}
       ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
       <button class="btn" data-act="toTown">돌아가기</button>
-      ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
+      ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : pickOpen != null ? pickSheet(pickOpen) : ''}
     </div>`, 'scr-prep');
+}
+// 칸 고르기 창 (오늘의 메뉴 칸을 누르면): 지금 메뉴(가격·추천 / 빼기) + 이 칸에 올릴 수 있는 메뉴 (v0.45 사용자 요청)
+function pickSheet(cur) {
+  const on = cur && menuOn(cur) ? cur : '';
+  const can = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
+  const head = on ? `${icon(on, 'dish')}<b>${MENUS[on].name}</b>` : '<b>빈 칸</b>';
+  const now = on ? `<div class="pk-now"><span>${won(G.prices[on])} · ${invServings(on)}그릇</span>
+      <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격 · 추천</button>
+      ${todayMenus().length > 1 ? `<button type="button" class="btn small" data-act="slotOff" data-m="${on}">빼기</button>` : ''}</div>` : '';
+  const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
+  return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="오늘의 메뉴 칸">
+    <div class="mm-head">${head}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
+    ${now}
+    <small class="pk-h">${on ? '이 칸을 다른 메뉴로' : '이 칸에 올릴 메뉴'}</small>
+    ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 메뉴 연구 칠판에서 새 메뉴를 개발해 보세요' : ''}</p>`}
+  </div></div>`;
 }
 // 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
 function menuSheet(m, last) {
@@ -176,15 +193,13 @@ function todayCard() {
       const t = todayIngs(m), n = invServings(m), B = G.board || {};
       const marks = Object.keys(BOARD_SLOTS).filter(k => B[k] === m).map(k => `<i class="bmark">★${BOARD_SLOTS[k].name}</i>`).join('');
       const warn = t.length || !n; // 오늘까지 써야 하는 재료 · 재료 없음
-      return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="mmOpen" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
+      return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
-    if (k < open) return `<div class="slot empty"><small>빈 칸</small></div>`;
+    if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
     return `<div class="slot locked">${LOCK_SVG}<small>${gradeAt(k)}등급</small></div>`;
   }).join('');
-  const rest = off.map(m => `<button type="button" class="tm-off" data-act="mmOpen" data-m="${m}">${icon(m, 'dish')}<span>${MENUS[m].name}<small>${invServings(m)}그릇</small></span><b>쉬는 중</b></button>`).join('');
-  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">눌러서 가격 · 추천</span></div>
+  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
     <div class="slots">${slots}</div>
-    ${rest ? `<div class="tm-rest">${rest}</div>` : ''}
   </div>`;
 }
 
@@ -535,13 +550,16 @@ export function initScreens(onStart) {
     else if (a === 'continue') { if (loadGame()) { playSfx('page'); onStart(); } }
     else if (a === 'price') { runCmd('setPrice', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
-    else if (a === 'open') { mmOpen = null; runCmd('openShop'); }
+    else if (a === 'open') { mmOpen = null; pickOpen = null; runCmd('openShop'); }
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
-    else if (a === 'mmOpen') { mmOpen = m; playSfx('page'); renderPrep(); }
-    else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
+    else if (a === 'mmOpen') { mmOpen = m; pickOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'slotPick') { pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'slotSet') { pickOpen = null; const off = b.dataset.off; if (off) runCmd('menuSwap', { off, on: m }); else runCmd('menuToggle', { menu: m }); renderPrep(); }
+    else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }
+    else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; pickOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
     else if (a === 'quests') openQuests();
     else if (a === 'rcNext') receiptNext();
     else if (a === 'rcPrev') receiptNext(-1);
@@ -571,7 +589,7 @@ export function initScreens(onStart) {
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
     else if (a === 'devMarket') { runCmd('devMarket'); }
-    else if (a === 'toTown') { mmOpen = null; playSfx('page'); hideScreen(); showTown(); }
+    else if (a === 'toTown') { mmOpen = null; pickOpen = null; playSfx('page'); hideScreen(); showTown(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; hideTown(); renderTitle(); } // 설정에서만 (v0.43)

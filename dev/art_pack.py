@@ -60,7 +60,10 @@ def grid(rows, pal):
     return im
 
 
-def own_tteok():
+def own_tteok(over=None):
+    pal = {'k': INK, 'r': (216, 69, 47, 255), 'R': (165, 42, 31, 255), 't': (255, 241, 220, 255),
+           'n': (95, 174, 74, 255), 'w': (244, 241, 236, 255), 'g': (207, 199, 189, 255)}
+    pal.update(over or {})
     return grid([
         '................',
         '................',
@@ -78,28 +81,58 @@ def own_tteok():
         '...kggggggggk...',
         '....kkkkkkkk....',
         '................',
-    ], {'k': INK, 'r': (216, 69, 47, 255), 'R': (165, 42, 31, 255), 't': (255, 241, 220, 255),
-        'n': (95, 174, 74, 255), 'w': (244, 241, 236, 255), 'g': (207, 199, 189, 255)})
+    ], pal)
 
 
-def own_kimbap():
+def own_kimbap(cols=None, small=False):
     im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     d.ellipse((0, 7, 15, 15), fill=(230, 226, 222, 255), outline=INK)
-    centers = [((2, 5), (240, 200, 60, 255)), ((8, 3), (235, 120, 60, 255)), ((7, 8), (110, 170, 80, 255))]
+    cols = cols or [(240, 200, 60, 255), (235, 120, 60, 255), (110, 170, 80, 255)]
+    if small:  # 꼬마김밥: 작은 김밥 다섯 개
+        for x, y in [(1, 7), (5, 5), (9, 7), (3, 2), (8, 1)]:
+            d.ellipse((x, y, x + 5, y + 5), fill=(30, 36, 34, 255)); d.ellipse((x + 1, y + 1, x + 4, y + 4), fill=(250, 248, 240, 255))
+            d.point((x + 2, y + 2), fill=cols[(x + y) % len(cols)]); d.point((x + 3, y + 3), fill=cols[(x + y + 1) % len(cols)])
+        return im
+    centers = [((2, 5), cols[0]), ((8, 3), cols[1]), ((7, 8), cols[2])]
     for (x, y), c in centers:
         d.ellipse((x, y, x + 6, y + 6), fill=(30, 36, 34, 255))
         d.ellipse((x + 1, y + 1, x + 5, y + 5), fill=(250, 248, 240, 255))
         d.rectangle((x + 3, y + 2, x + 3, y + 4), fill=c)
-        d.point((x + 2, y + 3), fill=c); d.point((x + 4, y + 3), fill=(110, 170, 80, 255) if c[1] < 160 else (235, 120, 60, 255))
+        d.point((x + 2, y + 3), fill=c); d.point((x + 4, y + 3), fill=cols[(cols.index(c) + 1) % 3])
     return im
 
 
-def own_twigim():
+def own_twigim(kind='veg'):
     im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     d.polygon([(1, 9), (14, 9), (12, 15), (3, 15)], fill=(236, 226, 200, 255), outline=INK)
+    GOLD, EDGE, HI = (226, 160, 64, 255), (150, 90, 30, 255), (250, 210, 120, 255)
+    if kind == 'squid':  # 오징어튀김: 고리 세 개
+        for x0, y0 in [(1, 4), (6, 2), (9, 5)]:
+            d.ellipse((x0, y0, x0 + 6, y0 + 6), fill=GOLD, outline=EDGE); d.ellipse((x0 + 2, y0 + 2, x0 + 4, y0 + 4), fill=(236, 226, 200, 255))
+        return im
+    if kind == 'gim':  # 김말이: 김에 싼 막대 (끝은 튀김옷)
+        for x0, y0 in [(1, 5), (5, 3), (9, 6)]:
+            d.rounded_rectangle((x0, y0, x0 + 5, y0 + 7), radius=2, fill=(40, 52, 40, 255), outline=EDGE)
+            d.rectangle((x0 + 1, y0, x0 + 4, y0 + 1), fill=GOLD); d.point((x0 + 2, y0 + 4), fill=(80, 100, 70, 255))
+        return im
+    if kind == 'sweet':  # 고구마튀김: 노란 속 · 보라 껍질
+        for x0, y0 in [(1, 5), (5, 3), (9, 6)]:
+            d.ellipse((x0, y0, x0 + 6, y0 + 5), fill=(250, 200, 80, 255), outline=(130, 60, 110, 255)); d.point((x0 + 2, y0 + 2), fill=(255, 230, 150, 255))
+        return im
+    if kind == 'shrimp':  # 새우튀김: 길쭉한 튀김 + 빨간 꼬리
+        for x0 in (2, 6, 10):
+            d.rounded_rectangle((x0, 4, x0 + 3, 11), radius=1, fill=GOLD, outline=EDGE)
+            d.polygon([(x0, 3), (x0 + 3, 3), (x0 + 1, 0)], fill=(230, 80, 50, 255), outline=INK)
+            d.point((x0 + 1, 6), fill=HI)
+        return im
+    if kind == 'mandu':  # 만두튀김: 반달 만두 두 개
+        for x0, y0 in [(1, 3), (7, 5)]:
+            d.chord((x0, y0, x0 + 8, y0 + 8), 180, 360, fill=GOLD, outline=EDGE)
+            for k in range(3): d.point((x0 + 2 + k * 2, y0 + 3), fill=HI)
+        return im
     for x0, y0, w, h in [(2, 4, 5, 7), (6, 2, 5, 8), (9, 5, 5, 6)]:
-        d.rounded_rectangle((x0, y0, x0 + w, y0 + h), radius=2, fill=(226, 160, 64, 255), outline=(150, 90, 30, 255))
-        d.point((x0 + 1, y0 + 2), fill=(250, 210, 120, 255)); d.point((x0 + 2, y0 + 4), fill=(250, 210, 120, 255))
+        d.rounded_rectangle((x0, y0, x0 + w, y0 + h), radius=2, fill=GOLD, outline=EDGE)
+        d.point((x0 + 1, y0 + 2), fill=HI); d.point((x0 + 2, y0 + 4), fill=HI)
     return im
 
 
@@ -120,7 +153,7 @@ SMALL_PAL = {'k': INK, 'r': (216, 69, 47, 255), 'R': (165, 42, 31, 255), 't': (2
              'O': (226, 160, 64, 255), 'L': (250, 210, 120, 255), 'p': (236, 226, 200, 255)}
 
 
-def own_tteok_s():
+def own_tteok_s(over=None):
     return grid([
         '.kkkkkk.',
         'krrtrrRk',
@@ -128,10 +161,10 @@ def own_tteok_s():
         'kRrrtrRk',
         '.kwwwwk.',
         '..kggk..',
-    ], SMALL_PAL)
+    ], {**SMALL_PAL, **(over or {})})
 
 
-def own_kimbap_s():
+def own_kimbap_s(over=None):
     return grid([
         '.bbb.bbb.',
         'bwywbwowb',
@@ -139,10 +172,10 @@ def own_kimbap_s():
         '.bbb.bbb.',
         'kgwwwwwgk',
         '.kkkkkkk.',
-    ], SMALL_PAL)
+    ], {**SMALL_PAL, **(over or {})})
 
 
-def own_twigim_s():
+def own_twigim_s(over=None):
     return grid([
         '..kk.kk.',
         '.kOLkOOk',
@@ -150,7 +183,39 @@ def own_twigim_s():
         'kOLOOOOk',
         '.kppppk.',
         '..kkkk..',
-    ], SMALL_PAL)
+    ], {**SMALL_PAL, **(over or {})})
+
+
+# 새 메뉴 (2장 · data/menu.js VARIANTS): 기본 메뉴 그림의 색을 바꾸거나 모양을 조금 바꿔요
+T_OVER = {
+    'tteok_hot': {'r': (190, 30, 22, 255), 'R': (120, 14, 10, 255), 'n': (60, 150, 50, 255)},
+    'tteok_cheese': {'n': (250, 214, 70, 255), 'R': (240, 190, 50, 255)},
+    'tteok_rose': {'r': (238, 128, 100, 255), 'R': (198, 88, 70, 255)},
+    'tteok_jjajang': {'r': (92, 62, 40, 255), 'R': (60, 40, 28, 255), 'n': (110, 180, 90, 255)},
+    'tteok_cream': {'r': (240, 222, 180, 255), 'R': (214, 190, 140, 255), 't': (255, 255, 255, 255), 'n': (110, 170, 80, 255)},
+}
+K_COLS = {
+    'kimbap_tuna': [(228, 210, 170, 255), (240, 200, 60, 255), (110, 170, 80, 255)],
+    'kimbap_mini': [(235, 120, 60, 255), (110, 170, 80, 255), (240, 200, 60, 255)],
+    'kimbap_cheese': [(252, 214, 50, 255), (252, 214, 50, 255), (110, 170, 80, 255)],
+    'kimbap_hot': [(60, 150, 50, 255), (220, 60, 40, 255), (222, 176, 104, 255)],
+    'kimbap_katsu': [(196, 128, 60, 255), (240, 200, 60, 255), (110, 170, 80, 255)],
+}
+K_SMALL = {'kimbap_tuna': {'y': (228, 210, 170, 255)}, 'kimbap_mini': {'y': (235, 120, 60, 255)}, 'kimbap_cheese': {'y': (252, 214, 50, 255), 'o': (252, 214, 50, 255)},
+           'kimbap_hot': {'y': (60, 150, 50, 255), 'o': (220, 60, 40, 255)}, 'kimbap_katsu': {'y': (196, 128, 60, 255)}}
+F_SMALL = {'twigim_squid': {'L': (236, 226, 200, 255)}, 'twigim_gim': {'O': (40, 52, 40, 255), 'L': (226, 160, 64, 255)}, 'twigim_sweet': {'O': (250, 200, 80, 255), 'L': (130, 60, 110, 255)},
+           'twigim_shrimp': {'L': (230, 80, 50, 255)}, 'twigim_mandu': {'O': (214, 160, 90, 255)}}
+
+
+def variant_sprites():
+    out = {}
+    for k, o in T_OVER.items():
+        out[k] = tight(own_tteok(o)); out[k + '_s'] = own_tteok_s(o)
+    for k, c in K_COLS.items():
+        out[k] = tight(own_kimbap(c, small=(k == 'kimbap_mini'))); out[k + '_s'] = own_kimbap_s(K_SMALL[k])
+    for k, o in F_SMALL.items():
+        out[k] = tight(own_twigim(k.split('_')[1])); out[k + '_s'] = own_twigim_s(o)
+    return out
 
 
 def tight(im):
@@ -356,6 +421,56 @@ def own_ings():
     d.rounded_rectangle((3, 5, 12, 15), radius=2, fill=(244, 206, 70, 255), outline=INK)
     d.line((5, 7, 5, 13), fill=(252, 236, 150, 255)); d.rectangle((6, 9, 10, 12), fill=(250, 248, 240, 255))
     out['oil'] = im
+    # 새 메뉴 재료 (2장)
+    im, d = new()  # 청양고추: 초록 고추 둘
+    for x0 in (3, 8):
+        d.polygon([(x0, 3), (x0 + 3, 3), (x0 + 2, 15), (x0 + 1, 15)], fill=(70, 150, 50, 255), outline=INK)
+        d.line((x0 + 1, 1, x0 + 2, 3), fill=(120, 90, 50, 255))
+    d.point((4, 6), fill=(140, 210, 110, 255)); d.point((9, 6), fill=(140, 210, 110, 255))
+    out['chili'] = im
+    im, d = new()  # 우유: 흰 팩 + 파란 띠
+    d.polygon([(4, 3), (8, 0), (12, 3)], fill=(240, 240, 245, 255), outline=INK)
+    d.rectangle((4, 3, 12, 15), fill=(248, 248, 252, 255), outline=INK); d.rectangle((4, 8, 12, 11), fill=(70, 120, 200, 255))
+    out['milk'] = im
+    im, d = new()  # 치즈: 구멍 난 노란 조각
+    d.polygon([(1, 12), (14, 12), (14, 6), (4, 3)], fill=(250, 210, 60, 255), outline=INK)
+    d.ellipse((6, 7, 8, 9), fill=(220, 170, 40, 255)); d.ellipse((10, 8, 12, 10), fill=(220, 170, 40, 255)); d.point((4, 10), fill=(220, 170, 40, 255))
+    out['cheese'] = im
+    im, d = new()  # 춘장: 검은 통 + 노란 딱지
+    d.rectangle((2, 5, 13, 15), fill=(60, 40, 30, 255), outline=INK); d.rectangle((1, 2, 14, 5), fill=(40, 28, 20, 255), outline=INK)
+    d.rectangle((5, 8, 10, 12), fill=(246, 220, 120, 255)); d.point((7, 10), fill=(60, 40, 30, 255)); d.point((8, 10), fill=(60, 40, 30, 255))
+    out['chunjang'] = im
+    im, d = new()  # 참치: 납작한 캔
+    d.ellipse((2, 4, 13, 8), fill=(200, 205, 215, 255), outline=INK); d.rectangle((2, 6, 13, 12), fill=(70, 110, 180, 255))
+    d.line((2, 6, 2, 12), fill=INK); d.line((13, 6, 13, 12), fill=INK); d.ellipse((2, 10, 13, 14), fill=(70, 110, 180, 255), outline=INK)
+    d.rectangle((5, 8, 10, 10), fill=(240, 200, 120, 255))
+    out['tuna'] = im
+    im, d = new()  # 돈까스: 튀김옷 입은 고기
+    d.rounded_rectangle((1, 4, 14, 13), radius=3, fill=(214, 150, 70, 255), outline=INK)
+    for x, y in [(4, 6), (8, 7), (11, 9), (5, 10)]: d.point((x, y), fill=(246, 200, 120, 255))
+    out['katsu'] = im
+    im, d = new()  # 오징어
+    d.ellipse((4, 1, 11, 9), fill=(240, 236, 228, 255), outline=INK)
+    for x in (4, 6, 8, 10): d.line((x + 1, 9, x, 15), fill=(220, 210, 200, 255))
+    d.point((6, 5), fill=INK); d.point((9, 5), fill=INK)
+    out['squid'] = im
+    im, d = new()  # 당면: 묶은 투명 국수
+    for k in range(5): d.arc((2 + k, 2, 13 - k, 14), 0, 360, fill=(200, 190, 170, 255))
+    d.rectangle((6, 6, 9, 9), fill=(150, 110, 70, 255), outline=INK)
+    out['dangmyeon'] = im
+    im, d = new()  # 고구마
+    d.ellipse((1, 4, 14, 12), fill=(150, 70, 120, 255), outline=INK); d.line((4, 7, 10, 6), fill=(190, 110, 160, 255))
+    d.ellipse((11, 6, 14, 10), fill=(250, 200, 80, 255))
+    out['sweetpotato'] = im
+    im, d = new()  # 새우
+    d.arc((2, 2, 13, 13), 40, 300, fill=(236, 110, 70, 255), width=3)
+    d.polygon([(10, 10), (14, 12), (12, 15)], fill=(220, 70, 40, 255), outline=INK); d.point((4, 5), fill=INK)
+    out['shrimp'] = im
+    im, d = new()  # 만두: 반달 둘
+    for x0, y0 in [(0, 5), (6, 3)]:
+        d.chord((x0, y0, x0 + 9, y0 + 9), 180, 360, fill=(246, 240, 226, 255), outline=INK)
+        for k in range(3): d.point((x0 + 2 + k * 2, y0 + 3), fill=(210, 200, 180, 255))
+    out['mandu'] = im
     return out
 
 
@@ -651,6 +766,7 @@ def collect():
     s['sign_furn'] = own_sign('가구', (150, 92, 56, 255), (196, 140, 96, 255))  # 2장: 미소 꽃집 → 미소 가구
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()
+    s.update(variant_sprites())  # 새 메뉴 15가지 (2장)
     s['register'] = own_register(); s['pot'] = own_pot(); s['mat'] = own_mat(); s['doormat'] = own_doormat()
     for k in ('love', 'happy', 'meh', 'angry'):
         s['face_' + k] = own_face(k)

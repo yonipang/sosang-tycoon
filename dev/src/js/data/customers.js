@@ -1,10 +1,13 @@
 // 손님 유형과 시간대별 손님 흐름
 // priceMul: 적당하다고 느끼는 가격 배율 · patience: 기다림 배율 · likes: 메뉴 고르는 무게 · tip: 팁 확률 · eat: 먹는 시간(초)
+import { MENUS } from './menu.js';
 export const CUSTOMER_TYPES = {
   student: { name: '학생', priceMul: 0.85, patience: 1.0, likes: { tteok: 4, twigim: 3, kimbap: 1 }, tip: 0.03, eat: 7 },
   worker: { name: '직장인', priceMul: 1.1, patience: 0.75, likes: { kimbap: 4, tteok: 2, twigim: 1 }, tip: 0.12, eat: 5 },
   elder: { name: '어르신', priceMul: 0.95, patience: 1.4, likes: { kimbap: 2, tteok: 2, twigim: 1 }, tip: 0.1, eat: 8 },
 };
+// 손님층이 그 메뉴를 얼마나 좋아하나: 기본 메뉴는 위 likes, 새 메뉴는 기본 메뉴 likes × 메뉴의 like 배율 (data/menu.js)
+export const typeLike = (type, m) => { const L = CUSTOMER_TYPES[type].likes, M = MENUS[m]; return M.base ? (L[M.base] || 0) * ((M.like || {})[type] ?? 1) : (L[m] || 0); };
 // 손님 한 명 = 그림 한 장 (같은 옷이면 같은 사람이라 가게에 동시에 둘이 올 수 없어요). 0번은 사장.
 // 18번은 오 사장님(이야기 인물)이라 손님으로 오지 않아요. 13번 박 할머니는 단골로만 와요 (아래 REGULARS). 7번 최 사장·9번 미소 사장은 손님으로도 와요
 export const PEOPLE = {

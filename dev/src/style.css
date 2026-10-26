@@ -950,3 +950,31 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 
 .bk-fav { display: flex; align-items: center; gap: 4px; color: var(--ink-soft); }
 .bk-fav .bk-dish { width: 24px; height: 24px; }
+
+/* 메뉴 연구 칠판: 기본 메뉴 탭 · 새 메뉴 개발 (v0.45) */
+.u-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 6px 0 2px; }
+.u-tab { position: relative; padding: 4px 0; font: inherit; color: #f1eee2; background: rgba(0,0,0,.18); border: 2px solid rgba(241,238,226,.5); cursor: pointer; }
+.u-tab.sel { background: #f5d76e; color: #2f4a3c; border-color: #f1eee2; }
+.u-tab i { font-style: normal; font-size: 13px; margin-left: 4px; opacity: .8; }
+.u-sub { margin: 10px 0 0; padding-top: 6px; border-top: 2px solid rgba(241,238,226,.4); color: #f5d76e; }
+.urow.dev .dish { opacity: .55; filter: grayscale(.6); }
+.urow.dev.ready .dish { opacity: 1; filter: none; }
+.urow.dev em { font-style: normal; color: #f5d76e; }
+.u-price { color: #c9d3c6; font-size: 14px; }
+
+/* 오늘의 메뉴 칸 고르기 (v0.45) */
+.slot.empty { cursor: pointer; font: inherit; }
+.slot-plus { font-size: 22px; color: var(--line); font-weight: normal; }
+.pk-now { display: flex; align-items: center; gap: 6px; padding: 4px 0 8px; border-bottom: 2px dashed var(--line); }
+.pk-now span { flex: 1; color: var(--ink-soft); }
+.pk-now .btn.small { flex: none; width: auto; margin: 0; padding: 4px 10px; }
+.pk-h { display: block; margin: 8px 0 4px; color: var(--ink-soft); }
+.pk-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; padding: 4px 8px; font: inherit; color: var(--ink); text-align: left; background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; }
+.pk-row .dish { width: 32px; height: 32px; flex: none; }
+.pk-row span { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.pk-row b { font-weight: normal; }
+.pk-row small { color: var(--ink-soft); }
+.pk-row i { font-style: normal; background: var(--mustard); border: 2px solid var(--ink); padding: 0 8px; }
+.pk-none { color: var(--ink-soft); word-break: keep-all; }
+/* 영업 중 아래 막대: 메뉴가 많아도 버튼이 밀리지 않게 */
+#stockMini { min-width: 0; overflow: hidden; flex-wrap: wrap; row-gap: 0; }

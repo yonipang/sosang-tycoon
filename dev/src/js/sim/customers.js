@@ -3,8 +3,8 @@
 //       → 일행이 다 먹으면 한 명이 계산 줄에 서서 같이 계산 → 나가기
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS } from '../data/menu.js';
-import { REGULARS, CUSTOMER_TYPES, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
+import { MENUS, MENU_IDS, baseOf } from '../data/menu.js';
+import { REGULARS, CUSTOMER_TYPES, typeLike, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
@@ -192,9 +192,11 @@ function reaction(c, m) {
 function decide(c) {
   const r = G.run, T = CUSTOMER_TYPES[c.type];
   const w = {};
-  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(ratingNow())); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
+  for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(ratingNow())); w[m] = typeLike(c.type, m) / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
   let m = weighted(w);
-  const info = PEOPLE_INFO[c.char], fav = info && info.fav && menuOn(info.fav) && canSell(info.fav) && rand() < FAV_CHANCE ? info.fav : null; // 좋아하는 메뉴 (손님 수첩)
+  // 좋아하는 메뉴 (손님 수첩): 그 메뉴나 그 메뉴에서 나온 새 메뉴 중에서
+  const info = PEOPLE_INFO[c.char], favOpts = info && info.fav ? Object.keys(w).filter(x => baseOf(x) === info.fav && canSell(x)) : [];
+  const fav = favOpts.length && rand() < FAV_CHANCE ? weighted(Object.fromEntries(favOpts.map(x => [x, w[x]]))) : null;
   const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x))) || fav;
   if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것, 메뉴를 말한 손님은 그것, 아니면 좋아하는 메뉴 (오늘 메뉴에 없으면 고르던 대로)
   let re = reaction(c, m);

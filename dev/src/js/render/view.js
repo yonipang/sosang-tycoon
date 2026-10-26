@@ -4,7 +4,7 @@ import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LI
 import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { isSeated } from '../sim/customers.js';
-import { handsCount, ticketsCount } from '../sim/player.js';
+import { handsCount, ticketsCount, stationMenus } from '../sim/player.js';
 import { menuOpen, questActive } from '../sim/story.js';
 import { TUT_SPOT } from '../data/tutorial.js';
 import { CAST } from '../data/story.js';
@@ -133,13 +133,15 @@ function drawRoom() {
 function stationHint() {
   if (!G.run) return;
   for (const id in STATIONS) {
-    const st = STATIONS[id]; if (!st.menu) continue;
-    const need = ticketsCount(st.menu) - handsCount(st.menu);
+    const st = STATIONS[id]; if (!st.menu || !menuOpen(st.menu)) continue;
+    const ms = stationMenus(st), needOf = m => Math.max(0, ticketsCount(m) - handsCount(m));
+    const need = ms.reduce((s, m) => s + needOf(m), 0);
     if (need <= 0) continue;
+    const first = (G.run.tickets.find(t => ms.includes(t.menu) && needOf(t.menu) > 0) || {}).menu || ms[0]; // 먼저 들어온 주문 메뉴
     const [x, y] = st.tiles[0];
     const bob = Math.round(Math.sin(t * 5) * 1.5);
     const bx = x * TILE + (st.tiles.length > 2 ? 8 : 0), by = y * TILE - 14 + bob;
-    const b = iconBubble(st.menu, bx + 8, by + 14);
+    const b = iconBubble(first, bx + 8, by + 14);
     if (need > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(b.x + b.w - 5, b.y - 2, 6, 6); ctx.fillStyle = '#fff'; digit(need, b.x + b.w - 3, b.y - 1); }
   }
 }

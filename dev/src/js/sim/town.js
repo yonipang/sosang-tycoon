@@ -108,8 +108,8 @@ defineCmd('townAct', ({ place, act }) => {
     emit('town', 'chat', list[k]);
     addBond(who, BOND_TALK, '이야기'); // 친밀도 (미소·정 사장·문 회장만 — sim/bond.js)
   }
-  else if (act === 'insta') { T.insta = G.day; emit('toast', '오늘 만든 음식 사진을 인스타에 올렸습니다. 내일 학생 손님이 더 들어옵니다', 'good'); emit('sfx', 'page'); }
-  else if (act === 'blogger') { T.blogDay = G.day; emit('toast', '파워블로거에게 연락했습니다. 내일 점심 무렵 찾아옵니다. 맛있게 만들어 보세요', 'good'); emit('sfx', 'coin'); }
+  else if (act === 'insta') { T.insta = G.day; emit('toast', `음식 사진을 인스타에 올렸습니다. ${T.part === 'dawn' ? '오늘' : '내일'} 학생 손님이 더 들어옵니다`, 'good'); emit('sfx', 'page'); }
+  else if (act === 'blogger') { T.blogDay = G.day; emit('toast', `파워블로거에게 연락했습니다. ${T.part === 'dawn' ? '오늘' : '내일'} 점심 무렵 찾아옵니다. 맛있게 만들어 보세요`, 'good'); emit('sfx', 'coin'); }
   else if (act === 'setup') { T.setup = G.day; emit('toast', '메뉴판을 닦고 그릇을 가지런히 놓았습니다. 오늘 오전엔 손이 빠릅니다', 'good'); }
   if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto'); // 밤 칸을 다 쓰면 새벽
   emit('prep');

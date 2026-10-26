@@ -40,7 +40,7 @@ export function newGame(shopName) {
     ratingN: 0,
     revs: [],
     prices: Object.fromEntries(MENU_IDS.map(m => [m, MENUS[m].price])),
-    prep: { ...PREP_FIRST_DAY },
+    prep: Object.fromEntries(MENU_IDS.map(m => [m, PREP_FIRST_DAY[m] || 0])),
     inv: Object.fromEntries(ING_IDS.map(i => [i, []])),
     ledger: Object.fromEntries(MENU_IDS.map(m => [m, {}])), // 가격 장부 { 메뉴: { 가격: { love, happy, meh, angry } } }
     history: [],

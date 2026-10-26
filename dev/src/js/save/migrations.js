@@ -74,6 +74,15 @@ export function migrate(o) {
     if (!has('c2_park') && !(S.queue || []).includes('ch2soon')) { S.active.push('c2_park'); S.prog.c2_park = 0; }
     if (o.furn && o.furn.seen && !has('c2_miso')) { S.active.push('c2_miso'); S.prog.c2_miso = 0; }
   }
+  // 새 메뉴(v0.45) 이전 세이브: 메뉴마다 칸을 채워요 (가격 · 주문 · 장부 · 레벨 · 숙련도)
+  for (const m of MENU_IDS) {
+    if (o.prices && o.prices[m] == null) o.prices[m] = MENUS[m].price;
+    if (o.prep && o.prep[m] == null) o.prep[m] = 0;
+    if (o.ledger && !o.ledger[m]) o.ledger[m] = {};
+    if (o.menuLv && !o.menuLv[m]) o.menuLv[m] = 1;
+    if (o.mastery && o.mastery[m] == null) o.mastery[m] = 0;
+  }
+  if (o.market && o.market.id && o.market.until > (o.day || 1)) o.market.until = o.day || 1; // 시세 소식은 하루만(v0.45)
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

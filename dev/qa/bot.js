@@ -29,7 +29,8 @@ window.__bot = (() => {
     const front = r.payLine.length && r.customers.find(c => c.id === r.payLine[0]);
     const atReg = p.target && p.target.kind === 'register';
     if (atReg && front) return;
-    const need = Object.keys(ST).filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length);
+    const base = m => m.split('_')[0]; // 새 메뉴(tteok_rose …)는 기본 메뉴의 조리대에서
+    const need = [...new Set(r.tickets.map(t => t.menu))].filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length).map(base);
     if (front && front.patience / front.patMax < 0.6) { tap(8, 9); return; }
     if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
     if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) tap(8, 9); return; } // 포장은 계산대로
