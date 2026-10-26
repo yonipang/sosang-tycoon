@@ -18,7 +18,14 @@ export function migrate(o) {
     o.story = st;
   }
   if (!o.story.tools) { o.story.tools = []; o.story.toolsOpen = o.story.ch >= 2 || o.story.done.includes('c1_kimbap'); } // 장사 도구 이전 세이브
-  if (!o.town) o.town = newTown(); // 마을 이전 세이브: 다음 밤부터 1장이면 골목으로
+  if (!o.town) o.town = newTown(); // 마을 이전 세이브
+  // 마을(v0.20) 전에 1장을 하던 세이브: 다음 밤까지 기다리지 않고 지금(새벽)부터 골목으로. 밤 주문 대신 새벽 시장에서 사요
+  //  (1장 첫날 4일차 아침은 오 사장님이 시켜 둔 재료로 여는 날이라 그대로 두고, 그날 밤부터 골목)
+  if (o.story && o.story.ch >= 1 && !o.town.on && (o.day || 1) >= 5) {
+    Object.assign(o.town, { on: true, part: 'dawn', used: 0, marketIn: false, bought: {}, talked: [], referral: [], seen: true });
+    for (const m in o.prep) o.prep[m] = 0;
+    if (o.story.queue && !o.story.queue.includes('town1d')) o.story.queue.push('town1d');
+  }
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;
