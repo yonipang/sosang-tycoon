@@ -46,9 +46,7 @@ export const MENU_LEVELS = [
 export const MENU_LV_MAX = 5;
 export const MASTERY_PERFECT = 1.5;
 export const REVISIT_SAT = 4;
-// 장마다 올릴 수 있는 최고 레벨 (G.story.ch 순서: 프롤로그·1장은 아직 · 1장 끝(2장)부터 Lv3 · 5장 Lv5 — Lv4~5는 나중에 메뉴 연구 「비법 노트」도 필요)
-//  업그레이드는 1장 「첫 주 버티기」를 끝내면 열려요 (오 사장님 전화)
-export const MENU_LV_CAP = [1, 1, 3, 3, 3, 5];
+// 올리는 곳: 우리 가게 「메뉴 연구 칠판」 (마을, 1장부터 · 장과 상관없이 숙련도·돈만 되면 Lv5까지)
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
 export const PRICE_STEP = 500;
 export const PRICE_MIN = 1500;

@@ -46,6 +46,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
+  if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn(); return true; }
   if (act === 'market') {

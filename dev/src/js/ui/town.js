@@ -14,6 +14,7 @@ import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
 import { toast } from './feedback.js';
+import { boardHTML } from './board.js';
 import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
@@ -271,7 +272,7 @@ function openPlace(id) {
     const cost = A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}` : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'flyer' ? `${won(A.money)} · 내일 손님 조금 더` : a === 'setup' ? '오늘 11시까지 손이 빠릅니다' : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
-      : a === 'sleep' ? (Tn.used < slotsMax() ? '일을 남기고 자면 피로가 풀립니다' : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : '';
+      : a === 'sleep' ? (Tn.used < slotsMax() ? '일을 남기고 자면 피로가 풀립니다' : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost ? `<i>${(a === 'market' && Tn.marketIn) ? '' : cost}</i>` : ''}</button>`;
   }).join('');
   sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">지금 할 일이 없습니다</p>'}`);
@@ -370,12 +371,14 @@ export function initTown() {
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
+    else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
@@ -389,5 +392,6 @@ export function refreshTown() {
   const s = $('townSheet');
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
+  else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }

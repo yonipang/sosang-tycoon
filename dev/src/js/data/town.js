@@ -61,8 +61,10 @@ export const FATIGUE_SLOW = 0.08;
 //  flyer 전단지: 다음 날 가게 앞 손님 +15%
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
+//  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 export const ACTS = {
   ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
+  recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
   flyer: { name: '전단지 붙이기', cost: 1, when: 'night', money: 5000 },
@@ -75,7 +77,7 @@ export const ACTS = {
 export const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: ['flyer'],
   market: ['market'],

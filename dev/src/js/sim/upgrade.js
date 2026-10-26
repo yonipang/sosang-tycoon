@@ -3,26 +3,25 @@
 // 저장: G.menuLv { 메뉴: 레벨 } · G.mastery { 메뉴: 숙련도 } · G.fans { 사람(그림 번호): { m: 맛있게 먹은 메뉴, n: 다시 온 횟수 } }
 // 영업 중에는 G.run.log에만 모아 두고 마감 때 더해요 (영업 중에 끄면 그날 것은 없던 일)
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MENU_LV_CAP, MASTERY_PERFECT, REVISIT_SAT } from '../data/menu.js';
+import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MASTERY_PERFECT, REVISIT_SAT } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
 import { menuOpen } from './story.js';
 
-export const upgradeOpen = () => !!(G.story && G.story.done.includes('c1_week'));
+// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「메뉴 연구 칠판」에서 — 장과 상관없이 Lv5까지
+export const upgradeOpen = () => !!(G.story && G.story.ch >= 1);
 export const menuLv = m => (G.menuLv && G.menuLv[m]) || 1;
 export const lvInfo = (m, lv = menuLv(m)) => MENU_LEVELS[lv];
-export const lvCap = () => MENU_LV_CAP[Math.min(G.story.ch, MENU_LV_CAP.length - 1)];
 export const fairMul = m => 1 + lvInfo(m).fair;
 export const lvSat = m => lvInfo(m).sat;
 // 이 레벨의 기본 가격 (처음 가격 × 적당한 가격 배율, 100원 단위) — 가격 장부에 보여 줘요
 export const lvBasePrice = m => Math.round(MENUS[m].price * fairMul(m) / 100) * 100;
 export const mastery = m => Math.floor((G.mastery && G.mastery[m]) || 0);
 
-// 다음 레벨로 올릴 수 있나: ok · max(최고 레벨) · cap(이번 장은 여기까지) · need(숙련도 모자람) · cash(잔고 모자람) · closed
+// 다음 레벨로 올릴 수 있나: ok · max(최고 레벨) · need(숙련도 모자람) · cash(잔고 모자람) · closed
 export function upState(m) {
   if (!upgradeOpen() || !menuOpen(m)) return 'closed';
   const lv = menuLv(m);
   if (lv >= MENU_LV_MAX) return 'max';
-  if (lv >= lvCap()) return 'cap';
   const next = MENU_LEVELS[lv + 1];
   if (mastery(m) < next.need) return 'need';
   if (G.cash < next.cost) return 'cash';
@@ -35,7 +34,7 @@ defineCmd('menuUp', ({ menu }) => {
   if (G.phase !== 'prep') return false;
   const st = upState(menu);
   if (st !== 'ok') {
-    const why = { need: '숙련도가 모자랍니다. 이 메뉴를 더 팔아 보세요', cash: '잔고가 모자랍니다', cap: '이번 장에서는 여기까지 올릴 수 있습니다', max: '이미 최고 레벨입니다' }[st];
+    const why = { need: '숙련도가 모자랍니다. 이 메뉴를 더 팔아 보세요', cash: '잔고가 모자랍니다', max: '이미 최고 레벨입니다' }[st];
     if (why) emit('toast', why, 'warn');
     return false;
   }

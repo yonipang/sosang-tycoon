@@ -670,6 +670,26 @@ em.today { font-style: normal; color: var(--red); }
 .u-foot { margin: 0; padding: 4px 8px 8px; color: var(--ink-soft); word-break: keep-all; }
 .urow.lvup { animation: lvUp 1s ease-out; }
 @keyframes lvUp { 0% { background: var(--mustard); transform: scale(1.04); } 40% { background: #fff3c4; transform: scale(1); } 100% { background: transparent; } }
+/* 메뉴 연구 칠판 (마을 아래 창): 초록 칠판 + 나무 테 · 분필 글씨 */
+.town-sheet.chalk { background: #2f4a3c; border: 6px solid #8a5a32; box-shadow: inset 0 0 0 2px #24382e, 0 4px 0 rgba(0,0,0,.4); color: #f1eee2; }
+.town-sheet.chalk .ts-head b { color: #f1eee2; }
+.town-sheet.chalk .ts-x { color: var(--ink); }
+.town-sheet.chalk .urow { border-top: 2px dashed rgba(241,238,226,.25); }
+.town-sheet.chalk .u-txt small, .town-sheet.chalk .u-foot, .town-sheet.chalk .u-note { color: #c9d3c6; }
+.town-sheet.chalk .u-txt b { color: #fff; }
+.town-sheet.chalk i.lv { background: #f5d76e; border-color: #f1eee2; color: #2f4a3c; }
+.town-sheet.chalk .stars { color: #f5d76e; letter-spacing: -2px; }
+.town-sheet.chalk .ubar { background: rgba(0,0,0,.25); border-color: #f1eee2; }
+.town-sheet.chalk .ubar i { background: #9fd18b; }
+.town-sheet.chalk .urow.ready .ubar i { background: #f5d76e; }
+.town-sheet.chalk .urow .dish { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.ch-btn { flex: none; display: flex; flex-direction: column; align-items: center; line-height: 1.2; padding: 4px 8px; font: inherit; color: #2f4a3c; background: #f5d76e; border: 3px solid #f1eee2; box-shadow: 0 3px 0 #1d2e25; cursor: pointer; }
+.ch-btn small { color: #2f4a3c; opacity: .8; }
+.ch-btn:active { transform: translateY(3px); box-shadow: none; }
+.ch-btn[disabled] { background: transparent; color: #c9d3c6; border-style: dashed; box-shadow: none; cursor: default; }
+.ch-btn[disabled] small { color: #c9d3c6; }
+.town-sheet.chalk .urow.lvup { animation: chalkUp 1s ease-out; }
+@keyframes chalkUp { 0% { background: rgba(245,215,110,.55); transform: scale(1.03); } 100% { background: transparent; transform: scale(1); } }
 .left-ings { text-align: right; word-break: keep-all; }
 .prep-town { display: flex; gap: 8px; }
 .prep-town .btn { flex: 1; }
@@ -880,9 +900,7 @@ const MENU_LEVELS = [
 const MENU_LV_MAX = 5;
 const MASTERY_PERFECT = 1.5;
 const REVISIT_SAT = 4;
-// 장마다 올릴 수 있는 최고 레벨 (G.story.ch 순서: 프롤로그·1장은 아직 · 1장 끝(2장)부터 Lv3 · 5장 Lv5 — Lv4~5는 나중에 메뉴 연구 「비법 노트」도 필요)
-//  업그레이드는 1장 「첫 주 버티기」를 끝내면 열려요 (오 사장님 전화)
-const MENU_LV_CAP = [1, 1, 3, 3, 3, 5];
+// 올리는 곳: 우리 가게 「메뉴 연구 칠판」 (마을, 1장부터 · 장과 상관없이 숙련도·돈만 되면 Lv5까지)
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
 const PRICE_STEP = 500;
 const PRICE_MIN = 1500;
@@ -1079,7 +1097,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.27';
+const GAME_VERSION = '0.28';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1192,8 +1210,10 @@ const FATIGUE_SLOW = 0.08;
 //  flyer 전단지: 다음 날 가게 앞 손님 +15%
 //  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
+//  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 const ACTS = {
   ledger: { name: '장부·가격 보기', cost: 0, when: 'any' },
+  recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
   flyer: { name: '전단지 붙이기', cost: 1, when: 'night', money: 5000 },
@@ -1206,7 +1226,7 @@ const ACTS = {
 const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: ['flyer'],
   market: ['market'],
@@ -1468,6 +1488,7 @@ const SCENES = {
       ['ohPhone', '장사 끝났냐? 이제부터 밤이랑 새벽도 니 시간이다.'],
       ['ohPhone', '밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 주고 그런다.'],
       ['ohPhone', '재료는 이제 니가 직접 사. 새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
+      ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
       [null, '밤에는 네 가지, 새벽에는 세 가지 일을 할 수 있습니다. 더 하면 피로가 쌓여 다음 날 걸음이 느려집니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
       ['ohPhone', '일 다 했으면 집에 가서 자. 새벽에 장 보고, 가게 가서 문 열고.'],
@@ -1478,6 +1499,7 @@ const SCENES = {
     lines: [
       ['ohPhone', '일어났냐? 오늘부터 거래처 주문은 끊었다. 재료는 니가 직접 사.'],
       ['ohPhone', '새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
+      ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
       ['ohPhone', '장사 끝나면 밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 준다.'],
       [null, '밤에는 네 가지, 새벽에는 세 가지 일을 할 수 있습니다. 더 하면 피로가 쌓여 다음 날 걸음이 느려집니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
@@ -1486,8 +1508,6 @@ const SCENES = {
   ch2soon: {
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
-      ['ohPhone', '하나 알려 주마. 많이 판 메뉴는 손에 익는다. 손에 익은 맛은 손님도 알아보고 값을 더 쳐 줘.'],
-      [null, '이제 가게 장부에서 메뉴를 업그레이드할 수 있습니다. 많이 판 메뉴일수록 숙련도가 쌓이고, 완벽하게 만든 그릇은 1.5그릇으로 셉니다.'],
       ['ohPhone', '근데 단골이 생겨야 진짜 장사야. 그건 다음에 얘기하자.'],
       [null, '프로토타입은 여기까지입니다. 2장 「첫 단골」은 준비 중이며, 영업은 계속할 수 있습니다.'],
     ],
@@ -2350,22 +2370,21 @@ function cartFor(plan) {
 // 저장: G.menuLv { 메뉴: 레벨 } · G.mastery { 메뉴: 숙련도 } · G.fans { 사람(그림 번호): { m: 맛있게 먹은 메뉴, n: 다시 온 횟수 } }
 // 영업 중에는 G.run.log에만 모아 두고 마감 때 더해요 (영업 중에 끄면 그날 것은 없던 일)
 
-const upgradeOpen = () => !!(G.story && G.story.done.includes('c1_week'));
+// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「메뉴 연구 칠판」에서 — 장과 상관없이 Lv5까지
+const upgradeOpen = () => !!(G.story && G.story.ch >= 1);
 const menuLv = m => (G.menuLv && G.menuLv[m]) || 1;
 const lvInfo = (m, lv = menuLv(m)) => MENU_LEVELS[lv];
-const lvCap = () => MENU_LV_CAP[Math.min(G.story.ch, MENU_LV_CAP.length - 1)];
 const fairMul = m => 1 + lvInfo(m).fair;
 const lvSat = m => lvInfo(m).sat;
 // 이 레벨의 기본 가격 (처음 가격 × 적당한 가격 배율, 100원 단위) — 가격 장부에 보여 줘요
 const lvBasePrice = m => Math.round(MENUS[m].price * fairMul(m) / 100) * 100;
 const mastery = m => Math.floor((G.mastery && G.mastery[m]) || 0);
 
-// 다음 레벨로 올릴 수 있나: ok · max(최고 레벨) · cap(이번 장은 여기까지) · need(숙련도 모자람) · cash(잔고 모자람) · closed
+// 다음 레벨로 올릴 수 있나: ok · max(최고 레벨) · need(숙련도 모자람) · cash(잔고 모자람) · closed
 function upState(m) {
   if (!upgradeOpen() || !menuOpen(m)) return 'closed';
   const lv = menuLv(m);
   if (lv >= MENU_LV_MAX) return 'max';
-  if (lv >= lvCap()) return 'cap';
   const next = MENU_LEVELS[lv + 1];
   if (mastery(m) < next.need) return 'need';
   if (G.cash < next.cost) return 'cash';
@@ -2378,7 +2397,7 @@ defineCmd('menuUp', ({ menu }) => {
   if (G.phase !== 'prep') return false;
   const st = upState(menu);
   if (st !== 'ok') {
-    const why = { need: '숙련도가 모자랍니다. 이 메뉴를 더 팔아 보세요', cash: '잔고가 모자랍니다', cap: '이번 장에서는 여기까지 올릴 수 있습니다', max: '이미 최고 레벨입니다' }[st];
+    const why = { need: '숙련도가 모자랍니다. 이 메뉴를 더 팔아 보세요', cash: '잔고가 모자랍니다', max: '이미 최고 레벨입니다' }[st];
     if (why) emit('toast', why, 'warn');
     return false;
   }
@@ -2619,6 +2638,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
+  if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn(); return true; }
   if (act === 'market') {
@@ -3874,7 +3894,7 @@ const DEV_JUMPS = [
   { id: 'c1f', name: '1장 6일차 · 튀김 (도구 다 있음)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
   { id: 'c1t', name: '1장 6일차 전날 밤 · 마을 첫 밤 (밤·새벽·시장)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true },
   { id: 'c1w', name: '1장 7일차 · 고정비 내는 날', day: 7, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], active: ['c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
-  { id: 'c2u', name: '9일차 전날 밤 · 메뉴 업그레이드 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
+  { id: 'c2u', name: '9일차 전날 밤 · 메뉴 연구 칠판 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
   { id: 'c2', name: '8일차 · 1장 끝 (2장 준비 중)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
@@ -5122,6 +5142,28 @@ function initIncidentUI() {
 }
 // 영업이 끝나면 남은 화면은 치워요 (결과는 영수증에도 나와요)
 function incidentReset() { incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
+// ── js/ui/board.js ──
+// 메뉴 연구 칠판 (마을 · 우리 가게 「메뉴 연구 칠판」): 메뉴마다 레벨 · 숙련 막대 · 다음 레벨 효과 · 올리기 (규칙은 sim/upgrade.js)
+// 마을 아래 창(ui/town.js sheet)에 칠판 모양으로 그려요. 올리기 = data-ts="menuUp"
+
+const pctTxt = v => `${Math.round(v * 100)}%`;
+const effTxt = L => `적당한 가격 +${pctTxt(L.fair)} · 만족 +${L.sat} · 재방문 ${pctTxt(L.back)}`;
+function boardHTML() {
+  const rows = MENU_IDS.filter(m => menuOpen(m)).map(m => {
+    const lv = menuLv(m), st = upState(m), next = MENU_LEVELS[lv + 1];
+    const have = mastery(m), bar = next ? Math.min(100, Math.round(have / next.need * 100)) : 100;
+    const stars = '★'.repeat(lv) + '☆'.repeat(MENU_LEVELS.length - 1 - lv);
+    const btn = st === 'max' ? '<span class="u-note">최고 레벨</span>'
+      : `<button type="button" class="ch-btn" data-ts="menuUp" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'need' ? '숙련 모자람' : st === 'cash' ? '잔고 모자람' : '올리기'}<small>${wonShort(next.cost)}</small></button>`;
+    return `<div class="urow${st === 'ok' ? ' ready' : ''}" data-m="${m}">${icon(m, 'dish')}<div class="u-txt"><b>${MENUS[m].name} <i class="lv">Lv${lv}</i> <span class="stars">${stars}</span></b>
+      <div class="ubar"><i style="width:${bar}%"></i></div>
+      <small>숙련 ${have}${next ? ` / ${next.need}` : ''}</small>
+      <small>${next ? `Lv${lv + 1} → ${effTxt(next)}` : effTxt(lvInfo(m))}</small></div>${btn}</div>`;
+  }).join('');
+  return `<div class="ts-head"><b>메뉴 연구 칠판</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${rows}
+    <p class="u-foot">숙련도는 내준 그릇 수입니다 (완벽 조리는 ${MASTERY_PERFECT}그릇). 숙련도가 차면 돈을 내고 올립니다. 다음 영업부터 효과가 납니다</p>`;
+}
 // ── js/ui/town.js ──
 // 마을 화면: 밤·새벽 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
 // 지도는 data/town.js (16px 칸), 그리기는 render/town.js, 규칙은 sim/town.js. 길 찾기는 칸 단위 너비 우선 탐색(상하좌우)
@@ -5379,7 +5421,7 @@ function openPlace(id) {
     const cost = A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}` : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'flyer' ? `${won(A.money)} · 내일 손님 조금 더` : a === 'setup' ? '오늘 11시까지 손이 빠릅니다' : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
-      : a === 'sleep' ? (Tn.used < slotsMax() ? '일을 남기고 자면 피로가 풀립니다' : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : '';
+      : a === 'sleep' ? (Tn.used < slotsMax() ? '일을 남기고 자면 피로가 풀립니다' : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost ? `<i>${(a === 'market' && Tn.marketIn) ? '' : cost}</i>` : ''}</button>`;
   }).join('');
   sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : P.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || '<p class="ts-note">지금 할 일이 없습니다</p>'}`);
@@ -5478,12 +5520,14 @@ function initTown() {
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
+    else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
@@ -5497,6 +5541,7 @@ function refreshTown() {
   const s = $('townSheet');
   if (s.hidden) return;
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
+  else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
 // ── js/ui/cutscene.js ──
@@ -5708,7 +5753,6 @@ function renderPrep() {
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
       ${questCard()}
       ${town ? todayCard() : ''}
-      ${upgradeCard()}
       ${toolsCard()}
       ${cards}
       <div class="sum">
@@ -5746,25 +5790,6 @@ function todayCard() {
   </div>`;
 }
 
-// 메뉴 업그레이드 (1장 「첫 주 버티기」 뒤): 메뉴마다 숙련도 막대 · 다음 레벨 효과 · 올리기 (sim/upgrade.js)
-const pctTxt = v => `${Math.round(v * 100)}%`;
-function upgradeCard() {
-  if (!upgradeOpen()) return '';
-  const rows = MENU_IDS.filter(m => menuOpen(m)).map(m => {
-    const lv = menuLv(m), st = upState(m), next = MENU_LEVELS[lv + 1], cur = lvInfo(m);
-    const have = mastery(m), need = next ? next.need : have;
-    const bar = next ? Math.min(100, Math.round(have / need * 100)) : 100;
-    const eff = next ? `다음 Lv${lv + 1}: 적당한 가격 +${pctTxt(next.fair)} · 만족 +${next.sat} · 재방문 ${pctTxt(next.back)}` : `적당한 가격 +${pctTxt(cur.fair)} · 만족 +${cur.sat} · 재방문 ${pctTxt(cur.back)}`;
-    const btn = st === 'max' ? '<span class="u-note">최고 레벨</span>'
-      : st === 'cap' ? `<span class="u-note">다음 장에서<br>열립니다</span>`
-      : `<button type="button" class="btn small" data-act="menuUp" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'need' ? '숙련 모자람' : st === 'cash' ? '잔고 모자람' : '올리기'}<small>${wonShort(next.cost)}</small></button>`;
-    return `<div class="urow${st === 'ok' ? ' ready' : ''}" data-m="${m}">${icon(m, 'dish')}<div class="u-txt"><b>${MENUS[m].name} <i class="lv">Lv${lv}</i></b>
-      <div class="ubar"><i style="width:${bar}%"></i></div>
-      <small>숙련 ${have}${next ? `/${need}` : ''} · ${eff}</small></div>${btn}</div>`;
-  }).join('');
-  return `<div class="tcard upcard" data-guide="upgrade"><div class="q-head"><small>메뉴 업그레이드</small><b>많이 판 메뉴가 자랍니다</b></div>${rows}<p class="u-foot">숙련도는 내준 그릇 수입니다 (완벽 조리 1.5그릇). 다음 날 영업부터 효과가 납니다</p></div>`;
-}
-
 // 장사 도구 (오 사장님 권유로 1장 중간부터): 사면 계속 써요
 function toolsCard() {
   const S = G.story;
@@ -5796,7 +5821,7 @@ function masteryCard(g) {
   if (!g || !upgradeOpen()) return '';
   const t = MENU_IDS.filter(m => g[m]).map(m => `${MENUS[m].name} +${Math.round(g[m] * 10) / 10}`).join(' · ');
   if (!t) return '';
-  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>가게 장부에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
+  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>메뉴 연구 칠판에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
 }
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 function renderReceipt() {
@@ -6061,7 +6086,6 @@ function initScreens(onStart) {
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
-    else if (a === 'menuUp') runCmd('menuUp', { menu: m });
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }
     else if (a === 'afterWeekly') { playSfx('page'); runCmd('afterWeekly'); }
     else if (a === 'credits') { playSfx('page'); renderCredits(); }

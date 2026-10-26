@@ -126,14 +126,14 @@ with sync_playwright() as pw:
         incs.append([d, pg.evaluate('JSON.stringify(__T.G.lastReceipt.incidents)'), pg.evaluate('(__T.G.lastReceipt.reviews||[]).map(v=>v.who).join(",")')])
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     to_prep(pg); shot(pg, '9-prep-day9')
-    # 메뉴 업그레이드 (1장 「첫 주 버티기」 뒤): 가게 장부에서 떡볶이 올리기
-    if not pg.locator('.upcard').count(): pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'ledger'})"); pg.wait_for_timeout(200); talk(pg)
+    # 메뉴 연구 칠판 (마을 · 우리 가게): 떡볶이 올리기
+    pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'recipe'})"); pg.wait_for_timeout(200)
     up = {'mastery': pg.evaluate('JSON.stringify(__T.G.mastery)')}
-    if not pg.locator('.upcard').count(): errs.append('가게 장부에 메뉴 업그레이드 칸이 없어요')
+    if not pg.locator('#townSheet.chalk').count(): errs.append('메뉴 연구 칠판이 안 열려요')
     else:
-        pg.locator('.upcard').screenshot(path=os.path.join(OUT, '9d-upgrade.png'))
-        if pg.locator('[data-act=menuUp][data-m=tteok]:not([disabled])').count():
-            pg.click('[data-act=menuUp][data-m=tteok]'); pg.wait_for_timeout(100)
+        shot(pg, '9d-board')
+        if pg.locator('[data-ts=menuUp][data-m=tteok]:not([disabled])').count():
+            pg.click('[data-ts=menuUp][data-m=tteok]'); pg.wait_for_timeout(100)
             if pg.evaluate('__T.G.menuLv.tteok') != 2: errs.append('떡볶이 업그레이드가 안 됐어요')
         else: errs.append('떡볶이 숙련도가 30을 못 넘었어요')
     up['lv'] = pg.evaluate('JSON.stringify(__T.G.menuLv)')
