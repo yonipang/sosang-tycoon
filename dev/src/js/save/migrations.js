@@ -68,6 +68,12 @@ export function migrate(o) {
   }
   if (!o.shopLv) o.shopLv = 1;
   if (!o.guild) o.guild = { seen: false, due: 0, member: false, eq: { stove: 1, mat: 1, fryer: 1, fridge: 1, register: 1 }, tools2: [], visits: 0, tradeDay: 0 }; // 상인회(v0.41) 이전 세이브 // 확장공사(v0.36) 이전 세이브
+  // 2장 이야기(v0.44) 이전 세이브: 1장을 끝냈으면 박 할머니 부탁부터, 미소 가구를 봤으면 미소 사장님 부탁도
+  if (o.story && o.story.done.includes('c1_week')) {
+    const S = o.story, has = id => S.done.includes(id) || S.active.includes(id) || (S.queue || []).includes(id);
+    if (!has('c2_park') && !(S.queue || []).includes('ch2soon')) { S.active.push('c2_park'); S.prog.c2_park = 0; }
+    if (o.furn && o.furn.seen && !has('c2_miso')) { S.active.push('c2_miso'); S.prog.c2_miso = 0; }
+  }
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;

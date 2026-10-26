@@ -12,6 +12,7 @@ import { emit, defineCmd } from './events.js';
 import { josa } from '../engine/util.js';
 import { bondLv, misoDisc, addBond } from './bond.js';
 import { BOND_TRADE } from '../data/bond.js';
+import { storyNote, setMoodSource } from './story.js';
 
 export const newFurn = () => ({ have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 });
 // 2장부터 미소 꽃집이 가구점으로
@@ -56,6 +57,7 @@ export function mood() {
 }
 
 // ── 영업에 주는 영향 (sim/customers.js) — 테마 보너스는 켜진 테마마다 ──
+setMoodSource(() => mood()); // 퀘스트가 시작될 때 지금 분위기로 (sim/story.js)
 export function moodSat(type) {
   return Math.min(MOOD_SAT_MAX, mood() / MOOD_SAT_DIV) + themesOn().reduce((s, th) => s + ((FURN_THEMES[th].sat && FURN_THEMES[th].sat[type]) || 0), 0);
 }
@@ -92,6 +94,7 @@ defineCmd('furnBuyCart', ({ cart }) => {
   G.cash -= price;
   for (const [c, k] of L) G.furn.have[c] = k;
   emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
+  storyNote('mood', { mood: mood() }); // 2장 미소 사장님 부탁
   emit('sfx', 'coin');
   trade();
   emit('prep');

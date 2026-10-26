@@ -11,6 +11,8 @@ import { tutSceneDone } from './tutorial.js';
 
 // 메뉴가 열렸는지 (조리대·주문·손님 메뉴가 모두 이걸 봐요)
 export const menuOpen = m => G.story ? G.story.menus.includes(m) : m === 'tteok';
+// 끝낸 퀘스트가 남긴 오래 가는 효과 (예: 'oldTaste' — 떡볶이 만족 +)
+export const storyPerk = k => !!(G.story && (G.story.perks || []).includes(k));
 export const questActive = id => !!G.story && G.story.active.includes(id);
 const isDone = id => G.story.done.includes(id);
 // 진행도 (화면용): [지금, 목표]
@@ -23,7 +25,11 @@ function start(id) {
   if (isDone(id) || S.active.includes(id)) return;
   S.active.push(id);
   S.prog[id] = S.prog[id] || 0;
+  if (QUESTS[id].kind === 'mood' && moodNow) S.prog[id] = Math.min(QUESTS[id].need, Math.max(S.prog[id], moodNow()));
 }
+// 분위기는 sim/furniture.js가 알려 줘요 (서로 부르지 않게 함수만 받아 둬요)
+let moodNow = null;
+export function setMoodSource(f) { moodNow = f; }
 
 function openMenu(m, now) {
   const S = G.story;
@@ -50,6 +56,7 @@ function complete(id) {
   if (g.menuNext) openMenu(g.menuNext, false);
   if (g.menuNow) openMenu(g.menuNow, true);
   if (g.bond) addBond(g.bond[0], g.bond[1], '부탁', true); // 부탁 퀘스트 +5 (sim/bond.js)
+  if (g.perk) S.perks = (S.perks || []).concat(g.perk);
   if (g.guild && G.guild) { G.guild.member = true; emit('toast', '골목 상인회에 가입했습니다', 'good'); }
   for (const s of g.scenes || []) queueScene(s);
   // 기다리던 퀘스트 시작 · 기다리던 완료
@@ -70,6 +77,11 @@ export function storyNote(kind, d = {}) {
     if (q.kind !== kind || (q.menu && d.menu !== q.menu)) continue;
     const before = S.prog[id] || 0;
     if (kind === 'cook') S.prog[id] = before + (d.q === 2 ? 1 : 0);
+    else if (kind === 'cookStreak') S.prog[id] = d.q === 2 ? before + 1 : 0; // 연달아: 「완벽」이 아니면 처음부터
+    else if (kind === 'lunchClean') S.prog[id] = before + (d.clean ? 1 : 0);
+    else if (kind === 'lateServed') S.prog[id] = before + (d.n || 1);
+    else if (kind === 'mood') S.prog[id] = Math.max(before, d.mood || 0);
+    else if (kind === 'weeklyRating') S.prog[id] = before + (d.ok ? 1 : 0);
     else if (kind === 'paid') S.prog[id] = before + (d.n || 1);
     else if (kind === 'dayServed') S.prog[id] = Math.max(before, d.served || 0);
     else if (kind === 'cleanDay') S.prog[id] = before + (d.clean ? 1 : 0);

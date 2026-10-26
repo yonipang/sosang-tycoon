@@ -18,6 +18,7 @@ export function bookHTML(sel) {
     const P = PEOPLE_INFO[sel], b = G.book[sel], f = G.fans && G.fans[sel];
     info = `<div class="bk-info"><div class="bk-name"><b>${P.name}</b><small>${CUSTOMER_TYPES[typeOf(sel)].name}</small>${regularCandidate(sel) ? '<span class="tag hot">단골 후보</span>' : ''}</div>
       <p>${P.bio}</p>
+      ${P.fav ? `<p class="bk-fav">좋아하는 메뉴 ${icon(P.fav, 'bk-dish')}${MENUS[P.fav].name}</p>` : ''}
       <small>${b.visits}번 왔습니다${b.sat != null ? ` · 마지막 ${icon('face_' + satFace(b.sat), 'face')}` : ''}${f ? ` · ${josa(MENUS[f.m].name, '을/를')} 맛있게 먹었습니다 · 다시 온 ${f.n}번` : ''}</small></div>`;
   }
   return `<div class="ts-head"><b>손님 수첩</b><small class="bk-count">${seen}/${BOOK_ORDER.length}명</small><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>

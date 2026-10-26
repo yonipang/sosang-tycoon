@@ -22,7 +22,9 @@ export const CAST = {
   // 뒤의 장에서 나와요 (1장까지는 오 사장님이 멘토로 거의 다 이끌어요 — 사람이 한꺼번에 많이 나오지 않게)
   choi: { name: '최 사장 · 옆 세탁소', char: 7 },
   miso: { name: '미소 사장 · 옆 가게', char: 9 },
-  moon: { name: '문 회장 · 문 철물', char: 20 }, // 2장: 세탁소 자리에 철물점 · 골목 상인회장 (그림은 dev/art_pack.py가 캐릭터 생성기로 만들어요)
+  moon: { name: '문 회장 · 문 철물', char: 20 },
+  kim: { name: '김 대리', char: 1 },   // 2장 단골: 점심마다 뛰어오는 회사원 (손님 수첩 1번)
+  doyun: { name: '도윤', char: 6 },    // 2장 단골: 학원 끝나고 오는 고등학생 (손님 수첩 6번) // 2장: 세탁소 자리에 철물점 · 골목 상인회장 (그림은 dev/art_pack.py가 캐릭터 생성기로 만들어요)
 };
 
 // 장: 준비 화면 이야기 카드 머리에 보여요
@@ -32,12 +34,21 @@ export const CHAPTERS = [
   { name: '2장', sub: '골목 사람들' },
 ];
 
+// 2장 퀘스트 수치: 점심(게임 분, 0 = 09:00) · 저녁 · 「그 시절 그 맛」 떡볶이 만족 +
+export const LUNCH_FROM = 180;
+export const LUNCH_TO = 300;
+export const LATE_FROM = 600;
+export const OLD_TASTE_SAT = 0.2;
+export const WEEK_RATING = 3.5;     // 2장 끝: 주간 정산 때 별점
+
 // 퀘스트
 //  kind: 무엇을 세나 (sim/story.js storyNote) — cook(완벽 조리) · paid(계산한 손님 수) · receipt(마감 영수증) · dayEnd(마친 영업일)
 //        dayServed(하루 받은 손님, 그날 최고) · note(냉장고 뒤 쪽지) · served(그 메뉴를 내준 수) · cleanDay(재료가 안 떨어진 날)
 //        weekly(고정비 내기) · pay(준비 화면에서 돈 내기, cost원) · buyTool(장사 도구 사기) · ahead(미리 만든 음식 내주기)
+//        cookStreak(그 메뉴 「완벽」 연달아 — 아니면 0부터) · lunchClean(12~14시에 기다리다 간 손님이 없는 날) · lateServed(저녁 7시 넘어 계산한 손님)
+//        mood(가게 분위기 — 가장 높았던 값) · weeklyRating(주간 정산 때 별점 3.5 이상)
 //  menu: 그 메뉴만 셈 · need: 몇 번 · needs: 이 퀘스트들이 끝나면 저절로 시작 · after: 이 퀘스트들이 끝나야 완료
-//  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴)
+//  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴) · bond([누구, 점수]) · guild · perk(오래 가는 효과 — sim/story.js storyPerk)
 export const QUESTS = {
   p_stir: { who: 'oh', title: '떡볶이는 팔로 저어', goal: '떡볶이 완벽 조리', kind: 'cook', menu: 'tteok', need: 3 },
   p_serve: { who: 'oh', title: '손님은 끝까지', goal: '계산까지 마친 손님', kind: 'paid', need: 5 },
@@ -53,6 +64,12 @@ export const QUESTS = {
   // 2장: 골목 상인회 (문 회장님 · data/guild.js)
   c2_moon: { who: 'moon', title: '상인회 회의 김밥', goal: '김밥 내주기 (상인회 회의 간식)', kind: 'served', menu: 'kimbap', need: 10, give: { scenes: ['moon2'], bond: ['moon', 5] } },
   c2_join: { who: 'moon', title: '골목 상인회 가입', goal: '가입비 5만 원 내기', kind: 'pay', cost: 50000, need: 1, give: { scenes: ['moon3'], guild: true } },
+  // 2장: 첫 단골 (박 할머니 → 김 대리 → 도윤) · 미소 가구 · 상인회를 다 하고 별점이 좋으면 「동네 사장」
+  c2_park: { who: 'park', title: '그 시절 그 맛', goal: '떡볶이 「완벽」 연달아', kind: 'cookStreak', menu: 'tteok', need: 5, give: { scenes: ['park2', 'kim1'], perk: 'oldTaste' } },
+  c2_kim: { who: 'kim', title: '점심은 10분이에요', goal: '12~14시에 기다리다 간 손님 없는 날', kind: 'lunchClean', need: 3, give: { scenes: ['kim2', 'doyun1'] } },
+  c2_doyun: { who: 'doyun', title: '시험 기간 야식', goal: '저녁 7시 넘어 계산한 손님', kind: 'lateServed', need: 12, give: { scenes: ['doyun2'] } },
+  c2_miso: { who: 'miso', title: '가게 분위기 바꾸기', goal: '가게 분위기 30 만들기', kind: 'mood', need: 30, give: { scenes: ['miso2'], bond: ['miso', 5] } },
+  c2_end: { who: 'me', title: '동네에서 소문', goal: '주간 정산 때 별점 3.5 이상', kind: 'weeklyRating', need: 1, needs: ['c2_doyun', 'c2_join', 'c2_miso'], give: { scenes: ['table', 'paper2', 'ch3soon'] } },
   c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
@@ -258,6 +275,14 @@ export const SCENES = {
       ['miso', '이제 벽지, 바닥, 식탁 같은 것도 해요. 가게 분위기가 좋으면 손님이 더 오래 기억하거든요.'],
       ['miso', '첫 손님은 사장님이었으면 좋겠어요. 밤에 한번 들러요!'],
       [null, '미소 가구에서 가게를 꾸밀 수 있습니다. 꾸밀수록 분위기가 올라 손님 만족이 오르고, 같은 테마를 네 가지 넘게 맞추면 그 테마를 좋아하는 손님이 더 반깁니다.'],
+      ['miso', '사장님 가게, 분위기만 조금 바꿔도 확 달라질 거예요. 제가 장담해요!'],
+    ],
+    start: ['c2_miso'],
+  },
+  miso2: {
+    lines: [
+      ['miso', '와, 사장님 가게 완전 달라졌네요! 지나가다 한 번 더 보게 돼요.'],
+      ['miso', '다음엔 테마도 맞춰 봐요. 같은 느낌끼리 모으면 그걸 좋아하는 손님들이 더 반겨요.'],
     ],
   },
   // 2장: 최 사장님 세탁소 → 문 회장님 「문 철물」 (sim/guild.js guildNight)
@@ -286,11 +311,80 @@ export const SCENES = {
       [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 매주 고정비와 함께 나갑니다.'],
     ],
   },
+  // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
   ch2soon: {
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
-      ['ohPhone', '근데 단골이 생겨야 진짜 장사야. 그건 다음에 얘기하자.'],
-      [null, '프로토타입은 여기까지입니다. 2장 「첫 단골」은 준비 중이며, 영업은 계속할 수 있습니다.'],
+      ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
+      ['ohPhone', '박 할머니가 그러더라. 요즘 떡볶이가 옛날 그 맛이 아니라고. 섭섭해하시더라.'],
+      ['ohPhone', '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
+      [null, '2장 「골목 사람들」이 시작됩니다. 자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
+    ],
+    start: ['c2_park'],
+  },
+  park2: {
+    lines: [
+      ['park', '아이고, 이거야 이거. 그 양반 떡볶이 맛이 나네.'],
+      ['park', '노인정 가서 소문 좀 내야겠어. 새 사장 손맛이 좋다고.'],
+      [null, '떡볶이를 먹은 손님의 만족이 조금 오릅니다.'],
+    ],
+  },
+  kim1: {
+    lines: [
+      [null, '가게 불을 끄려는데 넥타이를 맨 손님이 문을 두드립니다.'],
+      ['kim', '사장님, 저 오늘 점심에 왔다가 그냥 갔어요. 줄이 길어서요….'],
+      ['kim', '점심시간이 한 시간인데 회사까지 왔다 갔다 하면 먹을 시간이 10분이에요.'],
+      ['kim', '점심때 안 기다리고 먹을 수 있으면 매일 올게요. 진짜로요!'],
+    ],
+    start: ['c2_kim'],
+  },
+  kim2: {
+    lines: [
+      ['kim', '사장님, 요즘 점심 진짜 빨라졌어요. 팀 사람들도 데려올게요.'],
+      [null, '김 대리가 단골이 되었습니다. 점심 무렵 자주 찾아옵니다.'],
+    ],
+  },
+  doyun1: {
+    lines: [
+      [null, '마감 무렵, 자전거를 세워 둔 학생이 가게 안을 들여다봅니다.'],
+      ['doyun', '저… 혹시 저녁 늦게도 하세요? 다음 주부터 시험 기간이라 학원 끝나면 배고파서요.'],
+      ['doyun', '친구들도 늦게까지 하는 데를 찾고 있어요. 이 근처엔 떡볶이 사 먹을 데가 없어요.'],
+    ],
+    start: ['c2_doyun'],
+  },
+  doyun2: {
+    lines: [
+      ['doyun', '사장님 덕분에 시험 잘 봤어요! …아마도요.'],
+      ['doyun', '앞으로 학원 끝나면 여기 올게요.'],
+      [null, '도윤이 단골이 되었습니다. 저녁 무렵 찾아옵니다.'],
+    ],
+  },
+  // 2장 끝: 세 단골이 한 탁자에 (합석은 이때만)
+  table: {
+    lines: [
+      [null, '오늘 점심이 지난 한가한 오후, 박 할머니와 김 대리와 도윤이 한꺼번에 들어왔습니다. 빈자리가 하나뿐이라 셋이 한 탁자에 앉았습니다.'],
+      ['park', '아이고, 젊은 사람들이랑 앉으니 좋네. 학생은 시험 잘 봤어?'],
+      ['doyun', '네? 아… 그럭저럭요. 할머니도 여기 단골이세요?'],
+      ['park', '단골이 뭐야, 오 사장 때부터 30년이야. 우리 아들도 어릴 때 여기서 떡볶이 먹고 컸어.'],
+      ['kim', '혹시… 아드님이 박 부장님이세요? 저희 회사 영업부 박 부장님이요.'],
+      ['park', '어머, 우리 아들 회사 사람이야? 세상 좁네!'],
+      ['kim', '…할머님, 제가 점심에 여기 오는 건 부장님한테 비밀로 해 주세요.'],
+      ['meThink', '처음 보는 사람들이 우리 가게에서 이렇게 이어지는구나.'],
+    ],
+  },
+  paper2: {
+    at: 'dawn',
+    paper: {
+      no: 3, head: '{shop}, 골목 사랑방 되다', sub: '「점심은 빠르고 저녁은 늦게까지」 동네 단골 늘어',
+      body: '점심엔 회사원이, 저녁엔 학원 끝난 학생들이 찾는다. 단골 박 할머니는 「그 양반 맛이 돌아왔다」고 했다. 골목 상인회 문 회장은 「요즘 골목에 사람 냄새가 난다」고 전했다.',
+    },
+    title: '동네 사장',
+  },
+  ch3soon: {
+    lines: [
+      ['ohPhone', '신문 또 났더라. 동네 사장 다 됐네.'],
+      ['ohPhone', '근데 길 건너 빈 가게, 요새 사람들이 드나들더라. 공사하는 것 같던데.'],
+      [null, '프로토타입은 여기까지입니다. 3장 「길 건너 대결」은 준비 중이며, 영업은 계속할 수 있습니다.'],
     ],
   },
 };

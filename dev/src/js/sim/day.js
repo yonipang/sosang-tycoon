@@ -21,8 +21,9 @@ import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, g
 import { upgradeEndDay } from './upgrade.js';
 import { bookEndDay } from './book.js';
 import { townOpenRest } from './town.js';
-import { furnOpen, buildRent, syncLayout } from './furniture.js';
+import { furnOpen, buildRent, syncLayout, mood } from './furniture.js';
 import { ratingNow, reviewsFromDay } from './rating.js';
+import { WEEK_RATING } from '../data/story.js';
 import { rushMul, rushSec, guildDues } from './guild.js';
 import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
 import { bloggerToday, bloggerEndDay } from './traffic.js';
@@ -263,7 +264,7 @@ export function endDay() {
   // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
   const clean = !L.missed.soldout && todayMenus().every(m => stockOf(m) > 0);
   tutEndDay(); // 오늘 못 한 길잡이 차례는 건너뛰어요 (주는 퀘스트는 받고 — 영수증 퀘스트도 셀 수 있게 먼저)
-  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
+  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
   G.run = null;
@@ -300,7 +301,7 @@ defineCmd('afterWeekly', () => {
     W.paid = true;
     emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
-    storyNote('weekly');
+    storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
   }
   nextDay();
 });

@@ -187,7 +187,7 @@ function finishCook(q, note) {
   emit('float', p.x, p.y - 1.8, note && q < 2 ? `${note}…` : `${MENUS[c.menu].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : ''}${two ? ' ×2' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
   emit('sfx', q === 2 ? 'perfect' : 'cookDone');
   emit('cook', false, c.menu, c.game, q);
-  storyNote('cook', { menu: c.menu, q });
+  storyNote('cook', { menu: c.menu, q }); storyNote('cookStreak', { menu: c.menu, q });
   incidentNote('cook', { menu: c.menu }, q);
   tutNote('cookEnd');
 }

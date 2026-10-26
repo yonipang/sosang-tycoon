@@ -10,7 +10,8 @@ import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layo
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
 import { emit } from './events.js';
 import { findPath, walk } from './path.js';
-import { menuOpen, storyNote } from './story.js';
+import { menuOpen, storyNote, storyPerk } from './story.js';
+import { LUNCH_FROM, LUNCH_TO, LATE_FROM, OLD_TASTE_SAT } from '../data/story.js';
 import { incidentNote } from './incidents.js';
 import { dirty } from './town.js';
 import { HYGIENE_SAT } from '../data/town.js';
@@ -19,6 +20,7 @@ import { tutNote, tutHold } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
 import { noteVisit, noteBookSat } from './book.js';
+import { PEOPLE_INFO, FAV_CHANCE } from '../data/people.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 import { moodSat, moodEnterMul, eatMul } from './furniture.js';
 import { ratingNow } from './rating.js';
@@ -145,6 +147,7 @@ function miss(c, reason, menu, quiet) {
   const L = G.run.log;
   incidentNote('missed', c, reason);
   L.missed[reason]++;
+  if (reason === 'wait' && G.run.min >= LUNCH_FROM && G.run.min < LUNCH_TO) L.lunchWait = (L.lunchWait || 0) + 1; // 2장 김 대리 (12~14시)
   L.sats.push(MISS_SAT[reason]);
   if (!quiet) {
     L.events.push({ kind: reason, menu, who: CUSTOMER_TYPES[c.type].name });
@@ -191,8 +194,9 @@ function decide(c) {
   const w = {};
   for (const m of MENU_IDS.filter(x => menuOn(x))) { const ratio = G.prices[m] / (MENUS[m].fair * fairMul(m) * T.priceMul * ratingPriceMul(ratingNow())); w[m] = T.likes[m] / (ratio * ratio) * boardPick(m, nowHour()); } // 칠판 추천 메뉴는 조금 더 끌려요
   let m = weighted(w);
-  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x)));
-  if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것 (오늘 메뉴에 없으면 고르던 대로)
+  const info = PEOPLE_INFO[c.char], fav = info && info.fav && menuOn(info.fav) && canSell(info.fav) && rand() < FAV_CHANCE ? info.fav : null; // 좋아하는 메뉴 (손님 수첩)
+  const want = c.wants || (c.reg && REGULARS[c.reg].likes.find(x => menuOpen(x) && canSell(x))) || fav;
+  if (want && menuOn(want)) m = want; // 단골은 늘 먹던 것, 돌발 손님은 정해진 것, 메뉴를 말한 손님은 그것, 아니면 좋아하는 메뉴 (오늘 메뉴에 없으면 고르던 대로)
   let re = reaction(c, m);
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
@@ -236,6 +240,7 @@ function satisfaction(c) {
   if (c.payWaited) s -= 0.6;
   if (dirty()) s -= HYGIENE_SAT; // 위생이 낮으면 (data/town.js)
   s += moodSat(c.type); // 가게 분위기 · 테마 (sim/furniture.js)
+  if (c.menu === 'tteok' && storyPerk('oldTaste')) s += OLD_TASTE_SAT; // 2장 박 할머니 「그 시절 그 맛」
   return Math.max(1, Math.min(5, s));
 }
 
@@ -263,6 +268,7 @@ export function pay(c) {
   emit('float', c.x, c.y - 1.6, '+' + (total + tips).toLocaleString('ko-KR') + '원' + (tips ? ' 팁!' : ''), 'cash');
   emit('sfx', 'coin');
   storyNote('paid', { n: group.length });
+  if (r.min >= LATE_FROM) storyNote('lateServed', { n: group.length }); // 2장 도윤 (저녁 7시 넘어)
   for (const m of group) leave(m, false);
   tutNote('paid');
 }
@@ -282,8 +288,9 @@ function atDoor(c) {
     else if (c.blog) emit('say', c.id, '여기 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?');
     else if (!c.force) {
       const back = noteBack(c.char), line = enterLine(c.type, hour);
-      if (back && fxRand() < 0.5) emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`);
-      else if (line && fxRand() < 0.35) emit('say', c.id, line);
+      // 메뉴 이름을 말한 손님은 그 메뉴를 시켜요 (말과 주문이 어긋나지 않게)
+      if (back && fxRand() < 0.5) { emit('say', c.id, `${MENUS[back].name} 생각나서 또 왔어요`); c.wants = back; }
+      else if (line && fxRand() < 0.35) { emit('say', c.id, line[0]); if (line[1]) c.wants = line[1]; }
     }
     return;
   }
@@ -390,7 +397,7 @@ export function updateCustomers(dt) {
 
 // ── 단골 ── 영업 시작 때 오늘 올지·언제 올지 정하고, 그 시각이 되면 보도에서 걸어와요
 export function planRegulars(r) {
-  r.regulars = Object.keys(REGULARS).filter(id => rand() < REGULARS[id].chance)
+  r.regulars = Object.keys(REGULARS).filter(id => (!REGULARS[id].quest || (G.story && G.story.done.includes(REGULARS[id].quest))) && rand() < REGULARS[id].chance)
     .map(id => ({ id, at: REGULARS[id].at[0] + rand() * (REGULARS[id].at[1] - REGULARS[id].at[0]), came: false }));
 }
 export function tickRegulars() {

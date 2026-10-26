@@ -947,3 +947,6 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 #townFade { position: absolute; inset: 0; z-index: 40; background: #120e1c; opacity: 0; pointer-events: auto; }
 #townFade.in { opacity: 1; transition: opacity .22s steps(4); }
 #townFade.out { opacity: 0; transition: opacity .22s steps(4); }
+
+.bk-fav { display: flex; align-items: center; gap: 4px; color: var(--ink-soft); }
+.bk-fav .bk-dish { width: 24px; height: 24px; }

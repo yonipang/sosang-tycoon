@@ -25,6 +25,12 @@ export const REVIEW_RATE = 0.35;
 export const REVIEW_KEEP = 100;
 export const RATING_NONE = 3;
 export const OH_REVIEWS = [22, 24, 10, 3, 1];
+export const OH_REVIEW_TOTAL = 400;   // 오가네 분식이 30년 동안 받은 리뷰 수 (평균은 위 60개로)
+// 리뷰가 적은 새 가게는 별점이 보통(RATING_NONE) 쪽으로 끌려요 (v0.44 사용자 지적: 5일차 ★4.8은 말이 안 됨)
+//  별점 = (리뷰 별 합 + 보통 × 무게) ÷ (리뷰 수 + 무게) · 무게 = RATING_PRIOR_W × HALF ÷ (HALF + 지금까지 리뷰 수)
+//  예: 리뷰 15개 평균 4.8 → ★3.7 · 100개 평균 4.5 → ★4.3 · 300개 → ★4.4
+export const RATING_PRIOR_W = 30;
+export const RATING_PRIOR_HALF = 80;
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 export const ratingSpawnMul = r => 0.55 + 0.15 * r;
 export const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」

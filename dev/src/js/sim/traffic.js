@@ -58,10 +58,11 @@ export function typeEnterMul(type, hour) {
   return fit * Math.min(STRATEGY_CAP, board * promoMul(type));
 }
 // 칠판·인스타 덕에 들어온 손님이 하는 말 (보이기만 — 규칙은 위 배율)
+//  [말, 그 말로 정한 메뉴(없으면 null)] — 메뉴를 말했으면 그 메뉴를 시켜요
 export function enterLine(type, hour) {
   const bm = boardMenuAt(hour);
-  if (bm && likeShare(type, bm) >= 0.75) return `${MENUS[bm].name} 추천이래. 먹어 볼까?`;
-  if (instaOn() && PROMO.insta.types.includes(type)) return '인스타 보고 왔어요!';
+  if (bm && likeShare(type, bm) >= 0.75) return [`${MENUS[bm].name} 추천이래. 먹어 볼까?`, bm];
+  if (instaOn() && PROMO.insta.types.includes(type)) return ['인스타 보고 왔어요!', null];
   return null;
 }
 // 손님이 메뉴를 고를 때: 칠판 메뉴는 조금 더 끌려요
