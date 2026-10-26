@@ -26,7 +26,7 @@ export const BOARD_MUL = 0.25;
 // 메뉴 궁합: 그 손님층이 가장 좋아하는 메뉴가 오늘의 메뉴에 없으면 그 손님층이 덜 들어와요
 export const FIT_MISS = 0.8;
 // 전략(칠판 × 홍보)으로 올릴 수 있는 들어오는 비율의 상한
-export const STRATEGY_CAP = 1.8;
+export const STRATEGY_CAP = 1.5; // v0.35: 1.8 → 1.5 (칠판·인스타·블로거가 겹치면 손님이 몰려 너무 바빴어요)
 export const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 3, 12: 5, 13: 3, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 지나가는 사람이 가게 앞에서 하는 말 (말풍선). 상황에 맞는 묶음에서 골라요
 export const PASSER_SAY_CHANCE = 0.3;   // 지나가는 일행이 한마디 할 확률
@@ -47,7 +47,7 @@ export function typeMix(hour) {
   return { worker: 5, student: 3, elder: 2 };
 }
 // 기다림 (초, 유형 patience를 곱해요)
-export const PATIENCE = { queue: 22, food: 32, pay: 18 };
+export const PATIENCE = { queue: 28, food: 40, pay: 22 }; // v0.35 사용자 요청으로 약 25% 늘림 (22·32·18 → 28·40·22)
 export const READ_MENU_SEC = 1.4;
 export const QUEUE_MAX = 3;
 export const CUSTOMER_SPEED = 3.2; // 칸/초

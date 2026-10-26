@@ -1079,7 +1079,7 @@ const BOARD_MUL = 0.25;
 // 메뉴 궁합: 그 손님층이 가장 좋아하는 메뉴가 오늘의 메뉴에 없으면 그 손님층이 덜 들어와요
 const FIT_MISS = 0.8;
 // 전략(칠판 × 홍보)으로 올릴 수 있는 들어오는 비율의 상한
-const STRATEGY_CAP = 1.8;
+const STRATEGY_CAP = 1.5; // v0.35: 1.8 → 1.5 (칠판·인스타·블로거가 겹치면 손님이 몰려 너무 바빴어요)
 const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 3, 12: 5, 13: 3, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 지나가는 사람이 가게 앞에서 하는 말 (말풍선). 상황에 맞는 묶음에서 골라요
 const PASSER_SAY_CHANCE = 0.3;   // 지나가는 일행이 한마디 할 확률
@@ -1100,7 +1100,7 @@ function typeMix(hour) {
   return { worker: 5, student: 3, elder: 2 };
 }
 // 기다림 (초, 유형 patience를 곱해요)
-const PATIENCE = { queue: 22, food: 32, pay: 18 };
+const PATIENCE = { queue: 28, food: 40, pay: 22 }; // v0.35 사용자 요청으로 약 25% 늘림 (22·32·18 → 28·40·22)
 const READ_MENU_SEC = 1.4;
 const QUEUE_MAX = 3;
 const CUSTOMER_SPEED = 3.2; // 칸/초
@@ -1170,8 +1170,9 @@ const RUSH_SEC = 20;      // 도착까지 실제 초
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 const ratingSpawnMul = r => 0.55 + 0.15 * r;
 const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」
-// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 30%쯤 → 7일차 100%)
-const OPENING = [0.3, 0.45, 0.6, 0.7, 0.8, 0.9, 1];
+// 개업 초기: 아직 가게를 아는 사람이 적어 손님이 덜 와요 (1일차 30%쯤 → 12일차 100%)
+//  v0.35: 6~8일차에 손님이 두 배 가까이 늘어 갑자기 어려웠어요(메뉴 셋 · 마을 홍보까지 겹쳐서) → 더 천천히 늘게
+const OPENING = [0.3, 0.45, 0.55, 0.62, 0.68, 0.72, 0.76, 0.8, 0.84, 0.88, 0.92, 0.96, 1];
 const openingMul = day => OPENING[Math.min(OPENING.length, Math.max(1, day)) - 1];
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 // ── js/data/layout.js ──
@@ -1265,7 +1266,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.34';
+const GAME_VERSION = '0.35';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -5768,7 +5769,7 @@ function furnHTML() {
 // 지도는 data/town.js (16px 칸), 그리기는 render/town.js, 규칙은 sim/town.js. 길 찾기는 칸 단위 너비 우선 탐색(상하좌우)
 let bookSel = 0; // 손님 수첩에서 고른 사람
 
-const WALK = 60;     // 걷는 빠르기 (지도 픽셀/초)
+const WALK = 96;     // 걷는 빠르기 (지도 픽셀/초) — v0.35 사용자 요청으로 60 → 96
 const VIEW_W = 224;  // 화면에 보이는 지도 너비 (14칸 — 멀리서 보듯, 포켓몬 하트골드 정도). 높이는 화면에 맞춰요
 let T = null;        // 보이는 동안의 골목 { me, cam, path, goPlace, time, sheet, vw, vh }
 

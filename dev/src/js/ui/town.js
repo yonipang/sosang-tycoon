@@ -23,7 +23,7 @@ import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 
-const WALK = 60;     // 걷는 빠르기 (지도 픽셀/초)
+const WALK = 96;     // 걷는 빠르기 (지도 픽셀/초) — v0.35 사용자 요청으로 60 → 96
 const VIEW_W = 224;  // 화면에 보이는 지도 너비 (14칸 — 멀리서 보듯, 포켓몬 하트골드 정도). 높이는 화면에 맞춰요
 let T = null;        // 보이는 동안의 골목 { me, cam, path, goPlace, time, sheet, vw, vh }
 
