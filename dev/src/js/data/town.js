@@ -1,30 +1,46 @@
-// 마을: 밤·새벽에 걸어 다니는 가게 앞 골목 (1장부터). 그리기는 render/cut.js(골목 그림)·ui/town.js, 규칙은 sim/town.js
+// 마을: 밤·새벽에 걸어 다니는 골목 지도 (1장부터). 그리기는 render/town.js · 움직임 ui/town.js, 규칙은 sim/town.js
 // 하루: 영업 → 영수증 → 밤(21시~, 행동 칸 4) → 집에서 자기 → 새벽(5시~, 행동 칸 3) → 가게에서 「가게 열기」
 // 행동 칸: 걷는 건 공짜, 일을 하면 칸을 써요. 칸이 없는데 더 하면 피로가 쌓여요(다음 날 사장 걸음이 느려져요)
 
-// 골목 그림 (픽셀): 가로 TOWN_W · 걷는 줄 y TOWN_Y. 건물 [그림, 왼쪽 x]
-export const TOWN_W = 600;
-export const TOWN_Y = 166;
-export const TOWN_WORLD = {
-  w: 600,
-  stores: [['st_home', 6], ['st_flower', 112], ['st_bunsik', 200], ['st_laundry', 288], ['st_market', 456]],
-  signs: [['sign_mart', 488, 81], ['sign_flower', 121, 94], ['sign_laundry', 297, 94]], // 영어 판 자리를 한글 간판으로 (마트 456+32·144-133+70 · 가게 x+9·144-118+68)
-  shopX: 200,
-  lamps: [98, 374],
-};
-export const TOWN_PROPS = [{ spr: 'lamp', x: 98, y: 174 }, { spr: 'lamp', x: 374, y: 174 }, { spr: 'board', x: 400, y: 156 }];
+// 마을 지도: 위에서 비스듬히 내려다본 골목 (16px 칸 = data/layout.js TILE, 가로 MAP_W × 세로 MAP_H). 어느 방향으로든 걸어 다녀요
+//  윗줄: 우리 집 · 꽃집 · 우리 가게 · 세탁소 / 가운데 골목길 / 아랫줄: 식자재 마트 · 작은 공원(게시판) · 빈 가게(임대) / 아래 큰길
+//  양쪽 끝(0칸 · 22~23칸)은 위아래로 이어진 골목이에요
+export const MAP_W = 24;
+export const MAP_H = 28;
+// 바닥: 'road' 찻길 · 'grass' 잔디 · 나머지는 보도블록
+export const ROAD_ROWS = [10, 11, 25, 26];
+export const PARK = { x0: 9, x1: 15, y0: 14, y1: 22 };
+// 건물 [그림, 왼쪽 x, 바닥 y] (픽셀) — 건물 그림이 덮는 칸은 못 지나가요
+export const BUILDINGS = [
+  ['st_home', 16, 128], ['st_flower', 112, 128], ['st_bunsik', 192, 128], ['st_laundry', 272, 128],
+  ['st_market', 16, 368], ['st_vacant', 272, 368],
+];
+// 간판 [그림, x, y] — 그림의 영어 STORE·MARKET 판을 덮어요 (가게: x+9, 바닥−118+68 / 마트: x+32, 바닥−133+70)
+export const SIGNS = [['sign_flower', 121, 78], ['sign', 201, 78], ['sign_laundry', 281, 78], ['sign_mart', 48, 305], ['sign_vacant', 281, 318]];
+// 물건 { spr, x 왼쪽, y 바닥, block: 못 지나가는 칸 [[칸x, 칸y]] }
+export const MAP_PROPS = [
+  { spr: 'lamp', x: 98, y: 158, block: [[6, 9]] }, { spr: 'lamp', x: 354, y: 158, block: [[22, 9]] },
+  { spr: 'board', x: 148, y: 232, block: [[9, 14]] },
+  { spr: 'tree', x: 176, y: 268, block: [[12, 16]] }, { spr: 'tree2', x: 206, y: 300, block: [[14, 18]] },
+  { spr: 'pine', x: 146, y: 330, block: [[9, 20]] }, { spr: 'bench', x: 182, y: 344, block: [[11, 21], [12, 21], [13, 21]] },
+  { spr: 'bush', x: 226, y: 360, block: [[14, 22]] }, { spr: 'bush', x: 2, y: 64, block: [[0, 3]] }, { spr: 'pine', x: 358, y: 96, block: [[23, 5]] },
+];
+// 밤 불빛 [x, y, 반지름, 세기]
+export const LIGHTS = [[248, 107, 22, 0.42], [216, 120, 16, 0.3], [105, 104, 10, 0.55], [361, 104, 10, 0.55], [72, 330, 20, 0.3]];
 
-// 장소: x 문 앞(걸어가 서는 곳) · from~to 누를 수 있는 가로 범위 · open: 'night'|'dawn'|없으면 늘 · who 앞에 서 있는 사람
+// 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · open: 'night'|'dawn'|없으면 늘 · who 앞에 서 있는 사람
 export const PLACES = {
-  home: { name: '우리 집', short: '집', x: 50, from: 0, to: 105 },
-  flower: { name: '미소 꽃집', short: '꽃집', x: 150, from: 106, to: 199, who: 'miso', open: 'night' },
-  shop: { name: '우리 가게', short: '우리 가게', x: 224, from: 200, to: 287 },
-  laundry: { name: '최 사장 세탁소', short: '세탁소', x: 312, from: 288, to: 385, who: 'choi', open: 'night' },
-  board: { name: '골목 게시판', short: '게시판', x: 412, from: 386, to: 450, open: 'night' },
-  market: { name: '정 사장 식자재', short: '식자재', x: 511, from: 451, to: 600, who: 'jung', open: 'dawn' },
+  home: { name: '우리 집', short: '집', door: [3, 8], rect: [16, 15, 96, 113] },
+  flower: { name: '미소 꽃집', short: '꽃집', door: [8, 8], rect: [112, 10, 80, 118], who: 'miso', open: 'night' },
+  shop: { name: '우리 가게', short: '우리 가게', door: [13, 8], rect: [192, 10, 80, 118] },
+  laundry: { name: '최 사장 세탁소', short: '세탁소', door: [18, 8], rect: [272, 10, 80, 118], who: 'choi', open: 'night' },
+  board: { name: '골목 게시판', short: '게시판', door: [10, 14], rect: [144, 200, 28, 34], open: 'night' },
+  market: { name: '정 사장 식자재', short: '식자재', door: [4, 23], rect: [16, 235, 112, 133], who: 'jung', open: 'dawn' },
 };
-// 사람이 서 있는 곳 (data/story.js CAST)
-export const TOWN_NPC = { miso: { x: 132, open: 'night' }, choi: { x: 342, open: 'night' }, jung: { x: 536, open: 'dawn' } };
+// 사람이 서 있는 칸 (data/story.js CAST)
+export const TOWN_NPC = { miso: { at: [9, 9], open: 'night' }, choi: { at: [19, 9], open: 'night' }, jung: { at: [5, 23], open: 'dawn' } };
+// 빈 가게: 지금은 「임대 문의」만 (2호점·이웃 이야기 자리)
+export const VACANT_NOTE = '「임대 문의」 종이가 붙어 있습니다. 언젠가 여기도…';
 
 // 행동 칸
 export const NIGHT_SLOTS = 4;

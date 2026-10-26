@@ -1,12 +1,14 @@
-// 마을 화면: 밤·새벽 골목을 걸어 다녀요. 바닥을 누르면 걷고, 가게·사람을 누르면 걸어가서 할 일 창을 띄워요.
-// 그림은 render/cut.js(연출과 같은 골목 그리기)를 넓은 골목(data/town.js TOWN_WORLD)으로 써요. 규칙은 sim/town.js
+// 마을 화면: 밤·새벽 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
+// 지도는 data/town.js (16px 칸), 그리기는 render/town.js, 규칙은 sim/town.js. 길 찾기는 칸 단위 너비 우선 탐색(상하좌우)
 import { G } from '../save/state.js';
 import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
-import { TOWN_W, TOWN_Y, TOWN_WORLD, TOWN_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, NIGHT_START, DAWN_START, HYGIENE_LOW, MARKET_PACK, MARKET_DEAL } from '../data/town.js';
-import { drawCutOn, fitCanvas, CUT_W, CUT_H } from '../render/cut.js';
+import { TILE } from '../data/layout.js';
+import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, PLACE_ACTS, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_START, DAWN_START, HYGIENE_LOW, MARKET_PACK, MARKET_DEAL } from '../data/town.js';
+import { SPR } from '../art/atlas.js';
+import { drawTown } from '../render/town.js';
 import { townMode, slotsMax, actNow, placeOpen, marketUnit } from '../sim/town.js';
 import { menuOpen } from '../sim/story.js';
 import { invCount } from '../sim/day.js';
@@ -14,21 +16,105 @@ import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 
-const WALK = 56; // 걷는 빠르기 (골목 픽셀/초)
-let T = null;    // 보이는 동안의 골목 { me, cam, target, goPlace, time, sheet }
-let tScale = 3;
+const WALK = 60;     // 걷는 빠르기 (지도 픽셀/초)
+const VIEW_W = 144;  // 화면에 보이는 지도 너비 (9칸). 높이는 화면에 맞춰요
+let T = null;        // 보이는 동안의 골목 { me, cam, path, goPlace, time, sheet, vw, vh }
 
 export const townShown = () => !!T && !$('town').hidden;
 export const townView = () => T; // 시험용 (main.js __T)
 
+// 칸 ↔ 픽셀 (사람은 칸 가운데, 발끝은 칸 아래쪽)
+const tileX = tx => tx * TILE + TILE / 2;
+const tileY = ty => ty * TILE + TILE - 3;
+const vacantB = BUILDINGS.find(b => b[0] === 'st_vacant');
+
+// 못 지나가는 칸: 건물 그림이 덮는 칸 · 물건 · 서 있는 이웃
+let wallMap = null;
+function walls() {
+  if (!wallMap) {
+    wallMap = new Uint8Array(MAP_W * MAP_H);
+    for (const [n, x, bot] of BUILDINGS) {
+      const [, , w, h] = SPR[n];
+      for (let ty = Math.floor((bot - h) / TILE); ty < Math.ceil(bot / TILE); ty++)
+        for (let tx = Math.floor(x / TILE); tx < Math.ceil((x + w) / TILE); tx++) if (tx >= 0 && ty >= 0 && tx < MAP_W && ty < MAP_H) wallMap[ty * MAP_W + tx] = 1;
+    }
+    for (const p of MAP_PROPS) for (const [tx, ty] of p.block || []) wallMap[ty * MAP_W + tx] = 1;
+  }
+  const m = wallMap.slice();
+  for (const id in TOWN_NPC) if (TOWN_NPC[id].open === G.town.part) { const [tx, ty] = TOWN_NPC[id].at; m[ty * MAP_W + tx] = 1; }
+  return m;
+}
+// 너비 우선 탐색: from 칸에서 to 칸까지 [[x,y], …] (from 빼고). 못 가면 null
+function townPath(from, to) {
+  const m = walls(), N = MAP_W * MAP_H, prev = new Int32Array(N).fill(-1);
+  const s = from[1] * MAP_W + from[0], g = to[1] * MAP_W + to[0];
+  if (m[g]) return null;
+  prev[s] = s;
+  const q = [s];
+  for (let i = 0; i < q.length && prev[g] < 0; i++) {
+    const c = q[i], cx = c % MAP_W, cy = (c - cx) / MAP_W;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy, k = ny * MAP_W + nx;
+      if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || m[k] || prev[k] >= 0) continue;
+      prev[k] = c; q.push(k);
+    }
+  }
+  if (prev[g] < 0) return null;
+  const out = [];
+  for (let c = g; c !== s; c = prev[c]) out.unshift([c % MAP_W, Math.floor(c / MAP_W)]);
+  return out;
+}
+// 누른 칸이 막혀 있으면 가장 가까운 갈 수 있는 칸으로
+function nearestOpen(tx, ty) {
+  const m = walls();
+  let best = null, bd = 1e9;
+  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+    if (m[y * MAP_W + x]) continue;
+    const d = (x - tx) ** 2 + (y - ty) ** 2;
+    if (d < bd) { bd = d; best = [x, y]; }
+  }
+  return best;
+}
+const meTile = () => [Math.floor(T.me.x / TILE), Math.floor(T.me.y / TILE)];
+
+// to 칸까지 걸어가요 (then: 도착하면 할 일)
+function walkTo(to, then) {
+  const at = T.me.path && T.me.path.length ? T.me.path[0] : meTile(); // 걷는 중이면 지금 향하는 칸에서 이어서
+  const path = townPath(at, to);
+  if (!path) return false;
+  if (T.me.path && T.me.path.length) path.unshift(T.me.path[0]);
+  T.me.path = path; T.then = then || null;
+  if (!path.length) arrive();
+  return true;
+}
+function arrive() {
+  const me = T.me, then = T.then;
+  me.moving = false; T.then = null;
+  if (then) then();
+}
+function facePlace(id) {
+  const [x, y, w, h] = PLACES[id].rect, dx = x + w / 2 - T.me.x, dy = y + h / 2 - T.me.y;
+  T.me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 3 : 1);
+}
+function goPlace(id) {
+  const ok = walkTo(PLACES[id].door, () => { facePlace(id); openPlace(id); });
+  if (!ok) openPlace(id);
+}
+
+function placeMe(id) {
+  const [tx, ty] = PLACES[id].door;
+  T.me.x = tileX(tx); T.me.y = tileY(ty); T.me.path = []; T.me.moving = false; T.me.dir = 3; T.then = null;
+}
+
 export function showTown() {
   if (!townMode()) return;
-  const night = G.town.part !== 'dawn';
-  if (!T) T = { me: { char: 0, x: PLACES.shop.x, y: TOWN_Y, dir: 3, pose: 'idle' }, cam: { x: 0, y: 14 }, target: null, goPlace: null, time: 0 };
-  T.night = night;
+  const part = G.town.part;
+  if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.part = part; }
+  if (T.part !== part) { placeMe(part === 'dawn' ? 'home' : 'shop'); T.part = part; } // 밤은 가게 앞, 새벽은 집 앞에서
   $('town').hidden = false;
-  layoutTown();
+  document.body.classList.add('in-town'); // 위 막대(#bar)는 숨겨요 (마을 막대가 대신)
   renderBar(); renderNav();
+  layoutTown();
   if (!T.sheet) closeSheet();
 }
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
@@ -37,9 +123,14 @@ function renderNav() {
 }
 export function hideTown() { if ($('town')) $('town').hidden = true; closeSheet(); }
 
+// 캔버스: 너비 9칸, 높이는 남는 자리만큼 (그림 1픽셀 = 기기 픽셀 정수 개)
 function layoutTown() {
-  const el = $('town'); if (el.hidden) return;
-  tScale = fitCanvas($('townCv'), el.clientWidth, el.clientHeight - 96);
+  const el = $('town'); if (!el || el.hidden || !T) return;
+  const cv = $('townCv'), dpr = window.devicePixelRatio || 1;
+  const availH = el.clientHeight - $('townBar').offsetHeight - $('townNav').offsetHeight - 8;
+  const s = Math.max(1, Math.floor(el.clientWidth / VIEW_W * dpr)) / dpr;
+  T.vw = VIEW_W; T.vh = Math.max(128, Math.min(MAP_H * TILE, Math.floor(availH / s)));
+  cv.style.width = T.vw * s + 'px'; cv.style.height = T.vh * s + 'px';
 }
 
 // 위: 밤/새벽 · 시각 · 남은 일 칸 · 피로 · 위생
@@ -56,7 +147,7 @@ function renderBar() {
 // 할 일이 있는 곳 「!」: 새벽 시장(아직 안 감) · 새벽 가게(열기) · 밤 할 일을 다 했으면 집
 function townMarks() {
   const Tn = G.town, out = [];
-  const top = id => ({ x: PLACES[id].x - 1, y: 24 });
+  const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
   if (Tn.part === 'dawn') { if (!Tn.marketIn) out.push(top('market')); out.push(top('shop')); }
   else if (Tn.used >= slotsMax()) out.push(top('home'));
   return out;
@@ -66,31 +157,40 @@ export function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
   const me = T.me;
-  if (T.target !== null && !talking()) {
-    const d = T.target - me.x, step = WALK * dt;
-    if (Math.abs(d) <= step) { me.x = T.target; T.target = null; me.moving = false; me.dir = 3; if (T.goPlace) { const p = T.goPlace; T.goPlace = null; openPlace(p); } }
-    else { me.x += Math.sign(d) * step; me.moving = true; me.dir = d > 0 ? 0 : 2; }
+  if (me.path.length && !talking()) {
+    let step = WALK * dt;
+    while (step > 0 && me.path.length) {
+      const [tx, ty] = me.path[0], gx = tileX(tx), gy = tileY(ty), dx = gx - me.x, dy = gy - me.y, d = Math.abs(dx) + Math.abs(dy);
+      if (d <= step) { me.x = gx; me.y = gy; step -= d; me.path.shift(); if (!me.path.length) arrive(); continue; }
+      if (Math.abs(dx) > 0.01) { me.x += Math.sign(dx) * step; me.dir = dx > 0 ? 0 : 2; } else { me.y += Math.sign(dy) * step; me.dir = dy > 0 ? 3 : 1; }
+      me.moving = true; step = 0;
+    }
   }
-  T.cam.x = Math.max(0, Math.min(TOWN_W - CUT_W, me.x - CUT_W / 2));
+  T.cam.x = Math.max(0, Math.min(MAP_W * TILE - T.vw, me.x - T.vw / 2));
+  T.cam.y = Math.max(0, Math.min(MAP_H * TILE - T.vh, me.y - 16 - T.vh / 2));
   const dawn = G.town.part === 'dawn';
-  const actors = { me };
-  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part) actors[id] = { char: CAST[id].char, x: n.x, y: TOWN_Y - 4, dir: 3, pose: 'idle' }; }
-  drawCutOn($('townCv'), { cam: T.cam, actors, props: TOWN_PROPS, emotes: {}, time: T.time, night: !dawn, dawn, door: false, fade: 0, world: TOWN_WORLD, marks: townMarks() });
+  const actors = [me];
+  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part) actors.push({ char: CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); }
+  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks() });
 }
 
-// 누른 곳: 건물이면 그 장소로, 아니면 그 자리까지 걸어요
+// 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요
+const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
   const r = $('townCv').getBoundingClientRect();
-  const wx = T.cam.x + (e.clientX - r.left) / r.width * CUT_W, wy = T.cam.y + (e.clientY - r.top) / r.height * CUT_H;
-  if (wx < 0 || wx > TOWN_W) return;
+  const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
   closeSheet();
-  const place = wy < 150 ? Object.keys(PLACES).find(id => wx >= PLACES[id].from && wx <= PLACES[id].to) : null;
-  const npc = Object.keys(TOWN_NPC).find(id => TOWN_NPC[id].open === G.town.part && Math.abs(wx - TOWN_NPC[id].x) < 8 && wy > 130 && wy < 170);
-  const go = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : place;
-  T.goPlace = go || null;
-  T.target = Math.max(8, Math.min(TOWN_W - 8, go ? PLACES[go].x : wx));
   playSfx('tap');
+  const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
+  const place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
+  if (place) { goPlace(place); return; }
+  if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.st_vacant[3], SPR.st_vacant[2], SPR.st_vacant[3]])) {
+    walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); });
+    return;
+  }
+  const to = nearestOpen(Math.floor(wx / TILE), Math.floor(wy / TILE));
+  if (to) walkTo(to);
 }
 
 // ── 아래 창: 장소의 할 일 · 이웃 이야기 · 시장 ──
@@ -153,8 +253,9 @@ function marketHTML() {
 
 export function initTown() {
   $('townCv').addEventListener('click', tapTown);
-  $('townNav').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b || talking()) return; closeSheet(); T.goPlace = b.dataset.go; T.target = PLACES[b.dataset.go].x; playSfx('tap'); });
+  $('townNav').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b || talking()) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap'); });
   addEventListener('resize', layoutTown);
+  if (window.ResizeObserver) new ResizeObserver(layoutTown).observe($('town'));
   $('townSheet').addEventListener('click', e => {
     if (chatQ) { chatQ.i++; playSfx('tap'); if (chatQ.i >= chatQ.lines.length) { const after = chatQ.after; chatQ = null; closeSheet(); if (after) after(); } else drawChat(); return; }
     const b = e.target.closest('[data-ts]');
@@ -168,7 +269,7 @@ export function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
-    if (what === 'dawn') { closeSheet(); T.me.x = PLACES.home.x; T.target = null; playSfx('page'); }
+    if (what === 'dawn') { closeSheet(); placeMe('home'); T.part = 'dawn'; playSfx('page'); }
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
 }
