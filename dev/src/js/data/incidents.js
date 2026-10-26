@@ -138,3 +138,7 @@ export const INCIDENTS = {
 };
 // 하루에 몇 개까지 (그날 중 무작위로 고름)
 export const INCIDENTS_PER_DAY = day => (day <= 1 ? 0 : 1); // 하루에 하나만
+// 매일은 아니고 자주 (v0.42 사용자 요청): 2일차는 처음 보여 주려고 꼭, 그 뒤로는 확률 · 어제 없었으면 더 높게
+export const INCIDENT_FIRST_DAY = 2;
+export const INCIDENT_CHANCE = 0.55;
+export const INCIDENT_CHANCE_AFTER_NONE = 0.85;

@@ -4,7 +4,7 @@ import { G } from '../save/state.js';
 import { addReviews } from './rating.js';
 import { josa } from '../engine/util.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
-import { INCIDENTS, INCIDENTS_PER_DAY } from '../data/incidents.js';
+import { INCIDENTS, INCIDENTS_PER_DAY, INCIDENT_FIRST_DAY, INCIDENT_CHANCE, INCIDENT_CHANCE_AFTER_NONE } from '../data/incidents.js';
 import { rand, weighted } from '../engine/random.js';
 import { emit } from './events.js';
 import { menuOpen } from './story.js';
@@ -22,6 +22,10 @@ export function planIncidents(r) {
   const yday = (G.history[G.history.length - 1] || {}).inc || []; // 어제 일어난 건 오늘 빼요
   const pool = Object.keys(INCIDENTS).filter(id => G.day >= INCIDENTS[id].minDay && !yday.includes(id) && (!INCIDENTS[id].needMenu || menuOpen(INCIDENTS[id].needMenu)));
   let n = INCIDENTS_PER_DAY(G.day);
+  if (n && G.day > INCIDENT_FIRST_DAY) { // 매일은 아니고 자주: 어제 없었으면 더 잘 일어나요 (무작위 → 그날 씨앗 rand)
+    const p = yday.length ? INCIDENT_CHANCE : INCIDENT_CHANCE_AFTER_NONE;
+    if (rand() >= p) n = 0;
+  }
   while (n-- > 0 && pool.length) {
     const id = weighted(Object.fromEntries(pool.map(k => [k, INCIDENTS[k].weight])));
     pool.splice(pool.indexOf(id), 1);

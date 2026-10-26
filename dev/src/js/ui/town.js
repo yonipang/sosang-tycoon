@@ -13,7 +13,7 @@ import { SHOP_SPOTS } from '../data/town.js';
 import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
-import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs } from '../sim/town.js';
+import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs, isDeal, marketCost, jungTalkOk } from '../sim/town.js';
 import { furnOpen } from '../sim/furniture.js';
 import { guildOpen } from '../sim/guild.js';
 import { guildHTML } from './guild.js';
@@ -395,9 +395,9 @@ function actRow(id, a) {
   const Tn = G.town;
   {
     const A = ACTS[a], ok = actNow(id, a);
-    const cost = A.cost ? `${A.cost}칸` : '';
+    const cost = a === 'market' ? (marketCost() ? `${marketCost()}칸` : '') : A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
+      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 한 칸' : '새벽 배달 · 칸을 쓰지 않습니다')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
@@ -432,7 +432,7 @@ function planDefault() {
 function ingTile(i, lack) {
   const I = INGREDIENTS[i], unit = marketUnit(i), k = cart[i] || 0, news = ingNews(i);
   const inv = invOf(i), today = invToday(i), short = (lack[i] || 0) > k;
-  const tag = G.town.deal === i ? '<i class="mk-tag deal">특가</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
+  const tag = isDeal(i) ? '<i class="mk-tag deal">특가</i>' : G.town.kept === i ? '<i class="mk-tag keep">+1일</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
   return `<div class="mk-tile${k ? ' in' : ''}" data-ts="cart" data-i="${i}" data-d="1" role="button" aria-label="${I.name} 한 묶음 담기">
     ${short ? '<i class="mk-dot"></i>' : ''}${tag}${icon('ing_' + i, 'mk-ic')}
     <b>${I.name}</b><small>${won(unit * I.pack)}</small>
@@ -440,11 +440,18 @@ function ingTile(i, lack) {
       : today ? `<small class="mk-inv today">오늘까지 ${today}</small>` : inv ? `<small class="mk-inv">재고 ${inv}</small>` : ''}</div>
   </div>`;
 }
+// 정 사장님 한 줄: 이야기하기(하루 한 번, ♥+2) · 따로 빼 둔 재료 (♥♥♥)
+function marketJung() {
+  const kept = G.town.kept ? `<span>빼 둔 재료 ${INGREDIENTS[G.town.kept].name} <small>(+1일)</small></span>` : '';
+  const talk = jungTalkOk() ? '<button type="button" class="btn small mk-talk" data-ts="jungTalk">정 사장님과 이야기 <small>♥+2</small></button>' : '';
+  return talk || kept ? `<div class="mk-jung">${kept}${talk}</div>` : '';
+}
 function marketHTML() {
   const ings = openIngs(), lack = cartFor(plan);
   const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
   return `<div class="ts-head"><b>정 사장 식자재</b>${heartsHTML('jung')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${marketJung()}
     <small class="mk-h">오늘 팔 양</small>
     <div class="mk-plan">${todayMenus().map(m => `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>재고로 ${invServings(m)}그릇</small></span><div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('')}</div>
     <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기 <small>빨간 점이 모자란 재료</small></button>
@@ -520,6 +527,7 @@ export function initTown() {
     else if (k === 'join') runCmd('questPay', { id: 'c2_join' });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {

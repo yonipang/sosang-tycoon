@@ -69,18 +69,18 @@ function specialTab() {
       <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
 }
 
-// 위: 미리보기 · 가진 물건(아이콘 한 줄) · 효과 한 줄
-function topHTML() {
+// 위: 가게 미리보기(창 너비를 꽉 채워요, 늘 위에 붙어 있음) · 그 아래 가진 물건(아이콘 한 줄) · 효과 한 줄
+function topHTML(head) {
   const now = mood(), next = withFurn(fcart, mood), on = withFurn(fcart, themesOn), disc = misoDisc();
   const owned = FURN_ORDER.map(c => { const k = furnHave(c); return k ? `<span class="fu-own" title="${itemInfo(c, k).name}">${pic(itemInfo(c, k).spr, c === 'wall' || c === 'floor' ? 0.5 : 1)}</span>` : `<span class="fu-own none" title="${FURN_CATS[c].name}"></span>`; }).join('');
   const eff = `분위기 <b>${now}</b>${next !== now ? ` → <b class="up">${next}</b>` : ''}<small>/100</small>${on.length ? ` · ${on.map(t => `★${FURN_THEMES[t].short || FURN_THEMES[t].name}`).join(' ')}` : ''}${disc ? ` · <span class="fu-disc">♥ ${Math.round(disc * 100)}%</span>` : ''}`;
-  return `<div class="fu-top"><canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
+  return `<div class="fu-top">${head}<canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
     <div class="fu-side"><div class="fu-owned">${owned}</div><div class="fu-mood">${eff}</div></div></div>`;
 }
-// 아래: 장바구니 합계 · 초기화 · 구매하기
+// 아래에 떠 있는 버튼: 초기화 · 구매하기 (담은 개수·잔고는 버튼 위 작은 글)
 function footHTML() {
   const n = cartList(fcart).length, price = cartPrice(fcart), set = cartIsSet(fcart);
-  return `<div class="mk-foot fu-foot"><div class="mk-sum"><span>${n ? `${n}개 담음${set ? ' · 세트 15% 할인' : ''}` : '물건을 눌러 담아 보세요'}</span><span>잔고 ${wonShort(G.cash)}</span></div>
+  return `<div class="fu-float"><p class="fu-sum">${n ? `${n}개 담음${set ? ' · 세트 15% 할인' : ''}` : '물건을 눌러 담아 보세요'} · 잔고 ${wonShort(G.cash)}</p>
     <div class="fu-btns"><button type="button" class="btn" data-ts="freset" ${n ? '' : 'disabled'}>초기화</button>
     <button type="button" class="btn primary big" data-ts="fcart" ${n && price <= G.cash ? '' : 'disabled'}>${!n ? '구매하기' : price > G.cash ? '잔고가 모자랍니다' : `구매하기 · ${won(price)}`}</button></div></div>`;
 }
@@ -103,8 +103,7 @@ export function furnHTML() {
   const tab = furnTheme();
   const tabs = FURN_THEME_IDS.map(id => `<button type="button" class="fu-tab${id === tab ? ' sel' : ''}" data-ts="fth" data-t="${id}">${FURN_THEMES[id].short || FURN_THEMES[id].name}${themeCount(id) ? `<i>${themeCount(id)}</i>` : ''}</button>`).join('')
     + `<button type="button" class="fu-tab${tab === 'sp' ? ' sel' : ''}" data-ts="fth" data-t="sp">특별 <small>♥4</small></button><button type="button" class="fu-tab${tab === 'build' ? ' sel' : ''}" data-ts="fth" data-t="build">확장공사</button>`;
-  return `<div class="ts-head"><b>미소 가구</b>${heartsHTML('miso')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    ${topHTML()}
+  return `${topHTML(`<div class="ts-head"><b>미소 가구</b>${heartsHTML('miso')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>`)}
     <div class="fu-tabs">${tabs}</div>
     ${furnLocked() ? '<p class="ts-note">미소 사장님과 조금 더 친해지면 살 수 있습니다</p>' : ''}
     ${tab === 'sp' ? specialTab() : tab === 'build' ? buildTab() : themeTab(tab)}

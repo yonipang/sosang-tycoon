@@ -785,6 +785,10 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .mk-dot { position: absolute; top: 3px; left: 3px; width: 8px; height: 8px; background: var(--red); border: 1px solid var(--ink); }
 .mk-tag { position: absolute; top: 2px; right: 2px; padding: 0 2px; font-style: normal; color: #fff; }
 .mk-tag.deal { background: var(--green); }
+.mk-tag.keep { background: #3c6fb0; }
+.mk-jung { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0 2px; color: var(--ink-soft); font-size: 14px; word-break: keep-all; }
+.mk-jung .mk-talk { flex: none; width: auto; margin: 0 0 0 auto; padding: 4px 10px; min-height: 36px; }
+.mk-jung .mk-talk small { color: var(--red); }
 .mk-tag.up { background: var(--red); }
 .mk-tag.down { background: var(--blue); }
 .mk-row { display: flex; align-items: center; justify-content: center; gap: 4px; height: 24px; margin-top: 2px; }
@@ -882,17 +886,26 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .sl-week b { font-weight: normal; }
 .neg { color: var(--red); }
 #townNav button.go { background: var(--red); color: #fff; }
-/* 미소 가구: 미리보기 · 가진 물건 · 장바구니 */
-.town-sheet.furn { max-height: 82%; }
-.fu-top { position: sticky; top: -6px; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 0 -10px; padding: 6px 10px; background: var(--paper); border-bottom: 2px dashed var(--line); }
-.fu-prev { flex: none; width: 140px; height: 112px; image-rendering: pixelated; border: 3px solid var(--ink); background: var(--ink); }
-.fu-side { flex: 1; min-width: 0; }
-.fu-owned { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
-.fu-own { aspect-ratio: 1; min-width: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); background: var(--paper-2); overflow: hidden; }
+/* 미소 가구: 위를 꽉 채운 미리보기 · 가진 물건 · 떠 있는 버튼 (v0.42 사용자 요청) */
+.town-sheet.furn { top: 4px; max-height: none; padding-bottom: 0; }
+.fu-top { position: sticky; top: -6px; z-index: 3; margin: -6px -10px 0; padding: 0 0 6px; background: var(--paper); border-bottom: 2px dashed var(--line); }
+.fu-prev { display: block; width: 100%; height: auto; image-rendering: pixelated; background: var(--ink); border-bottom: 3px solid var(--ink); }
+.fu-side { display: flex; align-items: center; gap: 8px; padding: 6px 10px 0; }
+.fu-owned { flex: none; display: grid; grid-template-columns: repeat(6, 26px); gap: 3px; }
+.fu-own { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); background: var(--paper-2); overflow: hidden; }
 .fu-own.none { border-style: dashed; border-color: var(--line); background: transparent; }
-.fu-own img { image-rendering: pixelated; max-width: 24px; max-height: 24px; object-fit: contain; }
-.fu-mood { text-align: left; margin-top: 6px; line-height: 1.3; word-break: keep-all; }
+.fu-own img { image-rendering: pixelated; max-width: 20px; max-height: 20px; object-fit: contain; }
+.fu-mood { flex: 1; min-width: 0; text-align: right; margin: 0; padding: 0; line-height: 1.2; word-break: keep-all; font-size: 15px; }
+.fu-mood b { font-size: 18px; }
 .fu-mood b.up { color: var(--green); }
+.town-sheet.furn .ts-head { position: absolute; top: 4px; left: 6px; right: 6px; z-index: 4; margin: 0; padding: 0; border: 0; pointer-events: none; }
+.town-sheet.furn .ts-head > * { pointer-events: auto; }
+.town-sheet.furn .ts-head b { background: var(--paper); border: 2px solid var(--ink); padding: 0 8px; }
+.town-sheet.furn .ts-head .hearts { background: var(--paper); border: 2px solid var(--ink); padding: 0 4px; }
+.fu-float { position: sticky; bottom: 0; z-index: 3; margin: 0 -10px; padding: 8px 10px max(10px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(251,243,226,0), rgba(251,243,226,.85) 50%); pointer-events: none; }
+.fu-float > * { pointer-events: auto; }
+.fu-sum { width: max-content; max-width: 100%; margin: 0 auto -2px; padding: 0 8px; text-align: center; color: var(--ink); font-size: 14px; background: var(--paper); border: 2px solid var(--ink); }
+
 .fu-tile.pick { background: #fff3c9; border-color: var(--red); box-shadow: 0 3px 0 var(--red); }
 .fu-pk { position: absolute; top: 2px; right: 3px; font-style: normal; font-size: 12px; color: #fff; background: var(--red); padding: 0 3px; }
 .fu-set.pick { box-shadow: 0 3px 0 var(--red); border-color: var(--red); }
@@ -915,3 +928,4 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .gd-row .btn.small { flex: none; width: auto; min-width: 76px; margin: 0; padding: 4px 8px; }
 .gd-done { flex: none; color: var(--green); }
 .gd-foot { margin: 8px 0 0; color: var(--ink-soft); text-align: right; font-size: 14px; }
+.town-sheet.furn .mk-foot { bottom: 0; margin-bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }

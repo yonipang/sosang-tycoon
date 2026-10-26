@@ -790,6 +790,10 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .mk-dot { position: absolute; top: 3px; left: 3px; width: 8px; height: 8px; background: var(--red); border: 1px solid var(--ink); }
 .mk-tag { position: absolute; top: 2px; right: 2px; padding: 0 2px; font-style: normal; color: #fff; }
 .mk-tag.deal { background: var(--green); }
+.mk-tag.keep { background: #3c6fb0; }
+.mk-jung { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0 2px; color: var(--ink-soft); font-size: 14px; word-break: keep-all; }
+.mk-jung .mk-talk { flex: none; width: auto; margin: 0 0 0 auto; padding: 4px 10px; min-height: 36px; }
+.mk-jung .mk-talk small { color: var(--red); }
 .mk-tag.up { background: var(--red); }
 .mk-tag.down { background: var(--blue); }
 .mk-row { display: flex; align-items: center; justify-content: center; gap: 4px; height: 24px; margin-top: 2px; }
@@ -887,17 +891,26 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .sl-week b { font-weight: normal; }
 .neg { color: var(--red); }
 #townNav button.go { background: var(--red); color: #fff; }
-/* 미소 가구: 미리보기 · 가진 물건 · 장바구니 */
-.town-sheet.furn { max-height: 82%; }
-.fu-top { position: sticky; top: -6px; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 0 -10px; padding: 6px 10px; background: var(--paper); border-bottom: 2px dashed var(--line); }
-.fu-prev { flex: none; width: 140px; height: 112px; image-rendering: pixelated; border: 3px solid var(--ink); background: var(--ink); }
-.fu-side { flex: 1; min-width: 0; }
-.fu-owned { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
-.fu-own { aspect-ratio: 1; min-width: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); background: var(--paper-2); overflow: hidden; }
+/* 미소 가구: 위를 꽉 채운 미리보기 · 가진 물건 · 떠 있는 버튼 (v0.42 사용자 요청) */
+.town-sheet.furn { top: 4px; max-height: none; padding-bottom: 0; }
+.fu-top { position: sticky; top: -6px; z-index: 3; margin: -6px -10px 0; padding: 0 0 6px; background: var(--paper); border-bottom: 2px dashed var(--line); }
+.fu-prev { display: block; width: 100%; height: auto; image-rendering: pixelated; background: var(--ink); border-bottom: 3px solid var(--ink); }
+.fu-side { display: flex; align-items: center; gap: 8px; padding: 6px 10px 0; }
+.fu-owned { flex: none; display: grid; grid-template-columns: repeat(6, 26px); gap: 3px; }
+.fu-own { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); background: var(--paper-2); overflow: hidden; }
 .fu-own.none { border-style: dashed; border-color: var(--line); background: transparent; }
-.fu-own img { image-rendering: pixelated; max-width: 24px; max-height: 24px; object-fit: contain; }
-.fu-mood { text-align: left; margin-top: 6px; line-height: 1.3; word-break: keep-all; }
+.fu-own img { image-rendering: pixelated; max-width: 20px; max-height: 20px; object-fit: contain; }
+.fu-mood { flex: 1; min-width: 0; text-align: right; margin: 0; padding: 0; line-height: 1.2; word-break: keep-all; font-size: 15px; }
+.fu-mood b { font-size: 18px; }
 .fu-mood b.up { color: var(--green); }
+.town-sheet.furn .ts-head { position: absolute; top: 4px; left: 6px; right: 6px; z-index: 4; margin: 0; padding: 0; border: 0; pointer-events: none; }
+.town-sheet.furn .ts-head > * { pointer-events: auto; }
+.town-sheet.furn .ts-head b { background: var(--paper); border: 2px solid var(--ink); padding: 0 8px; }
+.town-sheet.furn .ts-head .hearts { background: var(--paper); border: 2px solid var(--ink); padding: 0 4px; }
+.fu-float { position: sticky; bottom: 0; z-index: 3; margin: 0 -10px; padding: 8px 10px max(10px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(251,243,226,0), rgba(251,243,226,.85) 50%); pointer-events: none; }
+.fu-float > * { pointer-events: auto; }
+.fu-sum { width: max-content; max-width: 100%; margin: 0 auto -2px; padding: 0 8px; text-align: center; color: var(--ink); font-size: 14px; background: var(--paper); border: 2px solid var(--ink); }
+
 .fu-tile.pick { background: #fff3c9; border-color: var(--red); box-shadow: 0 3px 0 var(--red); }
 .fu-pk { position: absolute; top: 2px; right: 3px; font-style: normal; font-size: 12px; color: #fff; background: var(--red); padding: 0 3px; }
 .fu-set.pick { box-shadow: 0 3px 0 var(--red); border-color: var(--red); }
@@ -920,6 +933,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .gd-row .btn.small { flex: none; width: auto; min-width: 76px; margin: 0; padding: 4px 8px; }
 .gd-done { flex: none; color: var(--green); }
 .gd-foot { margin: 8px 0 0; color: var(--ink-soft); text-align: right; font-size: 14px; }
+.town-sheet.furn .mk-foot { bottom: 0; margin-bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1379,7 +1393,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.41';
+const GAME_VERSION = '0.42';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1566,6 +1580,13 @@ const CHATS = {
     [['choi', '요새 앞 건물 월세가 또 올랐다더라. 건물주들은 참….'], ['choi', '그래도 사장은 열심히 하니까 괜찮을 거야. 손님 하나 또 보낼게.']],
   ],
 };
+// 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀 · 차례대로)
+const JUNG_CHATS = [
+  [['jung', '떡은 아침에 뽑은 거라 말랑해. 손으로 눌러 봐.'], ['jung', '오 사장 그 양반도 처음엔 떡을 너무 많이 사서 다 버렸어. 허허.']],
+  [['jung', '요즘 채소값이 들쭉날쭉해. 신문 꼭 챙겨 봐.'], ['jung', '쌀 때 많이 사 두는 것도 장사야. 오래가는 것만.']],
+  [['jung', '자네 가게 떡볶이 맛있다고 우리 집사람이 그러더라.'], ['jung', '좋은 물건 들어오면 자네 몫 따로 빼 둘게.']],
+  [['jung', '새벽 시장은 부지런한 사람 거야. 자네는 부지런하네.'], ['jung', '나중엔 내가 가게 앞까지 갖다줄 수도 있고. 단골이면.']],
+];
 // 시장 정 사장 인사 (새벽 첫 방문)
 const JUNG_HELLO = [
   [['jung', '어이, 오 사장 후배라며? 그 양반한테 얘기 들었어.'], ['jung', '재료는 새벽에 와야 제일 싱싱해. 오늘 특가도 한번 봐.']],
@@ -1585,12 +1606,17 @@ const BOND_DAY_MAX = 3;
 // 단계마다 열리는 것 (보여 주는 글 — 규칙은 sim/bond.js · sim/furniture.js · sim/town.js)
 const BOND_PERKS = {
   miso: ['일반 가구', '가구 5% 할인', '고급 가구', '친밀도 전용 소품', '「미소 컬렉션」'],
-  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 (준비 중)', '단골가 10% 할인', '새벽 배달 (준비 중)'],
+  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 · 따로 빼 둔 재료', '단골가 10% 할인', '새벽 배달 (장보기에 칸을 쓰지 않음)'],
   moon: ['설비 Lv2', '설비 5% 할인', '설비 Lv3', '장사 도구 등급 업', '「골목 대표 가게」 명패 (준비 중)'],
 };
 // 할인 (단계 → 비율)
 const MISO_DISC = { 2: 0.05 };
 const JUNG_DISC = { 2: 0.05, 4: 0.10 };
+// 정 사장님 단계 혜택 (sim/town.js)
+const JUNG_DEAL2_LV = 3;     // ♥♥♥ 특가 두 가지
+const JUNG_KEEP_LV = 3;      // ♥♥♥ 「따로 빼 둔 재료」 하나: 그날 산 그 재료는 유통기한 +
+const JUNG_KEEP_PLUS = 1;
+const JUNG_DELIVERY_LV = 5;  // ♥♥♥♥♥ 새벽 배달: 장보기에 칸을 쓰지 않아요
 // ── js/data/furniture.js ──
 // 미소 가구·인테리어 (2장부터 — 미소 꽃집이 바뀌어요). 규칙은 sim/furniture.js, 화면은 ui/furn.js, 그림은 dev/art_pack.py FURN
 //  산 것은 바로 가게에 들어가요. 효과는 분위기 점수(0~100) 하나로 모여요
@@ -2366,6 +2392,10 @@ const INCIDENTS = {
 };
 // 하루에 몇 개까지 (그날 중 무작위로 고름)
 const INCIDENTS_PER_DAY = day => (day <= 1 ? 0 : 1); // 하루에 하나만
+// 매일은 아니고 자주 (v0.42 사용자 요청): 2일차는 처음 보여 주려고 꼭, 그 뒤로는 확률 · 어제 없었으면 더 높게
+const INCIDENT_FIRST_DAY = 2;
+const INCIDENT_CHANCE = 0.55;
+const INCIDENT_CHANCE_AFTER_NONE = 0.85;
 // ── js/data/district.js ──
 // 우리 골목 상권 (게임 속 데이터 — 실데이터 아님, 우리가 만든 값). 3장쯤 「상권 지도」(나이스비즈맵 도구)로 보여 줘요.
 // 유동인구(data/customers.js FOOT_PER_HOUR)·시간대별 손님 구성(typeMix)도 이 상권의 값이에요.
@@ -2889,7 +2919,7 @@ const invServings = m => Math.min(...recipeOf(m).map(invOf));
 const openIngs = () => ING_IDS.filter(i => menusUsing(i).some(m => menuOpen(m)));
 
 // 재료를 n인분 들여놓아요 (오늘부터 shelf일 동안 쓸 수 있어요)
-function stockIn(i, n) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 + shelfPlus() }); } // 냉장고 Lv2(상인회) +1일
+function stockIn(i, n, plus = 0) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 + shelfPlus() + plus }); } // 냉장고 Lv2(상인회) +1일 · plus: 정 사장님이 따로 빼 둔 재료
 function stockInMenu(m, n) { for (const i of recipeOf(m)) stockIn(i, n); }
 // 먼저 받은 재료부터 n인분 써요
 function useFifo(i, n) {
@@ -3489,7 +3519,7 @@ defineCmd('toolUp', ({ id }) => {
 // 마을 규칙 (data/town.js): 밤·새벽 한 턴 행동 칸 · 피로 · 청소/위생 · 이웃 이야기(소개 손님) · 홍보(계산대: 인스타·블로거 — 효과는 sim/traffic.js) · 새벽 장보기 · 오픈 준비
 // 화면은 만지지 않고 사건만: emit('town', 무엇, …) → ui/town.js · 저장은 emit('prep')(ui/feedback.js가 저장해요)
 
-const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, seen: false, visits: 0 });
+const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0 });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 const townMode = () => !!(G.town && G.town.on);
 // 칸: 밤·새벽 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 칸, 일찍 자서 건너뛴 밤 칸도 들어가요)
@@ -3517,7 +3547,7 @@ function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.referral = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = [];
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 이제 새벽 시장에서 (밤 주문 없음)
   if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
   if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
@@ -3539,7 +3569,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (!townMode() || G.phase !== 'prep' || !PLACES[place] || !A) return false;
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
-  if (A.cost && G.town.used + A.cost > slotsHardMax() && !(act === 'market' && G.town.marketIn)) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
+  if (A.cost && !(act === 'market' && (G.town.marketIn || !marketCost())) && G.town.used + A.cost > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
@@ -3569,7 +3599,7 @@ defineCmd('townAct', ({ place, act }) => {
     emit('prep'); return true;
   }
   if (act === 'market') {
-    if (!T.marketIn) { useSlots(A.cost); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
+    if (!T.marketIn) { useSlots(marketCost()); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
     emit('town', 'market'); emit('prep'); return true;
   }
   useSlots(A.cost);
@@ -3598,6 +3628,10 @@ function goDawn(how) {
   seedRand(G.baseSeed + G.day * 7919 + 211); // 그날 씨앗 (영업 시작 때 다시 정해요)
   const fresh = openIngs().filter(i => !INGREDIENTS[i].keep); // 특가는 신선 재료 하나
   T.deal = fresh.length ? fresh[Math.floor(rand() * fresh.length)] : null;
+  // 정 사장님 ♥♥♥: 특가 하나 더 · 따로 빼 둔 재료 하나 (특가가 아닌 신선 재료)
+  const rest = fresh.filter(i => i !== T.deal);
+  T.deal2 = bondLv('jung') >= JUNG_DEAL2_LV && rest.length ? rest.splice(Math.floor(rand() * rest.length), 1)[0] : null;
+  T.kept = bondLv('jung') >= JUNG_KEEP_LV && rest.length ? rest[Math.floor(rand() * rest.length)] : null;
   emit('town', 'dawn', how);
   emit('prep');
   emit('story'); // 새벽에 볼 장면 (골목 신문 등)
@@ -3605,7 +3639,22 @@ function goDawn(how) {
 
 // 시장: 오늘 재료 1인분 값 (특가면 15% 싸게, 10원 단위) — 원재료 낱개로 팔아요 (data/menu.js INGREDIENTS)
 //  정 사장님 친밀도 ♥♥ 5% · ♥♥♥♥ 10% 단골가 (sim/bond.js)
-const marketUnit = i => Math.round(ingCost(i) * (G.town.deal === i ? MARKET_DEAL : 1) * (1 - jungDisc()) / 10) * 10;
+const isDeal = i => G.town.deal === i || G.town.deal2 === i;
+const marketUnit = i => Math.round(ingCost(i) * (isDeal(i) ? MARKET_DEAL : 1) * (1 - jungDisc()) / 10) * 10;
+// 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 칸을 쓰지 않아요
+const marketCost = () => (bondLv('jung') >= JUNG_DELIVERY_LV ? 0 : ACTS.market.cost);
+// 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀): 친밀도 +2
+const jungTalkOk = () => townMode() && G.town.part === 'dawn' && G.town.marketIn && !G.town.talked.includes('jung');
+defineCmd('jungTalk', () => {
+  const T = G.town;
+  if (G.phase !== 'prep' || !jungTalkOk()) return false;
+  T.talked.push('jung');
+  const k = (T.jungChat || 0) % JUNG_CHATS.length; T.jungChat = (T.jungChat || 0) + 1;
+  emit('town', 'chat', JUNG_CHATS[k]);
+  addBond('jung', BOND_TALK, '이야기');
+  emit('prep');
+  return true;
+});
 // 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 }
 defineCmd('marketBuyCart', ({ cart }) => {
   const T = G.town;
@@ -3618,7 +3667,7 @@ defineCmd('marketBuyCart', ({ cart }) => {
   for (const [i, k] of list) {
     const n = k * INGREDIENTS[i].pack;
     G.cash -= marketUnit(i) * n;
-    stockIn(i, n);
+    stockIn(i, n, T.kept === i ? JUNG_KEEP_PLUS : 0);
     T.bought[i] = (T.bought[i] || 0) + n;
   }
   if (T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래
@@ -4106,6 +4155,10 @@ function planIncidents(r) {
   const yday = (G.history[G.history.length - 1] || {}).inc || []; // 어제 일어난 건 오늘 빼요
   const pool = Object.keys(INCIDENTS).filter(id => G.day >= INCIDENTS[id].minDay && !yday.includes(id) && (!INCIDENTS[id].needMenu || menuOpen(INCIDENTS[id].needMenu)));
   let n = INCIDENTS_PER_DAY(G.day);
+  if (n && G.day > INCIDENT_FIRST_DAY) { // 매일은 아니고 자주: 어제 없었으면 더 잘 일어나요 (무작위 → 그날 씨앗 rand)
+    const p = yday.length ? INCIDENT_CHANCE : INCIDENT_CHANCE_AFTER_NONE;
+    if (rand() >= p) n = 0;
+  }
   while (n-- > 0 && pool.length) {
     const id = weighted(Object.fromEntries(pool.map(k => [k, INCIDENTS[k].weight])));
     pool.splice(pool.indexOf(id), 1);
@@ -4863,6 +4916,7 @@ const DEV_JUMPS = [
   { id: 'c2f5', name: '9일차 전날 밤 · 미소 가구 ♥♥♥♥♥ (고급·특별·확장공사, 돈 400만 원)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 4000000, bond: { miso: 80, jung: 30 } },
   { id: 'c2m', name: '10일차 전날 밤 · 문 철물 개업 (상인회 부탁부터)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { due: 10 }, cash: 1500000 },
   { id: 'c2g', name: '10일차 전날 밤 · 상인회원 (문 회장 ♥♥♥♥ · 돈 300만 원)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 30 }, cash: 3000000 },
+  { id: 'c2j', name: '10일차 전날 밤 · 정 사장 ♥♥♥♥♥ (특가 2개·빼 둔 재료·새벽 배달)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 80 }, cash: 3000000 },
   { id: 'c2', name: '8일차 · 1장 끝 (2장 준비 중)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
@@ -6264,18 +6318,18 @@ function specialTab() {
       <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
 }
 
-// 위: 미리보기 · 가진 물건(아이콘 한 줄) · 효과 한 줄
-function topHTML() {
+// 위: 가게 미리보기(창 너비를 꽉 채워요, 늘 위에 붙어 있음) · 그 아래 가진 물건(아이콘 한 줄) · 효과 한 줄
+function topHTML(head) {
   const now = mood(), next = withFurn(fcart, mood), on = withFurn(fcart, themesOn), disc = misoDisc();
   const owned = FURN_ORDER.map(c => { const k = furnHave(c); return k ? `<span class="fu-own" title="${itemInfo(c, k).name}">${pic(itemInfo(c, k).spr, c === 'wall' || c === 'floor' ? 0.5 : 1)}</span>` : `<span class="fu-own none" title="${FURN_CATS[c].name}"></span>`; }).join('');
   const eff = `분위기 <b>${now}</b>${next !== now ? ` → <b class="up">${next}</b>` : ''}<small>/100</small>${on.length ? ` · ${on.map(t => `★${FURN_THEMES[t].short || FURN_THEMES[t].name}`).join(' ')}` : ''}${disc ? ` · <span class="fu-disc">♥ ${Math.round(disc * 100)}%</span>` : ''}`;
-  return `<div class="fu-top"><canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
+  return `<div class="fu-top">${head}<canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
     <div class="fu-side"><div class="fu-owned">${owned}</div><div class="fu-mood">${eff}</div></div></div>`;
 }
-// 아래: 장바구니 합계 · 초기화 · 구매하기
+// 아래에 떠 있는 버튼: 초기화 · 구매하기 (담은 개수·잔고는 버튼 위 작은 글)
 function footHTML() {
   const n = cartList(fcart).length, price = cartPrice(fcart), set = cartIsSet(fcart);
-  return `<div class="mk-foot fu-foot"><div class="mk-sum"><span>${n ? `${n}개 담음${set ? ' · 세트 15% 할인' : ''}` : '물건을 눌러 담아 보세요'}</span><span>잔고 ${wonShort(G.cash)}</span></div>
+  return `<div class="fu-float"><p class="fu-sum">${n ? `${n}개 담음${set ? ' · 세트 15% 할인' : ''}` : '물건을 눌러 담아 보세요'} · 잔고 ${wonShort(G.cash)}</p>
     <div class="fu-btns"><button type="button" class="btn" data-ts="freset" ${n ? '' : 'disabled'}>초기화</button>
     <button type="button" class="btn primary big" data-ts="fcart" ${n && price <= G.cash ? '' : 'disabled'}>${!n ? '구매하기' : price > G.cash ? '잔고가 모자랍니다' : `구매하기 · ${won(price)}`}</button></div></div>`;
 }
@@ -6298,8 +6352,7 @@ function furnHTML() {
   const tab = furnTheme();
   const tabs = FURN_THEME_IDS.map(id => `<button type="button" class="fu-tab${id === tab ? ' sel' : ''}" data-ts="fth" data-t="${id}">${FURN_THEMES[id].short || FURN_THEMES[id].name}${themeCount(id) ? `<i>${themeCount(id)}</i>` : ''}</button>`).join('')
     + `<button type="button" class="fu-tab${tab === 'sp' ? ' sel' : ''}" data-ts="fth" data-t="sp">특별 <small>♥4</small></button><button type="button" class="fu-tab${tab === 'build' ? ' sel' : ''}" data-ts="fth" data-t="build">확장공사</button>`;
-  return `<div class="ts-head"><b>미소 가구</b>${heartsHTML('miso')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    ${topHTML()}
+  return `${topHTML(`<div class="ts-head"><b>미소 가구</b>${heartsHTML('miso')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>`)}
     <div class="fu-tabs">${tabs}</div>
     ${furnLocked() ? '<p class="ts-note">미소 사장님과 조금 더 친해지면 살 수 있습니다</p>' : ''}
     ${tab === 'sp' ? specialTab() : tab === 'build' ? buildTab() : themeTab(tab)}
@@ -6728,9 +6781,9 @@ function actRow(id, a) {
   const Tn = G.town;
   {
     const A = ACTS[a], ok = actNow(id, a);
-    const cost = A.cost ? `${A.cost}칸` : '';
+    const cost = a === 'market' ? (marketCost() ? `${marketCost()}칸` : '') : A.cost ? `${A.cost}칸` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
+      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 한 칸' : '새벽 배달 · 칸을 쓰지 않습니다')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
@@ -6765,7 +6818,7 @@ function planDefault() {
 function ingTile(i, lack) {
   const I = INGREDIENTS[i], unit = marketUnit(i), k = cart[i] || 0, news = ingNews(i);
   const inv = invOf(i), today = invToday(i), short = (lack[i] || 0) > k;
-  const tag = G.town.deal === i ? '<i class="mk-tag deal">특가</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
+  const tag = isDeal(i) ? '<i class="mk-tag deal">특가</i>' : G.town.kept === i ? '<i class="mk-tag keep">+1일</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
   return `<div class="mk-tile${k ? ' in' : ''}" data-ts="cart" data-i="${i}" data-d="1" role="button" aria-label="${I.name} 한 묶음 담기">
     ${short ? '<i class="mk-dot"></i>' : ''}${tag}${icon('ing_' + i, 'mk-ic')}
     <b>${I.name}</b><small>${won(unit * I.pack)}</small>
@@ -6773,11 +6826,18 @@ function ingTile(i, lack) {
       : today ? `<small class="mk-inv today">오늘까지 ${today}</small>` : inv ? `<small class="mk-inv">재고 ${inv}</small>` : ''}</div>
   </div>`;
 }
+// 정 사장님 한 줄: 이야기하기(하루 한 번, ♥+2) · 따로 빼 둔 재료 (♥♥♥)
+function marketJung() {
+  const kept = G.town.kept ? `<span>빼 둔 재료 ${INGREDIENTS[G.town.kept].name} <small>(+1일)</small></span>` : '';
+  const talk = jungTalkOk() ? '<button type="button" class="btn small mk-talk" data-ts="jungTalk">정 사장님과 이야기 <small>♥+2</small></button>' : '';
+  return talk || kept ? `<div class="mk-jung">${kept}${talk}</div>` : '';
+}
 function marketHTML() {
   const ings = openIngs(), lack = cartFor(plan);
   const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
   return `<div class="ts-head"><b>정 사장 식자재</b>${heartsHTML('jung')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${marketJung()}
     <small class="mk-h">오늘 팔 양</small>
     <div class="mk-plan">${todayMenus().map(m => `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>재고로 ${invServings(m)}그릇</small></span><div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('')}</div>
     <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기 <small>빨간 점이 모자란 재료</small></button>
@@ -6853,6 +6913,7 @@ function initTown() {
     else if (k === 'join') runCmd('questPay', { id: 'c2_join' });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
+    else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {

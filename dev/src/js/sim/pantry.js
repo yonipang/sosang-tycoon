@@ -18,7 +18,7 @@ export const invServings = m => Math.min(...recipeOf(m).map(invOf));
 export const openIngs = () => ING_IDS.filter(i => menusUsing(i).some(m => menuOpen(m)));
 
 // 재료를 n인분 들여놓아요 (오늘부터 shelf일 동안 쓸 수 있어요)
-export function stockIn(i, n) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 + shelfPlus() }); } // 냉장고 Lv2(상인회) +1일
+export function stockIn(i, n, plus = 0) { if (n > 0) G.inv[i].push({ n, exp: G.day + INGREDIENTS[i].shelf - 1 + shelfPlus() + plus }); } // 냉장고 Lv2(상인회) +1일 · plus: 정 사장님이 따로 빼 둔 재료
 export function stockInMenu(m, n) { for (const i of recipeOf(m)) stockIn(i, n); }
 // 먼저 받은 재료부터 n인분 써요
 export function useFifo(i, n) {

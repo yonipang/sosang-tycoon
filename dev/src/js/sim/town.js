@@ -4,11 +4,11 @@ import { G } from '../save/state.js';
 import { MENU_IDS, INGREDIENTS } from '../data/menu.js';
 import {
   PLACES, PLACE_ACTS, ACTS, NIGHT_SLOTS, DAWN_SLOTS, TURN_SLOTS, NIGHT_START, DAWN_START, FATIGUE_MAX, FATIGUE_SLOW, HYGIENE_DECAY, CLEAN_GAIN, HYGIENE_LOW,
-  SETUP_MUL, SETUP_UNTIL, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO, PLACE_CH2,
+  SETUP_MUL, SETUP_UNTIL, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO, JUNG_CHATS, PLACE_CH2,
 } from '../data/town.js';
 import { FURN_FIRST, FURN_CHATS } from '../data/furniture.js';
-import { BOND_TALK, BOND_TRADE, BOND_FIRST } from '../data/bond.js';
-import { addBond, jungDisc } from './bond.js';
+import { BOND_TALK, BOND_TRADE, BOND_FIRST, JUNG_DEAL2_LV, JUNG_KEEP_LV, JUNG_KEEP_PLUS, JUNG_DELIVERY_LV } from '../data/bond.js';
+import { addBond, jungDisc, bondLv } from './bond.js';
 import { furnOpen } from './furniture.js';
 import { guildOpen, guildNight, moonChat } from './guild.js';
 import { seedRand, rand } from '../engine/random.js';
@@ -16,7 +16,7 @@ import { emit, defineCmd } from './events.js';
 import { ingCost } from './market.js';
 import { openIngs, stockIn } from './pantry.js';
 
-export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, seen: false, visits: 0 });
+export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0 });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 export const townMode = () => !!(G.town && G.town.on);
 // 칸: 밤·새벽 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 칸, 일찍 자서 건너뛴 밤 칸도 들어가요)
@@ -44,7 +44,7 @@ export function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.referral = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = [];
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 이제 새벽 시장에서 (밤 주문 없음)
   if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
   if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
@@ -66,7 +66,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (!townMode() || G.phase !== 'prep' || !PLACES[place] || !A) return false;
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
-  if (A.cost && G.town.used + A.cost > slotsHardMax() && !(act === 'market' && G.town.marketIn)) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
+  if (A.cost && !(act === 'market' && (G.town.marketIn || !marketCost())) && G.town.used + A.cost > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
@@ -96,7 +96,7 @@ defineCmd('townAct', ({ place, act }) => {
     emit('prep'); return true;
   }
   if (act === 'market') {
-    if (!T.marketIn) { useSlots(A.cost); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
+    if (!T.marketIn) { useSlots(marketCost()); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
     emit('town', 'market'); emit('prep'); return true;
   }
   useSlots(A.cost);
@@ -125,6 +125,10 @@ function goDawn(how) {
   seedRand(G.baseSeed + G.day * 7919 + 211); // 그날 씨앗 (영업 시작 때 다시 정해요)
   const fresh = openIngs().filter(i => !INGREDIENTS[i].keep); // 특가는 신선 재료 하나
   T.deal = fresh.length ? fresh[Math.floor(rand() * fresh.length)] : null;
+  // 정 사장님 ♥♥♥: 특가 하나 더 · 따로 빼 둔 재료 하나 (특가가 아닌 신선 재료)
+  const rest = fresh.filter(i => i !== T.deal);
+  T.deal2 = bondLv('jung') >= JUNG_DEAL2_LV && rest.length ? rest.splice(Math.floor(rand() * rest.length), 1)[0] : null;
+  T.kept = bondLv('jung') >= JUNG_KEEP_LV && rest.length ? rest[Math.floor(rand() * rest.length)] : null;
   emit('town', 'dawn', how);
   emit('prep');
   emit('story'); // 새벽에 볼 장면 (골목 신문 등)
@@ -132,7 +136,22 @@ function goDawn(how) {
 
 // 시장: 오늘 재료 1인분 값 (특가면 15% 싸게, 10원 단위) — 원재료 낱개로 팔아요 (data/menu.js INGREDIENTS)
 //  정 사장님 친밀도 ♥♥ 5% · ♥♥♥♥ 10% 단골가 (sim/bond.js)
-export const marketUnit = i => Math.round(ingCost(i) * (G.town.deal === i ? MARKET_DEAL : 1) * (1 - jungDisc()) / 10) * 10;
+export const isDeal = i => G.town.deal === i || G.town.deal2 === i;
+export const marketUnit = i => Math.round(ingCost(i) * (isDeal(i) ? MARKET_DEAL : 1) * (1 - jungDisc()) / 10) * 10;
+// 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 칸을 쓰지 않아요
+export const marketCost = () => (bondLv('jung') >= JUNG_DELIVERY_LV ? 0 : ACTS.market.cost);
+// 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀): 친밀도 +2
+export const jungTalkOk = () => townMode() && G.town.part === 'dawn' && G.town.marketIn && !G.town.talked.includes('jung');
+defineCmd('jungTalk', () => {
+  const T = G.town;
+  if (G.phase !== 'prep' || !jungTalkOk()) return false;
+  T.talked.push('jung');
+  const k = (T.jungChat || 0) % JUNG_CHATS.length; T.jungChat = (T.jungChat || 0) + 1;
+  emit('town', 'chat', JUNG_CHATS[k]);
+  addBond('jung', BOND_TALK, '이야기');
+  emit('prep');
+  return true;
+});
 // 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 }
 defineCmd('marketBuyCart', ({ cart }) => {
   const T = G.town;
@@ -145,7 +164,7 @@ defineCmd('marketBuyCart', ({ cart }) => {
   for (const [i, k] of list) {
     const n = k * INGREDIENTS[i].pack;
     G.cash -= marketUnit(i) * n;
-    stockIn(i, n);
+    stockIn(i, n, T.kept === i ? JUNG_KEEP_PLUS : 0);
     T.bought[i] = (T.bought[i] || 0) + n;
   }
   if (T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래
