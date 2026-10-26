@@ -76,7 +76,7 @@ export function spawnParty(members, opts) {
   members.forEach((ch, k) => {
     const sx = (fromLeft ? -1 - k : W + k) + (fromLeft ? -1 : 1) * (opts.delay || 0);
     r.customers.push({
-      force: !!opts.force, blog: !!opts.blog, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null,
+      force: !!opts.force, blog: !!opts.blog, tag: opts.tag || null, reg: opts.reg || null, wants: opts.wants || null, ref: opts.ref || null,
       id: r.nextId++, char: ch, type: opts.type || PEOPLE[ch], party, lead: k === 0,
       x: sx, y: DOOR_OUT.y, dir: fromLeft ? 0 : 2, speed,
       path: sidewalk(sx, DOOR_OUT.x), state: 'walk', moving: true, lane: fromLeft ? -0.12 : 0.08,
@@ -203,10 +203,11 @@ function decide(c) {
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
-  if (re.leave && !c.tag && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 이벤트 손님은 가격 때문에 그냥 가지 않아요 (기분은 남아요)
+  const lead = c.lead ? c : r.customers.find(x => x.party === c.party && x.lead) || c; // 일행은 앞사람을 따라요
+  if (re.leave && !c.tag && !lead.ref && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 손님 · 이웃 소개 손님은 비싸도 사 먹어요 (기분은 남아요 — v0.47)
   if (!canSell(m)) {
     const alts = MENU_IDS.filter(x => x !== m && canSell(x) && !reaction(c, x).leave);
-    if (alts.length && (c.tag || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님은 다른 메뉴라도 먹어요
+    if (alts.length && (c.tag || lead.ref || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님 · 소개 손님은 다른 메뉴라도 먹어요
     else { partyLeaves(c, 'soldout', m); return; }
   }
   if (!spareOf(m)) takeMenu(m); // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)

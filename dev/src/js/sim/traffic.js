@@ -11,7 +11,7 @@ import { menuOn, todayMenus } from './pantry.js';
 import { townMode } from './town.js';
 import { menuOpen } from './story.js';
 
-// ── 가게 앞 칠판 · 오늘의 추천 (G.board { lunch, after }) ──
+// ── 가게 앞 칠판 · 오늘의 추천 (G.board { morning, lunch, after }) ──
 export const boardOpen = () => townMode();
 export function boardMenuAt(hour) {
   if (!boardOpen() || !G.board) return null;

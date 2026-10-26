@@ -169,7 +169,7 @@ export function tickDay(dt) {
     if (f.done || r.closing || r.min < f.at) continue;
     const chars = freeChars().slice(0, 2);
     f.done = true;
-    if (chars.length && spawnParty(chars, { force: true })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+    if (chars.length && spawnParty(chars, { force: true, ref: f.who })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
   }
   // 파워블로거가 와요 (점심 무렵)
   if (r.blog && !r.blog.done && !r.closing && r.min >= r.blog.at) {

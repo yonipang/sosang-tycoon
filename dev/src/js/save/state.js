@@ -20,7 +20,7 @@ export const SAVE_V = 1;
 // prep = 오늘 아침 도착할 재료 주문량(메뉴마다 인분 — 프롤로그·1장 첫날) · inv = 원재료 창고 { 재료: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] } (sim/pantry.js)
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
 // book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js)
-// board = 가게 앞 칠판 · 오늘의 추천 { lunch, after } (sim/traffic.js)
+// board = 가게 앞 칠판 · 오늘의 추천 { morning, lunch, after } (sim/traffic.js)
 // bond = 친밀도 { pts: { miso, jung, moon }, day, got } (sim/bond.js) · furn = 미소 가구 { have: { 카테고리: 테마 }, seen, visits } (sim/furniture.js)
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
@@ -55,7 +55,7 @@ export function newGame(shopName) {
     menuLv: Object.fromEntries(MENU_IDS.map(m => [m, 1])),
     mastery: Object.fromEntries(MENU_IDS.map(m => [m, 0])),
     fans: {},
-    board: { lunch: null, after: null },
+    board: { morning: null, lunch: null, after: null },
     book: {},
     bond: newBond(),
     furn: newFurn(),
