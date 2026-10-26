@@ -32,4 +32,12 @@ export const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4
 //  v0.35: 6~8일차에 손님이 두 배 가까이 늘어 갑자기 어려웠어요(메뉴 셋 · 마을 홍보까지 겹쳐서) → 더 천천히 늘게
 const OPENING = [0.3, 0.45, 0.55, 0.62, 0.68, 0.72, 0.76, 0.8, 0.84, 0.88, 0.92, 0.96, 1];
 export const openingMul = day => OPENING[Math.min(OPENING.length, Math.max(1, day)) - 1];
+// 인지도 (1장부터): 손님 수는 날짜가 아니라 리뷰 수(G.ratingN)로 늘어요 — 잘할수록 리뷰가 쌓여 손님이 늘어요 (v0.37 사용자 결정)
+//  [리뷰 수, 배율] 사이는 곧게 이어요. ★4 기준 하루 손님: 0개 약 16명 · 50개 약 27명 · 150개 약 43명 · 400개 약 65명
+//  프롤로그(오가네 분식 알바 사흘)는 위 OPENING 그대로
+export const FAME = [[0, 0.3], [50, 0.5], [150, 0.8], [400, 1.2], [800, 1.4]];
+export function fameMul(n) {
+  for (let i = 1; i < FAME.length; i++) if (n <= FAME[i][0]) { const [a, x] = FAME[i - 1], [b, y] = FAME[i]; return x + (y - x) * (n - a) / (b - a); }
+  return FAME[FAME.length - 1][1];
+}
 export const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];

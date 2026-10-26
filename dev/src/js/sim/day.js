@@ -2,7 +2,7 @@
 // 재료는 원재료마다 유통기한(INGREDIENTS.shelf)까지 남겨 두고 다음 날 써요. 먼저 받은 재료부터 써요 (sim/pantry.js).
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, ING_IDS, INGREDIENTS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
-import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul } from '../data/economy.js';
+import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul, fameMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR, FOOT_PER_HOUR } from '../data/customers.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
@@ -155,8 +155,8 @@ export function tickDay(dt) {
   // 가게 앞 보도에 사람이 지나가요. 그중 일부가 들어와 손님이 돼요 (마감 뒤에는 지나가기만)
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
-  // 들어올 손님 = 시간대 기대값 × 별점 × 개업 초기 × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(ratingNow()) * openingMul(G.day) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
+  // 들어올 손님 = 시간대 기대값 × 별점 × 인지도(1장부터 리뷰 수 · 프롤로그는 개업 초기) × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(ratingNow()) * (G.story.ch === 0 ? openingMul(G.day) : fameMul(G.ratingN || 0)) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }

@@ -102,7 +102,7 @@ defineCmd('sceneDone', ({ name }) => {
   const S = G.story, id = S.queue.shift();
   const sc = SCENES[id];
   if (!sc) return;
-  if (sc.ask === 'shop') { G.shop = (name || '').trim().slice(0, 8) || '골목분식'; resetReviews(); emit('toast', '새 이름으로 지도에 올렸습니다. 리뷰 0개부터 시작합니다', 'info'); } // 별점은 새 가게부터 (sim/rating.js)
+  if (sc.ask === 'shop') { G.shop = (name || '').trim().slice(0, 8) || '골목분식'; resetReviews(); emit('toast', '새 이름으로 지도에 올렸습니다. 리뷰 0개부터 — 리뷰가 쌓일수록 손님이 늘어납니다', 'info'); } // 별점은 새 가게부터 (sim/rating.js)
   for (const q of sc.start || []) start(q);
   if (sc.title) S.title = sc.title;
   if (sc.ch !== undefined) S.ch = sc.ch;
