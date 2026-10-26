@@ -5,15 +5,18 @@ import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST } from '../data/story.js';
-import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y } from '../data/layout.js';
+import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y, solidForPlayer } from '../data/layout.js';
 import { drawShopTo, shopViewSize } from '../render/view.js';
 import { findPath } from '../sim/path.js';
 import { salesHTML } from './sales.js';
 import { SHOP_SPOTS } from '../data/town.js';
-import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW } from '../data/town.js';
+import { MAP_W, MAP_H, BUILDINGS, MAP_PROPS, PLACES, ACTS, TOWN_NPC, VACANT_NOTE, NIGHT_SLOTS, HYGIENE_LOW, LOOKS, USES, WALKERS, MEET_LINES } from '../data/town.js';
+import { PEOPLE } from '../data/customers.js';
+import { PEOPLE_INFO } from '../data/people.js';
+import { fxRand } from '../engine/random.js';
 import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
-import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs, isDeal, marketCost, jungTalkOk } from '../sim/town.js';
+import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs, isDeal, marketCost, jungTalkOk, useOk, metToday } from '../sim/town.js';
 import { furnOpen } from '../sim/furniture.js';
 import { guildOpen } from '../sim/guild.js';
 import { guildHTML } from './guild.js';
@@ -185,10 +188,27 @@ function doShop(act) {
   if (act === 'counter') { openCounter(); playSfx('page'); return; }
   runCmd('townAct', { place: 'shop', act });
 }
+// 가게 안 조이스틱 (v0.48): 칸 단위 바닥에서 밀어서 걸어요. 물건·문에 부딪히면 그 일 (같은 칸에서는 한 번만)
+function inJoy(dt, vx, vy) {
+  const I = T.inside, me = I.me, m = Math.hypot(vx, vy), sp = IN_WALK * Math.min(1, m) / m;
+  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt, free = (x, y) => !solidForPlayer(Math.round(x), Math.round(y));
+  let hit = null;
+  if (free(nx, me.y)) me.x = nx; else hit = [Math.round(nx), Math.round(me.y)];
+  if (free(me.x, ny)) me.y = ny; else hit = hit || [Math.round(me.x), Math.round(ny)];
+  me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
+  me.moving = true;
+  if (!hit) { I.bumped = null; return; }
+  const key = hit.join(',');
+  if (I.bumped === key || T.sheet) return;
+  const S = spotsNow().find(q => spotTiles(q).tiles.some(([a, b]) => a === hit[0] && b === hit[1]));
+  if (S) { I.bumped = key; me.moving = false; doShop(S.act); }
+}
 function updateInside(dt) {
   const I = T.inside, me = I.me;
   let step = IN_WALK * dt;
-  me.moving = false;
+  const [jx, jy] = joyVec();
+  if (Math.hypot(jx, jy) > 0.25 && !T.fading) { if (me.path.length) { me.path = []; I.then = null; } inJoy(dt, jx, jy); step = 0; }
+  else me.moving = false;
   while (step > 0 && me.path.length) {
     const [tx, ty] = me.path[0], dx = tx - me.x, dy = ty - me.y;
     if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) { me.x = tx; me.y = ty; me.path.shift(); if (!me.path.length && I.then) { const t = I.then; I.then = null; t(); } continue; }
@@ -220,6 +240,7 @@ export function showTown() {
   const part = G.town.part;
   if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.part = part; }
   if (T.part !== part) { placeMe(part === 'dawn' ? 'home' : 'shop'); T.part = part; } // 밤은 가게 앞, 새벽은 집 앞에서
+  if (T.walkKey !== part + G.day) spawnWalkers(); // 골목을 걷는 손님 (밤·새벽마다 새로)
   $('town').hidden = false;
   document.body.classList.add('in-town'); // 위 막대(#bar)는 숨겨요 (마을 막대가 대신)
   renderBar(); renderNav();
@@ -303,6 +324,10 @@ function joyMove(dt, vx, vy) {
   if (!blockedAt(me.x, ny, m)) me.y = ny; else { hitY = Math.sign(vy); hitUp = vy < 0; }
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
+  T.sitUntil = 0;
+  // 걷는 손님에게 다가가면 이야기
+  const w = !T.sheet && (T.walkers || []).find(q => !q.talk && q.cool < T.time && Math.abs(q.x - me.x) < 12 && Math.abs(q.y - me.y) < 8);
+  if (w) { talkWalker(w); return; }
   // 부딪힌 곳: 이웃이면 그 가게 · 문 앞에서 위로 밀면 그 가게 (같은 칸에서는 한 번만)
   const [tx, ty] = meTile();
   const key = tx + ',' + ty;
@@ -313,6 +338,10 @@ function joyMove(dt, vx, vy) {
   let place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : null;
   if (!place && hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
   if (place) { T.bumped = key; me.moving = false; facePlace(place); if (place === 'shop') enterShop(); else { openPlace(place); playSfx('tap'); } return; } // 우리 가게 문은 걸어 들어가요
+  const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => a === bx && b === by));
+  if (prop) { T.bumped = key; me.moving = false; openUse(prop); return; }
+  const look = hitUp && LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
+  if (look) { T.bumped = key; me.moving = false; showLook(look); return; }
   if (hitUp && vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) { T.bumped = key; me.moving = false; showVacant(); }
 }
 
@@ -337,11 +366,80 @@ export function updateTown(dt) {
   }
   T.cam.x = Math.max(0, Math.min(MAP_W * TILE - T.vw, me.x - T.vw / 2));
   T.cam.y = Math.max(0, Math.min(MAP_H * TILE - T.vh, me.y - 16 - T.vh / 2));
+  if (!talking()) updateWalkers(dt);
+  me.sit = T.sitUntil > T.time; // 벤치에서 쉬는 동안 앉아 있어요
   const dawn = G.town.part === 'dawn';
-  const actors = [me];
+  const actors = [me, ...(T.walkers || [])];
   for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part) actors.push({ char: id === 'choi' && guildOpen() ? CAST.moon.char : CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); } // 2장: 세탁소 자리엔 문 회장님
-  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}) } });
+  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}) }, only: onlyNow() });
 }
+
+// ── 골목 꾸밈 · 물건 · 걷는 손님 (v0.48) ──
+// 장에 따라 바뀌는 가게 앞 꾸밈 (꽃집 → 미소 가구 · 세탁소 → 문 철물)
+const onlyNow = () => ({ flower1: !furnOpen(), flower2: furnOpen(), laundry1: !guildOpen(), laundry2: guildOpen() });
+const propOn = p => !p.only || onlyNow()[p.only];
+const propRect = p => [p.x, p.y - SPR[p.spr][3], SPR[p.spr][2], SPR[p.spr][3]];
+// 물건 창: 쉬기·자판기는 버튼, 나머지는 한 줄
+function openUse(p) {
+  const U = USES[p.use], head = `<div class="ts-head"><b>${U.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>`;
+  if (!U.act) { sheet(`${head}<p class="ts-note">${U.note}</p>`); return; }
+  const ok = useOk(p.use), why = G.town.fatigue <= 0 ? '지금은 피곤하지 않습니다' : p.use === 'drink' && G.town.drink === G.day ? '이번 턴에는 이미 마셨습니다' : '';
+  sheet(`${head}<button type="button" class="ts-act" data-ts="use" data-u="${p.use}" ${ok ? '' : 'disabled'}><b>${U.act}</b><small>${ok ? U.sub : why || U.sub}</small></button>`);
+}
+function goProp(p) {
+  const [bx, by] = p.block[0], at = nearestOpen(bx, by + 1);
+  const face = () => { const [tx, ty] = meTile(); T.me.dir = Math.abs(bx - tx) > Math.abs(by - ty) ? (bx > tx ? 0 : 2) : (by > ty ? 3 : 1); openUse(p); };
+  if (!at || !walkTo(at, face)) face();
+}
+function showLook(L) { sheet(`<div class="ts-head"><b>${L.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${L.note}</p>`); }
+// 걷는 손님: 아무 칸에서 시작해 근처 아무 데로 걸어가고, 잠깐 쉬었다가 또 걸어요 (보이기만 — fxRand)
+const NPC_WALK = 34;
+function openTile() {
+  const m = walls();
+  for (let i = 0; i < 300; i++) {
+    const x = Math.floor(fxRand() * MAP_W), y = Math.floor(fxRand() * MAP_H);
+    if (!m[y * MAP_W + x] && ![8, 9, 20, 21].includes(y)) return [x, y]; // 찻길 위는 빼요
+  }
+  return [13, 7];
+}
+function spawnWalkers() {
+  T.walkKey = G.town.part + G.day;
+  const pool = Object.keys(PEOPLE).map(Number).filter(ch => ch !== 7 && ch !== 9); // 이웃 사장님은 빼요
+  T.walkers = [];
+  for (let k = 0; k < (WALKERS[G.town.part] || 0) && pool.length; k++) {
+    const char = pool.splice(Math.floor(fxRand() * pool.length), 1)[0], [tx, ty] = openTile();
+    T.walkers.push({ char, x: tileX(tx), y: tileY(ty), dir: 3, path: [], moving: false, wait: fxRand() * 2, talk: false, cool: 0 });
+  }
+}
+function updateWalkers(dt) {
+  for (const w of T.walkers || []) {
+    if (w.talk) { w.moving = false; continue; }
+    if (w.wait > 0) { w.wait -= dt; w.moving = false; continue; }
+    if (!w.path.length) {
+      const [tx, ty] = openTile(), from = [Math.floor(w.x / TILE), Math.floor(w.y / TILE)];
+      w.path = Math.hypot(tx - from[0], ty - from[1]) < 14 ? townPath(from, [tx, ty]) || [] : [];
+      if (!w.path.length) { w.wait = 0.5; continue; }
+    }
+    let step = NPC_WALK * dt;
+    while (step > 0 && w.path.length) {
+      const [tx, ty] = w.path[0], gx = tileX(tx), gy = tileY(ty), dx = gx - w.x, dy = gy - w.y;
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) { w.x = gx; w.y = gy; w.path.shift(); if (!w.path.length) w.wait = 1 + fxRand() * 3; continue; }
+      if (Math.abs(dx) >= 0.01) { const k = Math.min(step, Math.abs(dx)); w.x += Math.sign(dx) * k; step -= k; w.dir = dx > 0 ? 0 : 2; }
+      else { const k = Math.min(step, Math.abs(dy)); w.y += Math.sign(dy) * k; step -= k; w.dir = dy > 0 ? 3 : 1; }
+      w.moving = true;
+    }
+  }
+}
+// 걷는 손님과 이야기: 처음이면 다음 영업에 올 가능성이 높아져요 (sim/town.js townMeet)
+function talkWalker(w) {
+  const me = T.me, P = PEOPLE_INFO[w.char] || { name: '손님' }, who = { name: P.name, char: w.char };
+  w.talk = true; w.path = []; w.dir = me.x < w.x ? 2 : 0; me.dir = me.x < w.x ? 0 : 2; me.path = []; me.moving = false;
+  const first = runCmd('townMeet', { char: w.char });
+  const pool = MEET_LINES[PEOPLE[w.char]] || MEET_LINES.worker, lines = first ? pool[w.char % pool.length] : ['또 만났네요. 그럼 내일 봬요!'];
+  showChat(lines.map(t => [who, t]));
+  chatQ.after = () => { w.talk = false; w.cool = T.time + 3; w.wait = 1.5; if (first) toast(`${josa(P.name, '이/가')} 다음 영업에 들를 가능성이 높아졌습니다`, 'good'); };
+}
+const walkerAt = (x, y) => (T.walkers || []).find(w => inRect(x, y, [w.x - 8, w.y - 30, 16, 32]));
 
 function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
 
@@ -357,6 +455,12 @@ function tapTown(e) {
   const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
   const place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
   if (place) { goPlace(place); return; }
+  const w = walkerAt(wx, wy);
+  if (w) { const [tx, ty] = [Math.floor(w.x / TILE), Math.floor(w.y / TILE)], at = nearestOpen(tx + (T.me.x < w.x ? -1 : 1), ty); if (!at || !walkTo(at, () => talkWalker(w))) talkWalker(w); return; }
+  const prop = MAP_PROPS.find(q => q.use && propOn(q) && inRect(wx, wy, propRect(q)));
+  if (prop) { goProp(prop); return; }
+  const look = LOOKS.find(L => inRect(wx, wy, L.rect));
+  if (look) { const [x, y, w2, h2] = look.rect; const at = nearestOpen(Math.floor((x + w2 / 2) / TILE), Math.floor((y + h2) / TILE)); if (!at || !walkTo(at, () => { T.me.dir = 1; showLook(look); })) showLook(look); return; }
   if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.tw_vacant[3], SPR.tw_vacant[2], SPR.tw_vacant[3]])) {
     walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; showVacant(); });
     return;
@@ -502,7 +606,7 @@ export function initTown() {
     const j = T && T.joy;
     if (!j || j.id !== e.pointerId) return;
     let dx = e.clientX - j.sx, dy = e.clientY - j.sy;
-    if (!j.on && (Math.hypot(dx, dy) < JOY_START || T.inside)) return; // 가게 안은 누르기만
+    if (!j.on && Math.hypot(dx, dy) < JOY_START) return; // 가게 안에서도 조이스틱 (v0.48)
     if (!j.on) { // 조이스틱 시작: 누른 자리에 받침을 놓아요
       j.on = true; closeSheet();
       const r = $('town').getBoundingClientRect();
@@ -522,7 +626,7 @@ export function initTown() {
   cv.addEventListener('pointerup', joyEnd);
   cv.addEventListener('pointercancel', joyEnd);
   const KEY = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
-  addEventListener('keydown', e => { if (townShown() && !(T && T.inside) && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
+  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townNav').addEventListener('click', e => {
@@ -539,6 +643,7 @@ export function initTown() {
     if (!b) return;
     const k = b.dataset.ts;
     if (k === 'close') { closeSheet(); playSfx('tap'); }
+    else if (k === 'use') { const u = b.dataset.u; if (runCmd('townUse', { use: u })) { closeSheet(); if (u === 'rest') { T.sitUntil = T.time + 2.5; T.me.path = []; } } }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }

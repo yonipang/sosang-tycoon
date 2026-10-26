@@ -992,3 +992,4 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .pt-row .mk-ic { width: 24px; height: 24px; }
 .pt-row span { flex: 1; }
 .pt-row small { width: 100%; padding-left: 28px; color: var(--red); font-size: 14px; }
+.town-sheet.chat { overflow: visible; padding-top: 14px; } /* 이름표가 잘리지 않게 */

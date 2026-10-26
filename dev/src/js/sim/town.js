@@ -4,7 +4,7 @@ import { G } from '../save/state.js';
 import { MENU_IDS, INGREDIENTS } from '../data/menu.js';
 import {
   PLACES, PLACE_ACTS, ACTS, NIGHT_SLOTS, DAWN_SLOTS, TURN_SLOTS, NIGHT_START, DAWN_START, FATIGUE_MAX, FATIGUE_SLOW, HYGIENE_DECAY, CLEAN_GAIN, HYGIENE_LOW,
-  SETUP_MUL, SETUP_UNTIL, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO, JUNG_CHATS, PLACE_CH2,
+  SETUP_MUL, SETUP_UNTIL, MARKET_DEAL, REFERRAL_AT, CHATS, JUNG_HELLO, JUNG_CHATS, PLACE_CH2, USES, REST_COST, DRINK_PRICE, MEET_COME,
 } from '../data/town.js';
 import { FURN_FIRST, FURN_CHATS } from '../data/furniture.js';
 import { BOND_TALK, BOND_TRADE, BOND_FIRST, JUNG_DEAL2_LV, JUNG_KEEP_LV, JUNG_KEEP_PLUS, JUNG_DELIVERY_LV } from '../data/bond.js';
@@ -16,7 +16,7 @@ import { emit, defineCmd } from './events.js';
 import { ingCost } from './market.js';
 import { openIngs, stockIn } from './pantry.js';
 
-export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0 });
+export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0 });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 export const townMode = () => !!(G.town && G.town.on);
 // 칸: 밤·새벽 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 칸, 일찍 자서 건너뛴 밤 칸도 들어가요)
@@ -44,7 +44,7 @@ export function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = [];
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 이제 새벽 시장에서 (밤 주문 없음)
   if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
   if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
@@ -174,6 +174,35 @@ defineCmd('marketBuyCart', ({ cart }) => {
   emit('prep');
   return true;
 });
+
+// ── 골목 물건 쓰기 · 걷는 손님과 이야기 (v0.48) ──
+//  rest 벤치: 칸 하나 · 피로 −1 · drink 자판기: 돈 · 피로 −1 (한 턴에 한 번) — 나머지 물건은 한 줄만(ui)
+export const useOk = use => {
+  const T = G.town;
+  if (use === 'rest') return T.fatigue > 0 && T.used + REST_COST <= slotsHardMax();
+  if (use === 'drink') return T.fatigue > 0 && T.drink !== G.day && G.cash >= DRINK_PRICE;
+  return true;
+};
+defineCmd('townUse', ({ use }) => {
+  const T = G.town;
+  if (!townMode() || G.phase !== 'prep' || !USES[use]) return false;
+  if (!useOk(use)) { emit('toast', T.fatigue <= 0 ? '지금은 피곤하지 않습니다' : use === 'drink' && T.drink === G.day ? '오늘은 이미 마셨습니다' : use === 'drink' ? '잔고가 모자랍니다' : '더는 쉴 틈이 없습니다', 'info'); return false; }
+  if (use === 'rest') { useSlots(REST_COST); T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `벤치에 앉아 한숨 돌렸습니다 (피로 ${T.fatigue})`, 'good'); }
+  else if (use === 'drink') { G.cash -= DRINK_PRICE; T.drink = G.day; T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `캔커피 한 모금에 정신이 듭니다 (피로 ${T.fatigue})`, 'good'); emit('sfx', 'coin'); }
+  if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
+  emit('prep');
+  return true;
+});
+// 골목을 걷는 손님과 이야기 (칸 안 씀): 다음 영업에 그 손님이 올 가능성이 높아져요
+export const metToday = ch => (G.town.met || []).includes(ch);
+defineCmd('townMeet', ({ char }) => {
+  const T = G.town;
+  if (!townMode() || G.phase !== 'prep' || metToday(char)) return false;
+  (T.met = T.met || []).push(char);
+  return true;
+});
+// 영업 시작 때: 어젯밤·새벽에 이야기한 손님이 올 시각 (그날 씨앗 rand)
+export const metPlan = () => (townMode() ? (G.town.met || []).filter(() => rand() < MEET_COME).map(char => ({ char, at: 60 + rand() * 480, done: false })) : []);
 
 // ── 영업에 주는 영향 (sim/day.js · customers.js가 불러요) ──
 export const townSpeedMul = () => (townMode() ? 1 - FATIGUE_SLOW * G.town.fatigue : 1) * (townMode() && G.town.setup === G.day ? SETUP_MUL : 1);

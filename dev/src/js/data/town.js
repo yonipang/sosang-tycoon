@@ -6,31 +6,55 @@
 //  윗줄: 우리 집 · 꽃집 · 우리 가게 · 세탁소 / 가운데 골목길 / 아랫줄: 식자재 마트 · 게시판 쉼터 · 빈 가게(임대, 우리 가게 건널목 바로 건너편) · 작은 공원 / 아래 큰길
 //  양쪽 끝(0칸 · 22~23칸)은 위아래로 이어진 골목이에요. 건물은 지붕을 낮춘 마을용 그림(tw_ — dev/art_pack.py TW_CUT)
 //  칸 줄: 0~5 윗줄 건물 · 6~7 보도 · 8~9 찻길 · 10~17 아랫줄(건물·쉼터·공원) · 18~19 보도 · 20~21 큰길 · 22~23 보도
-export const MAP_W = 24;
+export const MAP_W = 41; // v0.48: 동쪽 블록(카페·약국·빌라 / 학원·놀이터·버스 정류장)을 더해 24 → 41
 export const MAP_H = 24;
 // 바닥: 'road' 찻길 · 'grass' 잔디 · 나머지는 보도블록
 export const ROAD_ROWS = [8, 9, 20, 21];
 export const PARK = { x0: 17, x1: 22, y0: 11, y1: 17 };
+export const PARK2 = { x0: 31, x1: 39, y0: 11, y1: 17 }; // 놀이터 (동쪽 블록)
+export const CROSSWALKS = [12, 30]; // 건널목 (왼쪽 칸 x — 3칸 너비)
 // 건물 [그림, 왼쪽 x, 바닥 y] (픽셀) — 건물 그림이 덮는 칸은 못 지나가요
 export const BUILDINGS = [
   ['tw_home', 16, 96], ['tw_flower', 112, 96], ['tw_bunsik', 192, 96], ['tw_laundry', 272, 96],
   ['tw_market', 16, 288], ['tw_vacant', 192, 288],
+  // 동쪽 블록 (v0.48)
+  ['tw_cafe', 392, 96], ['tw_pharm', 472, 96], ['tw_home', 552, 96], ['tw_acad', 392, 288],
 ];
 // 간판 [그림, x, y] — 그림의 영어 STORE·MARKET 판을 덮어요 (가게: x+9, 바닥−50 / 마트: x+32, 바닥−63)
-export const SIGNS = [['sign_flower', 121, 46], ['sign', 201, 46], ['sign_laundry', 281, 46], ['sign_mart', 48, 225], ['sign_vacant', 201, 238]];
-// 물건 { spr, x 왼쪽, y 바닥, block: 못 지나가는 칸 [[칸x, 칸y]] }
+export const SIGNS = [['sign_flower', 121, 46], ['sign', 201, 46], ['sign_laundry', 281, 46], ['sign_mart', 48, 225], ['sign_vacant', 201, 238], ['sign_cafe', 401, 46], ['sign_pharm', 481, 46], ['sign_acad', 425, 196]];
+// 물건 { spr, x 왼쪽, y 바닥, block: 못 지나가는 칸 [[칸x, 칸y]], use: 누르거나 부딪히면 (USES) · only: 그때만 보여요 (ui/town.js propOn) }
+//  가게 앞 꾸밈(막지 않음)은 가게마다 달라요: 꽃집 꽃수레 → 2장 가구점 탁자·상자 · 세탁소 빨래 → 2장 철물점 공구·상자 · 분식 입간판·의자 · 마트 과일 상자
 export const MAP_PROPS = [
   { spr: 'lamp', x: 98, y: 126, block: [[6, 7]] }, { spr: 'lamp', x: 354, y: 126, block: [[22, 7]] },
   // 게시판 쉼터 (8~11칸)
-  { spr: 'board', x: 150, y: 200, block: [[9, 12], [10, 12]] }, { spr: 'bench', x: 144, y: 272, block: [[9, 16], [10, 16], [11, 16]] },
+  { spr: 'board', x: 150, y: 200, block: [[9, 12], [10, 12]] }, { spr: 'bench', x: 144, y: 272, block: [[9, 16], [10, 16], [11, 16]], use: 'rest' },
   // 작은 공원 (17~22칸)
   { spr: 'tree', x: 276, y: 220, block: [[18, 13]] }, { spr: 'pine', x: 340, y: 202, block: [[22, 12]] }, { spr: 'tree2', x: 316, y: 262, block: [[21, 16]] },
-  { spr: 'bench', x: 288, y: 284, block: [[18, 17], [19, 17], [20, 17]] }, { spr: 'bush', x: 336, y: 238, block: [[21, 14]] },
+  { spr: 'bench', x: 288, y: 284, block: [[18, 17], [19, 17], [20, 17]], use: 'rest' }, { spr: 'bush', x: 336, y: 238, block: [[21, 14]] },
+  // 가게 앞 꾸밈
+  { spr: 'fl_cart', x: 152, y: 99, only: 'flower1' },
+  { spr: 'gs_table', x: 150, y: 99, only: 'flower2' }, { spr: 'gs_box', x: 113, y: 99, only: 'flower2' },
+  { spr: 'aframe', x: 227, y: 100 }, { spr: 'stool', x: 244, y: 100 }, { spr: 'stool', x: 258, y: 100 },
+  { spr: 'clothes', x: 304, y: 97, only: 'laundry1' },
+  { spr: 'tools', x: 312, y: 99, only: 'laundry2' }, { spr: 'gs_boxes', x: 274, y: 99, only: 'laundry2' },
+  { spr: 'gs_box', x: 22, y: 291 }, { spr: 'gs_box', x: 104, y: 291 },
+  // 동쪽 블록 (v0.48): 카페 · 약국 · 빌라 / 학원 · 분수 · 놀이터 · 버스 정류장 · 포장마차
+  { spr: 'aframe', x: 434, y: 100 },
+  { spr: 'vending', x: 538, y: 101, block: [[33, 6]], use: 'drink' },
+  { spr: 'lamp', x: 610, y: 126, block: [[38, 7]] },
+  { spr: 'fountain', x: 488, y: 214, block: [[30, 12], [31, 12]], use: 'fountain' },
+  { spr: 'slide', x: 508, y: 270, block: [[32, 16]], use: 'slide' },
+  { spr: 'swing', x: 562, y: 230, block: [[35, 13], [39, 13]], use: 'swing' },
+  { spr: 'bench', x: 584, y: 272, block: [[36, 16], [37, 16], [38, 16]], use: 'rest' },
+  { spr: 'tree', x: 600, y: 198, block: [[38, 11]] },
+  { spr: 'busstop', x: 548, y: 383, block: [[35, 23], [36, 23], [37, 23], [38, 23]], use: 'bus' }, // 큰길 건너 정류장
+  { spr: 'cart', x: 296, y: 318, block: [[18, 19], [19, 19], [20, 19]], use: 'cart' },
   // 윗줄 양 끝
   { spr: 'bush', x: 2, y: 48, block: [[0, 2]] }, { spr: 'pine', x: 358, y: 80, block: [[23, 4]] },
 ];
 // 밤 불빛 [x, y, 반지름, 세기] — 우리 가게 창·문 · 가로등 머리 · 마트 창
-export const LIGHTS = [[248, 75, 22, 0.42], [216, 88, 16, 0.3], [105, 72, 10, 0.55], [361, 72, 10, 0.55], [72, 250, 20, 0.3]];
+export const LIGHTS = [[248, 75, 22, 0.42], [216, 88, 16, 0.3], [105, 72, 10, 0.55], [361, 72, 10, 0.55], [72, 250, 20, 0.3],
+  [452, 75, 22, 0.4], [617, 72, 10, 0.55], [440, 250, 18, 0.28], [318, 300, 14, 0.35]]; // 카페 창 · 동쪽 가로등 · 학원 창 · 포장마차
 
 // 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · open: 'night'|'dawn'|없으면 늘 · who 앞에 서 있는 사람
 export const PLACES = {
@@ -44,6 +68,33 @@ export const PLACES = {
 // 사람이 서 있는 칸 (data/story.js CAST)
 export const TOWN_NPC = { miso: { at: [9, 7], open: 'night' }, choi: { at: [19, 7], open: 'night' }, jung: { at: [5, 18], open: 'dawn' } };
 // 빈 가게: 우리 가게 건널목 바로 건너편. 1~2장은 「임대 문의」만, 3장에 프랜차이즈 「떡볶이 공장」이 들어와요 (기획서 3장)
+// 둘러보기만 하는 곳 (누르면 한 줄) — 동쪽 블록 가게들
+export const LOOKS = [
+  { name: '골목 카페', rect: [392, 8, 80, 88], note: '늦게까지 불이 켜진 동네 카페입니다. 시험 기간이면 학생들로 붐빕니다.' },
+  { name: '한 약국', rect: [472, 8, 80, 88], note: '한 약사님의 골목 약국입니다. 오늘은 문을 닫았습니다.' },
+  { name: '빌라', rect: [552, 11, 96, 85], note: '창마다 불빛이 하나둘 켜져 있습니다. 이 골목 사람들이 사는 곳입니다.' },
+  { name: '학원', rect: [392, 176, 96, 112], note: '중고등학생 학원입니다. 밤 10시가 넘어야 학생들이 우르르 나옵니다.' },
+];
+// 물건을 쓰면 (sim/town.js townUse): rest 벤치에서 쉬기(1칸 · 피로 −1) · drink 자판기(돈 · 피로 −1, 한 턴에 한 번) · 나머지는 한 줄
+export const REST_COST = 1;
+export const DRINK_PRICE = 1500;
+export const USES = {
+  rest: { name: '벤치', act: '앉아서 쉬기', sub: `${REST_COST}칸 · 피로 −1` },
+  drink: { name: '음료 자판기', act: '캔커피 뽑기', sub: `${DRINK_PRICE.toLocaleString('ko-KR')}원 · 피로 −1 (한 턴에 한 번)` },
+  fountain: { name: '분수', note: '물소리가 시원합니다. 동전 하나를 던져 봅니다. …장사가 잘되게 해 주세요.' },
+  slide: { name: '미끄럼틀', note: '아무도 없는 틈에 한 번 타 봅니다. 생각보다 빠릅니다.' },
+  swing: { name: '그네', note: '그네에 앉아 잠깐 흔들려 봅니다. 하늘이 가깝습니다.' },
+  bus: { name: '버스 정류장', note: '첫차는 새벽 5시 30분입니다. 정류장 광고판에 「떡볶이 공장 곧 오픈!」 전단이 붙어 있습니다.' },
+  cart: { name: '포장마차', note: '떡꼬치 굽는 냄새가 납니다. …우리 가게도 지지 말아야지.' },
+};
+// 골목을 걷는 손님 (밤·새벽): 말을 걸면 다음 날 가게에 올 가능성이 높아져요 (sim/town.js townMeet · sim/day.js)
+export const WALKERS = { night: 3, dawn: 2 };
+export const MEET_COME = 0.8;   // 이야기한 손님이 다음 영업에 올 확률
+export const MEET_LINES = {
+  student: [['학원 끝나고 집에 가는 길이에요. 배고프다…', '내일 친구들이랑 떡볶이 먹으러 갈게요!'], ['시험 기간이라 밤새야 해요.', '내일 분식집 들러서 힘내야겠어요.']],
+  worker: [['야근하고 이제 퇴근이에요.', '내일 점심은 사장님 가게로 갈게요.'], ['이 골목에 분식집 있었네요?', '내일 동료들이랑 가 볼게요.']],
+  elder: [['밤바람이 시원하구먼.', '내일 낮에 한 그릇 먹으러 가야겠어.'], ['젊은 사장이 고생이 많아.', '내일 들를게. 맛있게 해 줘.']],
+};
 export const VACANT_NOTE = '「임대 문의」 종이가 붙어 있습니다. 우리 가게 바로 건너편인데, 누가 들어올까요?';
 
 // 행동 칸

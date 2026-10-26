@@ -25,7 +25,8 @@ import { furnOpen, buildRent, syncLayout, mood } from './furniture.js';
 import { ratingNow, reviewsFromDay } from './rating.js';
 import { WEEK_RATING } from '../data/story.js';
 import { rushMul, rushSec, guildDues } from './guild.js';
-import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
+import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty, metPlan } from './town.js';
+import { PEOPLE_INFO } from '../data/people.js';
 import { bloggerToday, bloggerEndDay } from './traffic.js';
 import { PROMO } from '../data/town.js';
 
@@ -84,6 +85,7 @@ defineCmd('openShop', () => {
   townOpenRest(); // 칸을 남긴 턴이면 피로가 풀려요
   G.run.player.speed = PLAYER_SPEED * townSpeedMul(); G.run.setupUntil = setupUntil();
   G.run.referral = referralPlan();
+  G.run.met = metPlan(); // 골목에서 이야기한 손님 (v0.48)
   G.run.blog = bloggerToday() ? { at: PROMO.blogger.at, done: false } : null; // 어젯밤 섭외한 파워블로거
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
@@ -170,6 +172,11 @@ export function tickDay(dt) {
     const chars = freeChars().slice(0, 2);
     f.done = true;
     if (chars.length && spawnParty(chars, { force: true, ref: f.who })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
+  }
+  for (const f of r.met || []) { // 골목에서 이야기한 손님이 찾아와요
+    if (f.done || r.closing || r.min < f.at) continue;
+    f.done = true;
+    if (freeChars().includes(f.char) && spawnParty([f.char], { force: true, ref: 'met' })) emit('toast', `골목에서 이야기 나눈 ${josa((PEOPLE_INFO[f.char] || {}).name || '손님', '이/가')} 찾아왔습니다`, 'good');
   }
   // 파워블로거가 와요 (점심 무렵)
   if (r.blog && !r.blog.done && !r.closing && r.min >= r.blog.at) {

@@ -18,7 +18,9 @@ import { tutAsk } from '../sim/tutorial.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
 const fill = s => s.replace(/\{shop\}/g, G.shop);
-const face = (who, cls) => `<span class="${cls}">${icon('char' + CAST[who].char)}</span>`;
+// who: CAST 이름 또는 { name, char } (골목에서 만난 손님 등)
+const castOf = who => (who && typeof who === 'object' ? who : CAST[who]);
+const face = (who, cls) => `<span class="${cls}">${icon('char' + castOf(who).char)}</span>`;
 
 // 보여 줄 장면이 있으면 하나 열어요 (준비 화면에서, 또는 「바로」 장면이면 영업 중에도)
 export function showNextScene() {
@@ -57,7 +59,7 @@ export function stopTyping() {
 
 // 대화 한 줄 (연출 중에도 같은 모양)
 export function lineHTML(who, text) {
-  const p = who && CAST[who];
+  const p = who && castOf(who);
   return `<div class="tk-box">${p ? face(who, 'tk-face') : ''}<div class="tk-body">${p ? `<b class="tk-name">${p.name}</b>` : ''}<p>${fill(text)}</p><i class="tk-next">▼</i></div></div>`;
 }
 

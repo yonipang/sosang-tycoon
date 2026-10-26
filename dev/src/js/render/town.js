@@ -2,7 +2,7 @@
 // 순서: 바닥(보도·찻길·잔디) → 건물·물건·사람을 발끝(바닥 y) 순서로 → 밤빛·새벽빛 → 불빛 → 「!」
 import { SPR, ATLAS_URL } from '../art/atlas.js';
 import { TILE } from '../data/layout.js';
-import { MAP_W, MAP_H, ROAD_ROWS, PARK, BUILDINGS, SIGNS, MAP_PROPS, LIGHTS } from '../data/town.js';
+import { MAP_W, MAP_H, ROAD_ROWS, PARK, PARK2, CROSSWALKS, BUILDINGS, SIGNS, MAP_PROPS, LIGHTS } from '../data/town.js';
 
 let twAtlas = null;
 let twc = null; // 지금 그리는 캔버스 붓
@@ -14,6 +14,11 @@ function twSpr(name, x, y) {
 // 사람: x 가운데 · y 발끝. 줄 1 숨쉬기 · 2 걷기 (방향 0 오른쪽 · 1 위 · 2 왼쪽 · 3 아래)
 function twPerson(a, t) {
   const r = SPR['char' + a.char]; if (!r) return;
+  if (a.sit) { // 벤치에 앉기: 앉은 줄(3) — 오른쪽 보기 0~5 · 왼쪽 보기 6~11
+    const f = (a.dir === 2 ? 6 : 0) + Math.floor(t * 4) % 6;
+    twc.drawImage(twAtlas, r[0] + f * 16, r[1] + 3 * 32, 16, 32, Math.round(a.x - 8), Math.round(a.y - 36), 16, 32);
+    return;
+  }
   const row = a.moving ? 2 : 1, f = a.dir * 6 + Math.floor(t * (a.moving ? 10 : 6)) % 6;
   twc.fillStyle = 'rgba(0,0,0,.22)'; twc.fillRect(Math.round(a.x - 5), Math.round(a.y - 1), 10, 2); // 발밑 그림자
   twc.drawImage(twAtlas, r[0] + f * 16, r[1] + row * 32, 16, 32, Math.round(a.x - 8), Math.round(a.y - 32), 16, 32);
@@ -25,7 +30,7 @@ function twGround(x0, y0, x1, y1) {
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const px = tx * TILE, py = ty * TILE;
     if (ROAD_ROWS.includes(ty)) { twc.fillStyle = '#34333f'; twc.fillRect(px, py, TILE, TILE); continue; }
-    if (tx >= PARK.x0 && tx <= PARK.x1 && ty >= PARK.y0 && ty <= PARK.y1) { twc.drawImage(twAtlas, gr[0], gr[1], 16, 16, px, py, 16, 16); continue; }
+    if ([PARK, PARK2].some(P => tx >= P.x0 && tx <= P.x1 && ty >= P.y0 && ty <= P.y1)) { twc.drawImage(twAtlas, gr[0], gr[1], 16, 16, px, py, 16, 16); continue; }
     // 보도블록 그림(32×32)의 한 칸을 잘라 써요
     twc.drawImage(twAtlas, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
   }
@@ -35,11 +40,13 @@ function twGround(x0, y0, x1, y1) {
     if (bot < y0 * TILE || top > (y1 + 1) * TILE) continue;
     twc.fillStyle = '#5c5a6a'; twc.fillRect(0, top, MAP_W * TILE, 2); twc.fillRect(0, bot - 2, MAP_W * TILE, 2);
     twc.fillStyle = '#c9b88e'; for (let x = 4; x < MAP_W * TILE; x += 20) twc.fillRect(x, mid - 1, 10, 2);
-    twc.fillStyle = '#e8e4da'; for (let y = top + 4; y < bot - 3; y += 5) twc.fillRect(12 * TILE + 2, y, 44, 3); // 가게 앞 건널목
+    twc.fillStyle = '#e8e4da'; for (const cx of CROSSWALKS) for (let y = top + 4; y < bot - 3; y += 5) twc.fillRect(cx * TILE + 2, y, 44, 3); // 건널목 (가게 앞 · 동쪽)
   }
-  // 공원 테두리
-  const px0 = PARK.x0 * TILE, py0 = PARK.y0 * TILE, pw = (PARK.x1 - PARK.x0 + 1) * TILE, ph = (PARK.y1 - PARK.y0 + 1) * TILE;
-  twc.fillStyle = '#7a6a58'; twc.fillRect(px0, py0, pw, 1); twc.fillRect(px0, py0 + ph - 1, pw, 1); twc.fillRect(px0, py0, 1, ph); twc.fillRect(px0 + pw - 1, py0, 1, ph);
+  // 공원 · 놀이터 테두리
+  for (const P of [PARK, PARK2]) {
+    const px0 = P.x0 * TILE, py0 = P.y0 * TILE, pw = (P.x1 - P.x0 + 1) * TILE, ph = (P.y1 - P.y0 + 1) * TILE;
+    twc.fillStyle = '#7a6a58'; twc.fillRect(px0, py0, pw, 1); twc.fillRect(px0, py0 + ph - 1, pw, 1); twc.fillRect(px0, py0, 1, ph); twc.fillRect(px0 + pw - 1, py0, 1, ph);
+  }
 }
 
 function twRadial(x, y, r, a) {
@@ -62,7 +69,7 @@ const twSignKey = SIGNS.map(([, x, y]) => {
   return b ? b[2] : y;
 });
 
-// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving}], time, night, dawn, marks:[{x,y}], swap:{ 간판: 바꿀 그림 } }
+// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving,sit}], time, night, dawn, marks:[{x,y}], swap:{ 간판: 바꿀 그림 }, only:{ 꾸밈 이름: 보이나 } }
 export function drawTown(canvas, S) {
   if (!twAtlas) { twAtlas = new Image(); twAtlas.src = ATLAS_URL; }
   if (!twAtlas.complete) return;
@@ -80,7 +87,7 @@ export function drawTown(canvas, S) {
   const items = [];
   for (const [n, x, bot] of BUILDINGS) items.push({ y: bot, d: () => twSpr(n, x, bot - SPR[n][3]) });
   SIGNS.forEach(([n, x, y], i) => items.push({ y: twSignKey[i] + 0.1, d: () => twSpr((S.swap && S.swap[n]) || n, x, y) })); // swap: 바뀐 간판 (2장 미소 가구)
-  for (const p of MAP_PROPS) items.push({ y: p.y, d: () => twSpr(p.spr, p.x, p.y - SPR[p.spr][3]) });
+  for (const p of MAP_PROPS) if (!p.only || (S.only && S.only[p.only])) items.push({ y: p.y, d: () => twSpr(p.spr, p.x, p.y - SPR[p.spr][3]) }); // only: 장에 따라 바뀌는 가게 앞 꾸밈
   for (const a of S.actors) items.push({ y: a.y + 0.5, d: () => twPerson(a, t + a.char) });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   // 밤빛 · 새벽빛 → 따뜻한 불빛 (더하기로 밝혀요)
