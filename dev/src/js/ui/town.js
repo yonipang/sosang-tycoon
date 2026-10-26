@@ -207,11 +207,13 @@ export function updateTown(dt) {
   else if (!me.path.length) me.moving = false;
   if (me.path.length && !talking()) {
     let step = WALK * dt;
+    // 가로 먼저, 그다음 세로로 칸 가운데까지 (한 번에 남은 거리만큼만 — 넘어가면 좌우로 떨며 제자리에 맴돌아요)
     while (step > 0 && me.path.length) {
-      const [tx, ty] = me.path[0], gx = tileX(tx), gy = tileY(ty), dx = gx - me.x, dy = gy - me.y, d = Math.abs(dx) + Math.abs(dy);
-      if (d <= step) { me.x = gx; me.y = gy; step -= d; me.path.shift(); if (!me.path.length) arrive(); continue; }
-      if (Math.abs(dx) > 0.01) { me.x += Math.sign(dx) * step; me.dir = dx > 0 ? 0 : 2; } else { me.y += Math.sign(dy) * step; me.dir = dy > 0 ? 3 : 1; }
-      me.moving = true; step = 0;
+      const [tx, ty] = me.path[0], gx = tileX(tx), gy = tileY(ty), dx = gx - me.x, dy = gy - me.y;
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) { me.x = gx; me.y = gy; me.path.shift(); if (!me.path.length) arrive(); continue; }
+      if (Math.abs(dx) >= 0.01) { const k = Math.min(step, Math.abs(dx)); me.x += Math.sign(dx) * k; step -= k; me.dir = dx > 0 ? 0 : 2; }
+      else { const k = Math.min(step, Math.abs(dy)); me.y += Math.sign(dy) * k; step -= k; me.dir = dy > 0 ? 3 : 1; }
+      me.moving = true;
     }
   }
   T.cam.x = Math.max(0, Math.min(MAP_W * TILE - T.vw, me.x - T.vw / 2));
