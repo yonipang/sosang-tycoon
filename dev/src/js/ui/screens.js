@@ -175,7 +175,6 @@ function menuSheet(m, last) {
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>
       <p class="recipe">${recipe}</p>
     </details>
-    ${on && todayMenus().length > 1 ? `<button type="button" class="btn" data-act="menuToggle" data-m="${m}">오늘은 쉬기</button>` : !on ? `<button type="button" class="btn primary" data-act="menuToggle" data-m="${m}">오늘 팔기</button>` : ''}
   </div></div>`;
 }
 
