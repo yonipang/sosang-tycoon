@@ -402,6 +402,193 @@ def furn_sprites():
     return out
 
 
+
+# 고급 가구 (♥♥♥) · 친밀도 전용 (♥♥♥♥ 행운목·골목 옛 사진) · 미소 컬렉션 (♥♥♥♥♥)
+#  벽지·바닥·화분·액자는 LimeZu에서, 커튼·식탁보·방석·꽃은 직접 그려 얹어요
+FURN2 = {
+    'retro': dict(wall=(352, 416), floor=(64, 224), plant=('LIV', 207, 345, 25, 30, None), frame=('GEN', 34, 219, 28, 9),
+                  cloth=((200, 56, 42), (250, 244, 232), 'check'), curtain=(176, 48, 44), cushion=(200, 60, 48)),
+    'wood': dict(wall=(176, 256), floor=(128, 160), plant=('LIV', 234, 348, 21, 29, (150, 98, 56)), frame=('GEN', 5, 218, 21, 10),
+                 cloth=((232, 216, 184), (196, 160, 112), 'runner'), curtain=(206, 176, 132), cushion=(104, 140, 88)),
+    'pastel': dict(wall=(352, 448), floor=(128, 384), plant=('LIV', 207, 345, 25, 30, (240, 160, 184)), frame=('GEN', 66, 219, 28, 9),
+                   cloth=((246, 196, 206), (255, 250, 250), 'lace'), curtain=(190, 172, 232), cushion=(150, 220, 196)),
+    'minimal': dict(wall=(0, 256), floor=(128, 512), plant=('LIV', 234, 348, 21, 29, (236, 236, 236)), frame=('LIV', 48, 390, 14, 22),
+                    cloth=((242, 242, 242), (210, 210, 214), 'plain'), curtain=(176, 180, 190), cushion=(150, 152, 160)),
+}
+
+
+def pot_tint(im, col, rows=10):  # 아래쪽(화분) 몇 줄만 색 바꾸기 — 잎은 그대로
+    o = im.copy(); px = o.load(); h, s_, v = colorsys.rgb_to_hsv(*[c / 255 for c in col])
+    for y in range(max(0, o.height - rows), o.height):
+        for x in range(o.width):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if ss < 0.25 and vv < 0.35:  # 테두리 선은 그대로
+                continue
+            if 0.0 <= hh <= 0.13 or hh > 0.9:  # 흙빛(주황·갈색) 화분만
+                r2, g2, b2 = colorsys.hsv_to_rgb(h, s_ * (0.6 + 0.4 * vv), min(1, v * (0.55 + 0.6 * vv)))
+                px[x, y] = (int(r2 * 255), int(g2 * 255), int(b2 * 255), a)
+    return o
+
+
+def shade(c, k):
+    return tuple(max(0, min(255, int(v * k))) for v in c[:3]) + (255,)
+
+
+def curtain_win(win, col):  # 창문 + 커튼(양옆 · 위 주름) 35x23
+    o = Image.new('RGBA', (35, 23), (0, 0, 0, 0))
+    o.paste(win, (5, 2), win)
+    c, d, l = shade(col, 1), shade(col, 0.78), shade(col, 1.15)
+    for x in range(1, 34):
+        o.putpixel((x, 0), INK)
+    for y in range(1, 22):
+        for x0 in (1, 28):
+            for k in range(6):
+                if y > 14 and k == 5 - (0 if x0 == 1 else 5):
+                    continue
+                o.putpixel((x0 + k, y), d if k % 3 == 1 else (l if k % 3 == 0 else c))
+        o.putpixel((1, y), INK); o.putpixel((33, y), INK)
+    for x in range(2, 33):  # 위 주름 (가리개)
+        for y in (1, 2):
+            o.putpixel((x, y), c if (x // 3) % 2 else l)
+        if (x // 3) % 2:
+            o.putpixel((x, 3), d)
+    for x0 in (1, 28):  # 커튼 끈
+        for k in range(6):
+            o.putpixel((x0 + k, 13), (240, 200, 90, 255))
+    for x in range(1, 34):
+        o.putpixel((x, 22), INK) if o.getpixel((x, 21))[3] else None
+    return o
+
+
+def cloth_table(tb, cloth):  # 식탁보 (위판 덮고 앞으로 늘어지게)
+    base, alt, kind = cloth
+    o = tb.copy(); px = o.load()
+    for y in range(2, 15):
+        for x in range(0, 16):
+            if y == 2 or x in (0, 15) or y == 14:
+                if y <= 13 or x % 3 != 1:
+                    px[x, y] = INK
+                continue
+            if kind == 'check':
+                c = base if ((x // 2) + (y // 2)) % 2 else alt
+            elif kind == 'runner':
+                c = alt if 6 <= x <= 9 else base
+            elif kind == 'lace':
+                c = alt if y >= 12 and x % 2 == 0 else base
+            else:
+                c = base
+            if y >= 12 and kind != 'lace':
+                c = tuple(int(v * 0.85) for v in c)
+            px[x, y] = c + (255,) if len(c) == 3 else c
+    for x in range(1, 15):
+        if x % 3 == 1:
+            px[x, 14] = (0, 0, 0, 0)
+    return o
+
+
+def cushion_chair(ch, col):  # 의자 위에 방석
+    o = ch.copy(); px = o.load()
+    c, l = shade(col, 1), shade(col, 1.2)
+    for x in range(4, 14):
+        px[x, 7] = INK if x > 5 else px[x, 7]
+        px[x, 8] = l
+        px[x, 9] = c
+        px[x, 10] = shade(col, 0.8)
+    return o
+
+
+def own_lucky(gen):  # 「미소가 키운 행운목」: 야자 화분을 금빛 화분 + 빨간 리본으로
+    o = pot_tint(gen, (236, 190, 70), 9); px = o.load()
+    for x in range(8, 15):
+        if px[x, o.height - 8][3]:
+            px[x, o.height - 8] = (210, 40, 40, 255)
+    return o
+
+
+def sepia(im):
+    o = im.copy(); px = o.load()
+    for y in range(o.height):
+        for x in range(o.width):
+            r, g, b, a = px[x, y]
+            if a:
+                v = (r * 0.3 + g * 0.59 + b * 0.11)
+                px[x, y] = (min(255, int(v * 1.07 + 20)), min(255, int(v * 0.9 + 10)), int(v * 0.7), a)
+    return o
+
+
+def own_miso_frame():  # 미소 컬렉션: 말린 꽃 액자 (22x16)
+    o = Image.new('RGBA', (22, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(o)
+    d.rectangle((0, 0, 21, 15), fill=(214, 168, 96, 255), outline=INK)
+    d.rectangle((2, 2, 19, 13), fill=(252, 244, 228, 255))
+    for (x, y, c) in ((6, 6, (232, 96, 130)), (11, 5, (246, 180, 60)), (15, 7, (220, 110, 170)), (8, 9, (240, 140, 160))):
+        for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1)):
+            o.putpixel((x + dx, y + dy), c + (255,))
+        o.putpixel((x, y), (255, 236, 120, 255))
+    for y in range(9, 13):
+        o.putpixel((10, y), (90, 150, 80, 255)); o.putpixel((14, y - 1), (90, 150, 80, 255))
+    return o
+
+
+def flower_dots(im, cols, n=7, seed=3):  # 화분 잎에 꽃 몇 송이
+    import random
+    o = im.copy(); px = o.load(); rnd = random.Random(seed); leaves = []
+    for y in range(o.height - 10):
+        for x in range(o.width):
+            r, g, b, a = px[x, y]
+            if a and g > r and g > b:
+                leaves.append((x, y))
+    for i in range(min(n, len(leaves))):
+        x, y = rnd.choice(leaves); px[x, y] = cols[i % len(cols)] + (255,)
+    return o
+
+
+def own_flower_box(win):  # 미소 컬렉션 창문: 창 아래 꽃 상자
+    o = Image.new('RGBA', (29, 24), (0, 0, 0, 0)); o.paste(win, (2, 0), win); d = ImageDraw.Draw(o)
+    d.rectangle((0, 18, 28, 23), fill=(176, 112, 70, 255), outline=INK)
+    for i, x in enumerate(range(2, 27, 3)):
+        c = [(232, 96, 130), (246, 190, 60), (220, 110, 170)][i % 3]
+        o.putpixel((x, 17), c + (255,)); o.putpixel((x + 1, 16), (90, 150, 80, 255)); o.putpixel((x, 16), c + (255,))
+    return o
+
+
+def furn2_sprites():
+    out = {}
+    WALLS = RB + 'Room_Builder_Walls_16x16.png'; FLOORS = RB + 'Room_Builder_Floors_16x16.png'
+    def wall48(x, y):
+        mid = crop(INT, WALLS, x + 16, y, 16, 32); w = Image.new('RGBA', (48, 32), (0, 0, 0, 0))
+        for i in range(3):
+            w.paste(mid, (i * 16, 0))
+        return w
+    SH = {'GEN': GEN, 'LIV': LIV}
+    for th, d in FURN2.items():
+        g = FURN[th]
+        out['wall_' + th + '2'] = wall48(*d['wall'])
+        out['floor_' + th + '2'] = crop(INT, FLOORS, d['floor'][0], d['floor'][1], 48, 32)
+        out['win_' + th + '2'] = curtain_win(crop(INT, GEN, g['win'][0], g['win'][1], 25, 20), d['curtain'])
+        sh, x, y, w, h, pot = d['plant']
+        pl = crop(INT, SH[sh], x, y, w, h)
+        out['plant_' + th + '2'] = pot_tint(pl, pot) if pot else pl
+        sh, x, y, w, h = d['frame']
+        out['frame_' + th + '2'] = crop(INT, SH[sh], x, y, w, h)
+        out['table_' + th + '2'] = cloth_table(recolor(crop(INT, KIT % 289), **g['tint']), d['cloth'])
+        out['chair_' + th + '2'] = cushion_chair(recolor(crop(INT, KIT % 280), **g['tint']), d['cushion'])
+    # 친밀도 전용 (♥♥♥♥): 행운목 · 골목 옛 사진
+    out['plant_lucky'] = own_lucky(crop(INT, GEN, 212, 408, 23, 31))
+    out['frame_old'] = sepia(crop(INT, LIV, 2, 458, 13, 14))  # 풍경 액자를 빛바랜 사진처럼
+    # 미소 컬렉션 (♥♥♥♥♥)
+    out['wall_miso'] = wall48(0, 0)
+    out['floor_miso'] = crop(INT, FLOORS, 64, 128, 48, 32)
+    out['win_miso'] = own_flower_box(crop(INT, GEN, 131, 695, 25, 20))
+    out['plant_miso'] = flower_dots(pot_tint(crop(INT, GEN, 133, 905, 22, 23), (240, 150, 176)), [(232, 96, 130), (246, 190, 60), (255, 255, 255)], 9)
+    out['frame_miso'] = own_miso_frame()
+    out['table_miso'] = cloth_table(recolor(crop(INT, KIT % 289), hue=0.95, sat=0.5, add=0.1), ((250, 214, 222), (232, 96, 130), 'lace'))
+    out['chair_miso'] = cushion_chair(recolor(crop(INT, KIT % 280), hue=0.95, sat=0.5, add=0.1), (232, 120, 150))
+    return out
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
@@ -458,6 +645,7 @@ def collect():
     for k, v in own_ings().items():
         s['ing_' + k] = v
     s.update(furn_sprites())
+    s.update(furn2_sprites())
     s['sign_furn'] = own_sign('가구', (150, 92, 56, 255), (196, 140, 96, 255))  # 2장: 미소 꽃집 → 미소 가구
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()

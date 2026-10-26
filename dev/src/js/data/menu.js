@@ -25,11 +25,10 @@ export const INGREDIENTS = {
   oil: { name: '식용유', pack: 20, shelf: 30, cost: 400, keep: true },
 };
 export const ING_IDS = Object.keys(INGREDIENTS);
-// 오늘의 메뉴 칸: 8칸을 보여 주고 가게 등급만큼 열려요 (1등급 4칸 · 등급마다 한 칸씩). 가게 등급은 아직 1등급만 (2장 이후)
+// 오늘의 메뉴 칸: 8칸을 보여 주고 가게 등급만큼 열려요 (1등급 4칸 · 등급마다 한 칸씩). 가게 등급은 G.shopLv (미소 가구 확장공사)
 export const MENU_SLOTS = 8;
 export const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8];
 export const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
-export const SHOP_GRADE = 1;
 export const MENU_IDS = ['tteok', 'kimbap', 'twigim'];
 // 메뉴 업그레이드 (기획서 「마을 가게와 성장 시스템」): Lv1~5. 숙련도 + 돈으로 올려요 (sim/upgrade.js)
 //  숙련도 = 그 메뉴를 내준 그릇 (완벽 조리는 MASTERY_PERFECT그릇) — 쌓인 숙련도가 need를 넘으면 cost를 내고 올려요 (숙련도는 줄지 않아요)

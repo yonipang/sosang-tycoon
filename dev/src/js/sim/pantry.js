@@ -2,7 +2,7 @@
 // 메뉴 한 그릇 = recipe 재료 하나씩 (data/menu.js). 먼저 받은 것부터 쓰고, 기한이 지나면 마감 때 버려요 (sim/day.js endDay)
 // 오늘의 메뉴: G.menuOff = 오늘 쉬는 메뉴 (가게 장부에서 빼고 올려요)
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE, SHOP_GRADE } from '../data/menu.js';
+import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
 import { menuOpen } from './story.js';
 
@@ -26,7 +26,7 @@ export function useFifo(i, n) {
 }
 
 // ── 오늘의 메뉴 ──
-export const slotsOpen = () => SLOTS_BY_GRADE[SHOP_GRADE];
+export const slotsOpen = () => SLOTS_BY_GRADE[(G.shopLv || 1)]; // 가게 등급(확장공사 — sim/furniture.js)
 export const menuOn = m => menuOpen(m) && !(G.menuOff || []).includes(m);
 export const todayMenus = () => MENU_IDS.filter(menuOn);
 defineCmd('menuToggle', ({ menu }) => {

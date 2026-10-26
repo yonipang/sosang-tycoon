@@ -9,10 +9,10 @@ import { menuOpen, questActive } from '../sim/story.js';
 import { TUT_SPOT } from '../data/tutorial.js';
 import { CAST } from '../data/story.js';
 import { ohInShop, tutAsk } from '../sim/tutorial.js';
-import { furnSpr, furnHave } from '../sim/furniture.js';
+import { furnSpr, furnHave, chairSpr } from '../sim/furniture.js';
 
-export const VW = W * TILE;
-export const VH = H * TILE;
+export let VW = W * TILE;
+export let VH = H * TILE; // 가게 등급(확장공사)이 바뀌면 fitView에서 다시 (data/layout.js applyShopLv)
 let cv, ctx, atlas, scale = 3, ready = false;
 let t = 0; // 그리기용 시계 (초)
 const marks = []; // 누른 자리 표시
@@ -28,6 +28,7 @@ export const viewReady = () => ready;
 
 // 화면 크기에 맞춰 배율 정하기: 그림 1픽셀이 기기 화면 픽셀 정수 개가 되게 (휴대폰에서도 또렷하게)
 export function fitView(availW, availH) {
+  if (VH !== H * TILE || VW !== W * TILE) { VW = W * TILE; VH = H * TILE; cv.width = VW; cv.height = VH; }
   const dpr = window.devicePixelRatio || 1;
   const dev = Math.floor(Math.min(availW / VW, availH / VH) * dpr);
   scale = Math.max(1, dev) / dpr;
@@ -51,6 +52,8 @@ function spr(name, dx, dy, flip, sw, sh, sy0) {
     ctx.drawImage(atlas, r[0], r[1] + oy, w, h, 0, 0, w, h); ctx.restore();
   } else ctx.drawImage(atlas, r[0], r[1] + oy, w, h, Math.round(dx), Math.round(dy), w, h);
 }
+// 가운데 x에 맞춰 그리기 (그림 너비가 물건마다 달라요)
+function sprCx(name, cx, y) { const r = SPR[name]; if (r) spr(name, Math.round(cx - r[2] / 2), y); }
 // 바닥 무늬를 칸마다 깔아요
 function tileFill(name, x0, y0, x1, y1) {
   const r = SPR[name];
@@ -112,8 +115,8 @@ function drawRoom() {
   const wall = furnSpr('wall', 'wall');
   for (let x = 0; x < W; x += 3) spr(wall, x * TILE, 0, false, Math.min(48, (W - x) * TILE), 32);
   // 미소 가구: 뒷벽 창문·액자 (설비 뒤에 걸려요)
-  if (furnHave('window')) for (const [x, y] of FURN_SPOTS.window) spr(furnSpr('window'), x, y);
-  if (furnHave('frame')) for (const [x, y] of FURN_SPOTS.frame) spr(furnSpr('frame'), x, y);
+  if (furnHave('window')) for (const [x, y] of FURN_SPOTS.window) sprCx(furnSpr('window'), x, y);
+  if (furnHave('frame')) for (const [x, y] of FURN_SPOTS.frame) sprCx(furnSpr('frame'), x, y);
   tileFill('floor_kitchen', 0, 2, W, 4);
   tileFill(furnSpr('floor', 'floor_dining'), 0, 4, W, FRONT_Y);
   tileFill('sidewalk', 0, FRONT_Y, W, H);
@@ -176,7 +179,6 @@ function drawCustomerUI(c) {
 // 이야기로 생긴 장식: 칸 가운데, 발이 칸 아래쪽에 닿게
 // 미소 가구로 바꾼 식탁·의자·화분 (sim/furniture.js)
 const fSpr = f => (f.spr === 'table' ? furnSpr('table', 'table') : f.spr);
-const chairSpr = () => (furnHave('table') ? 'chair_' + furnHave('table') : 'chair');
 const plantsNow = () => (furnHave('plant') ? FURN_SPOTS.plant.map(([x, y]) => ({ spr: furnSpr('plant'), x, y })) : []);
 const decorNow = () => (G.story ? G.story.decor : []).map(k => DECOR[k]).filter(Boolean);
 function drawDecor(d) { const r = SPR[d.spr]; if (r) spr(d.spr, d.x * TILE + 8 - Math.floor(r[2] / 2), (d.y + 1) * TILE - r[3]); }

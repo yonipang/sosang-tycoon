@@ -19,6 +19,8 @@ import { initTown, updateTown, townView } from './ui/town.js';
 import { initCutscene, updateCut } from './ui/cutscene.js';
 import { initMusic, updateMusic, musicState } from './ui/music.js';
 import { tutAsk } from './sim/tutorial.js';
+import { syncLayout } from './sim/furniture.js';
+import { layoutLv } from './data/layout.js';
 
 function layout() {
   const st = $('stage');
@@ -26,10 +28,12 @@ function layout() {
 }
 
 let lastT = 0;
+let drawnLv = 1; // 캔버스를 맞춘 가게 배치 등급
 function frame(now) {
   const dt = Math.min(0.1, (now - (lastT || now)) / 1000);
   lastT = now;
   stepSim(dt);
+  syncLayout(); if (layoutLv !== drawnLv) { drawnLv = layoutLv; layout(); } // 가게 등급(확장공사)이 바뀌면 캔버스 크기를 다시 맞춰요
   if (G.phase === 'day' && G.run) { drawFrame(dt); watchHints(); }
   else drawIdle(dt, G.phase === 'receipt' || G.phase === 'weekly');
   updateSpeech(dt);

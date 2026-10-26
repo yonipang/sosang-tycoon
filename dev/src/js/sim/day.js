@@ -21,7 +21,7 @@ import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, g
 import { upgradeEndDay } from './upgrade.js';
 import { bookEndDay } from './book.js';
 import { townOpenRest } from './town.js';
-import { furnOpen } from './furniture.js';
+import { furnOpen, buildRent, syncLayout } from './furniture.js';
 import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
 import { bloggerToday, bloggerEndDay } from './traffic.js';
 import { PROMO } from '../data/town.js';
@@ -35,6 +35,7 @@ export const isWeeklyNight = () => G.day % 7 === 0;
 export function setPhase(p) { G.phase = p; emit('phase', p); }
 
 function newRun() {
+  syncLayout(); // 가게 등급에 맞는 배치 (확장공사)
   return {
     min: 0, speed: 1, paused: false, closing: false,
     ing: Object.fromEntries(ING_IDS.map(i => [i, invOf(i)])), added: ingZeros(), rush: [], rushExtra: 0,
@@ -277,7 +278,8 @@ export function weekBills(upTo = G.day) {
   const principal = Math.min(LOAN_WEEKLY - interest, Math.max(0, G.loan));
   const dishes = G.history.filter(h => h.day > G.day - 7 && h.day <= upTo).reduce((s, h) => s + Object.values(h.sold).reduce((a, b) => a + b, 0), 0);
   const util = Math.round((UTIL_BASE + dishes * UTIL_PER_DISH) / 100) * 100;
-  return { rent: WEEK_RENT, interest, principal, util, dishes, total: WEEK_RENT + interest + principal + util };
+  const rent = WEEK_RENT + buildRent(); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
+  return { rent, interest, principal, util, dishes, total: rent + interest + principal + util };
 }
 
 // 영수증 다음: 7일째 밤이면 고정비 내는 날(고지서), 아니면 다음 날 준비

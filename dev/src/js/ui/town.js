@@ -11,7 +11,7 @@ import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
 import { townMode, slotsMax, actNow, placeOpen, marketUnit, townClock, placeName, placeShort, placeActs } from '../sim/town.js';
 import { furnOpen } from '../sim/furniture.js';
-import { furnHTML, furnTheme, heartsHTML } from './furn.js';
+import { furnHTML, furnTheme, furnGrade, heartsHTML } from './furn.js';
 import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
@@ -395,8 +395,11 @@ export function initTown() {
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
     else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); sheet(furnHTML(), 'furn'); }
-    else if (k === 'fbuy') runCmd('furnBuy', { cat: b.dataset.c, theme: furnTheme() });
-    else if (k === 'fset') runCmd('furnBuy', { set: furnTheme() });
+    else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); sheet(furnHTML(), 'furn'); }
+    else if (k === 'fbuy') runCmd('furnBuy', { cat: b.dataset.c, key: b.dataset.k });
+    else if (k === 'fset') runCmd('furnBuy', { set: furnTheme(), grade: furnGrade() });
+    else if (k === 'fmiso') runCmd('furnBuy', { miso: true });
+    else if (k === 'fbuild') runCmd('shopBuild');
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }

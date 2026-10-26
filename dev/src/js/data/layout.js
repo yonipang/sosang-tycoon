@@ -1,33 +1,34 @@
-// 1등급 가게 배치 (가로 10칸 × 세로 13칸, 한 칸 16px)
-//  y0~1 뒷벽 · y2 주방 설비 · y3 주방 바닥 · y4~10 홀(2인 네모 탁자 6개 · 계산대는 오른쪽 아래) · y11 앞벽(문 x5) · y12 가게 앞 보도
+// 가게 배치 (가로 10칸, 한 칸 16px). 가게 등급(확장공사 — 미소 가구)마다 홀이 아래로 두 줄씩 길어져요
+//  1등급(세로 13칸): y0~1 뒷벽 · y2 주방 설비 · y3 주방 바닥 · y4~10 홀(2인 네모 탁자 6개 · 계산대는 오른쪽 아래) · y11 앞벽(문 x5) · y12 가게 앞 보도
+//  2등급(세로 15칸): 홀 y4~12 · 탁자 8개 · 앞벽 y13 · 보도 y14
+//  배치는 applyShopLv(등급)로 바꿔요 — 배열·물건은 그 자리에서 고쳐 쓰고(다른 파일이 같은 것을 봐요), H·FRONT_Y·WALK_Y는 let
 export const W = 10;
-export const H = 13;
+export let H = 13;
 export const TILE = 16;
-export const FRONT_Y = H - 2;  // 앞벽 줄
-export const WALK_Y = H - 1;   // 가게 앞 보도 줄
+export let FRONT_Y = H - 2;  // 앞벽 줄
+export let WALK_Y = H - 1;   // 가게 앞 보도 줄
 export const DOOR = { x: 5, y: FRONT_Y };
+export let layoutLv = 0;     // 지금 깔린 배치의 등급
+// 등급마다 홀 탁자 줄 수 (줄마다 탁자 2개 — x2·x6)
+const TABLE_ROWS = [0, 3, 4, 5];
+export const SHOP_LV_MAX = 2; // 지금 만들 수 있는 등급 (3등급은 다음에)
 export const KITCHEN_ROWS = [2, 3];
 // 탁자 그림을 올리는 픽셀: 의자 다리 끝(그림 y22)과 탁자 다리 끝이 같은 높이가 되게
 export const TABLE_LIFT = 10;
 // 2인 네모 탁자(1칸). 자리는 탁자 왼쪽(x-1)·오른쪽(x+1). 한 탁자에는 한 일행만 (합석 없음)
 // w: 탁자 가로 칸 수 (2칸 탁자를 쓰면 2, 그림은 table2)
-export const TABLES = [
-  { no: 1, x: 2, y: 5, w: 1 }, { no: 2, x: 6, y: 5, w: 1 },
-  { no: 3, x: 2, y: 7, w: 1 }, { no: 4, x: 6, y: 7, w: 1 },
-  { no: 5, x: 2, y: 9, w: 1 }, { no: 6, x: 6, y: 9, w: 1 },
-];
+export const TABLES = [];
 export const onTable = (t, x, y) => y === t.y && x >= t.x && x < t.x + t.w;
 // 그릴 것 (그림 이름, 왼쪽 위 칸, 크기는 그림 그대로). 막힌 칸은 solid.
 // station이 붙은 것은 그 조리대의 메뉴가 열려야 보여요 (sim/story.js menuOpen)
-export const FURNITURE = [
+export const FURNITURE = [];
+const BACK_FURNITURE = [
   { spr: 'menuboard', x: 8, y: 0 },
   { spr: 'fridge', x: 0, y: 0 },
   { spr: 'stove', x: 1, y: 1 }, { spr: 'pot', x: 1, y: 1.25, over: true },
   { spr: 'counter', x: 2, y: 1, station: 'mat' }, { spr: 'mat', x: 2.5, y: 1.55, over: true, station: 'mat' },
   { spr: 'fryer', x: 4, y: 1, station: 'fryer' },
   { spr: 'sink', x: 6, y: 1 }, { spr: 'counter', x: 8, y: 1 },
-  ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
-  { spr: 'counter', x: 8, y: 9 }, { spr: 'register', x: 9, y: 8.875, over: true },
 ];
 // 조리대: 누를 수 있는 칸과 사장이 서는 칸
 export const STATIONS = {
@@ -37,19 +38,40 @@ export const STATIONS = {
   trash: { menu: null, tiles: [[6, 1], [7, 1], [6, 2], [7, 2]], stand: [[6, 3], [7, 3]], label: '퇴식대' },
   fridge: { menu: null, tiles: [[0, 0], [0, 1], [0, 2]], stand: [[0, 3]], label: '냉장고' }, // 재료 보기·급구매
 };
-export const REGISTER = { tiles: [[8, 9], [9, 9], [8, 10], [9, 10]], stand: [[8, 8], [9, 8]] };
+export const REGISTER = { tiles: [], stand: [] }; // 계산대 (홀 오른쪽 아래 2×2)
 // 자리: face = 앉아서 보는 쪽, table = 몇 번 탁자
-export const SEATS = TABLES.flatMap(t => [
-  { x: t.x - 1, y: t.y, face: 'right', table: t.no }, { x: t.x + t.w, y: t.y, face: 'left', table: t.no },
-]);
-export const PAY_SPOTS = [[7, 10], [6, 10], [4, 10]];   // 계산 줄 (앞부터 — 맨 앞은 계산대 왼쪽에서 오른쪽을 봐요)
-export const QUEUE_SPOTS = [[6, WALK_Y], [7, WALK_Y], [4, WALK_Y]]; // 가게 앞 대기 줄
-export const DOOR_OUT = { x: 5, y: WALK_Y };
+export const SEATS = [];
+export const PAY_SPOTS = [];   // 계산 줄 (앞부터 — 맨 앞은 계산대 왼쪽에서 오른쪽을 봐요)
+export const QUEUE_SPOTS = []; // 가게 앞 대기 줄
+export const DOOR_OUT = { x: 5, y: 0 };
 export const PLAYER_START = { x: 4, y: 4 };
 // 장식 (이야기로 생겨요 — G.story.decor). 놓일 칸은 처음부터 막아 둬요 (생겨도 길이 바뀌지 않게)
 export const DECOR = { plant: { spr: 'plant', x: 9, y: 4 } };
-// 미소 가구 자리 (data/furniture.js): 창문·액자는 뒷벽 맨 윗줄(픽셀 x, y) · 화분은 홀 왼쪽 두 칸(놓일 칸은 처음부터 막아 둬요)
-export const FURN_SPOTS = { window: [[68, 0]], frame: [[34, 2], [113, 2]], plant: [[0, 4], [0, 10]] };
+// 미소 가구 자리 (data/furniture.js): 창문·액자는 뒷벽 맨 윗줄(그림 가운데 픽셀 x, 위 y) · 화분은 홀 왼쪽 위·아래 두 칸(놓일 칸은 처음부터 막아 둬요)
+export const FURN_SPOTS = { window: [[80, 0]], frame: [[40, 2], [119, 2]], plant: [] };
+
+// 등급 lv의 배치를 깔아요 (같은 등급이면 그대로 — 바뀌었으면 true)
+export function applyShopLv(lv) {
+  lv = Math.max(1, Math.min(SHOP_LV_MAX, lv || 1));
+  if (lv === layoutLv) return false;
+  layoutLv = lv;
+  const rows = TABLE_ROWS[lv], last = 4 + rows * 2; // 홀 마지막 줄 (1등급 10 · 2등급 12)
+  H = last + 3; FRONT_Y = H - 2; WALK_Y = H - 1;
+  DOOR.y = FRONT_Y; DOOR_OUT.y = WALK_Y;
+  TABLES.length = 0;
+  for (let i = 0; i < rows; i++) TABLES.push({ no: i * 2 + 1, x: 2, y: 5 + i * 2, w: 1 }, { no: i * 2 + 2, x: 6, y: 5 + i * 2, w: 1 });
+  SEATS.length = 0;
+  for (const t of TABLES) SEATS.push({ x: t.x - 1, y: t.y, face: 'right', table: t.no }, { x: t.x + t.w, y: t.y, face: 'left', table: t.no });
+  REGISTER.tiles = [[8, last - 1], [9, last - 1], [8, last], [9, last]]; REGISTER.stand = [[8, last - 2], [9, last - 2]];
+  PAY_SPOTS.length = 0; PAY_SPOTS.push([7, last], [6, last], [4, last]);
+  QUEUE_SPOTS.length = 0; QUEUE_SPOTS.push([6, WALK_Y], [7, WALK_Y], [4, WALK_Y]);
+  FURNITURE.length = 0;
+  FURNITURE.push(...BACK_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
+    { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 2.125, over: true });
+  FURN_SPOTS.plant = [[0, 4], [0, last]];
+  return true;
+}
+applyShopLv(1);
 // 사장이 못 가는 칸 (자리·탁자·계산대·설비 줄·벽)
 export function solidForPlayer(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;

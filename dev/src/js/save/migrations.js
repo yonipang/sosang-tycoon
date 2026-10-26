@@ -60,6 +60,7 @@ export function migrate(o) {
   // 친밀도·미소 가구(v0.34) 이전 세이브: 정 사장님은 그동안 장 보러 간 날만큼 (♥♥ 바로 아래까지)
   if (!o.bond) o.bond = { pts: { miso: 0, jung: Math.min(14, (o.town && o.town.visits) || 0), moon: 0 }, day: 0, got: {} };
   if (!o.furn) o.furn = { have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 };
+  if (!o.shopLv) o.shopLv = 1; // 확장공사(v0.36) 이전 세이브
   if (!o.market) o.market = { id: null, until: 0 }; // 재료 시세 이전 세이브
   if (!o.meta) o.meta = { id: 'old' + (o.baseSeed || 0), at: 0 }; // 클라우드 저장 이전 세이브
   return o;
