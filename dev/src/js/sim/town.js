@@ -18,11 +18,15 @@ export const townMode = () => !!(G.town && G.town.on);
 export const slotsMax = () => TURN_SLOTS;
 export const slotsLeft = () => TURN_SLOTS - G.town.used;
 // 지금 시각 (분): 밤 21:00부터 한 칸에 한 시간 · 새벽은 05:00부터
-export const townClock = () => (G.town.part === 'dawn' ? DAWN_START + Math.max(0, G.town.used - NIGHT_SLOTS) * 60 : NIGHT_START + G.town.used * 60);
+//  새벽은 05:00~08:00 (칸을 넘겨 써도 08:00에서 멈춰요 — 영업은 09:00)
+export const townClock = () => (G.town.part === 'dawn' ? DAWN_START + Math.min(DAWN_SLOTS, Math.max(0, G.town.used - NIGHT_SLOTS)) * 60 : NIGHT_START + Math.min(NIGHT_SLOTS - 1, G.town.used) * 60);
+// 칸을 넘겨 쓸 수 있는 한도 (피로 최대만큼) — 더는 할 수 없어요
+export const slotsHardMax = () => TURN_SLOTS + FATIGUE_MAX;
 // 장소가 지금 열려 있나 · 지금 할 수 있는 일
 export const placeOpen = id => !PLACES[id].open || PLACES[id].open === G.town.part;
 export const actNow = (place, act) => placeOpen(place) && PLACE_ACTS[place].includes(act) && (ACTS[act].when === 'any' || ACTS[act].when === G.town.part)
   && !(act === 'talk' && G.town.talked.includes(PLACES[place].who))
+  && !(act === 'clean' && G.town.hygiene >= 100) && !(act === 'setup' && G.town.setup === G.day) // 할 필요가 없는 일은 막아요
   && !(act === 'insta' && G.town.insta === G.day) && !(act === 'blogger' && G.town.blogDay === G.day);
 
 // 다음 날로 넘어가는 밤 (sim/day.js nextDay): 1장부터는 골목으로
@@ -49,6 +53,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (!townMode() || G.phase !== 'prep' || !PLACES[place] || !A) return false;
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
+  if (A.cost && G.town.used + A.cost > slotsHardMax() && !(act === 'market' && G.town.marketIn)) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }

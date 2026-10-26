@@ -786,3 +786,9 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .u-more summary::after { content: ' ▾'; }
 .u-more[open] summary::after { content: ' ▴'; }
 .u-more p { margin: 4px 0 0; word-break: keep-all; }
+.tb-over { font-weight: normal; color: #fff; background: var(--red); padding: 0 4px; margin-left: 2px; }
+.mk-plan { margin: 4px 0; }
+.mk-prow { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 2px dashed var(--line); }
+.mk-prow .dish { width: 28px; height: 28px; flex: none; }
+.mk-prow span { flex: 1; min-width: 0; line-height: 1.2; }
+.mk-prow span small { display: block; color: var(--ink-soft); }
