@@ -18,6 +18,7 @@ import { TUT_IMPATIENT } from '../data/tutorial.js';
 import { tutNote, tutHold } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
+import { noteVisit, noteBookSat } from './book.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 
 export const custById = id => G.run.customers.find(c => c.id === id);
@@ -247,7 +248,7 @@ export function pay(c) {
     total += price;
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
-    noteSat(m, sat);
+    noteSat(m, sat); noteBookSat(m.char, sat);
     if (m.blog) { L.blogSat = sat; L.blogMenu = m.menu; emit('say', m.id, sat >= 4 ? '와, 이건 글 써야겠는데요?' : '음… 무난하네요.'); } // 파워블로거 (sim/traffic.js)
     const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
     L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
@@ -272,7 +273,7 @@ function atDoor(c) {
   logPass(hour, c.type, members.length, enter);
   if (enter) {
     r.log.entered += members.length;
-    members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
+    members.forEach(m => { m.state = 'arrive'; m.lane = 0; noteVisit(m.char); }); // 손님 수첩
     if (c.reg) emit('say', c.id, pickLine(REGULARS[c.reg].lines));
     else if (c.blog) emit('say', c.id, '여기 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?');
     else if (!c.force) {

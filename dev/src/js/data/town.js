@@ -72,6 +72,7 @@ export const ACTS = {
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
   counter: { name: '계산대 · 홍보', cost: 0, when: 'night' },
+  book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'night' },
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
@@ -83,7 +84,7 @@ export const ACTS = {
 export const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'book', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
   market: ['market'],

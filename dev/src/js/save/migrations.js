@@ -52,6 +52,7 @@ export function migrate(o) {
   if (!o.menuLv) o.menuLv = Object.fromEntries(MENU_IDS.map(m => [m, 1]));
   if (!o.mastery) o.mastery = Object.fromEntries(MENU_IDS.map(m => [m, o.history.reduce((s, h) => s + ((h.sold && h.sold[m]) || 0), 0)]));
   if (!o.fans) o.fans = {};
+  if (!o.book) o.book = Object.fromEntries(Object.entries(o.fans || {}).map(([ch, f]) => [ch, { first: o.day || 1, visits: (f.n || 0) + 1, sat: null }])); // 손님 수첩(v0.33) 이전: 맛있게 먹은 손님만
   if (!o.board) o.board = { lunch: null, after: null }; // 칠판 추천(v0.31) 이전 세이브
   // 밤·새벽 한 턴(v0.30) 이전 세이브: 새벽이었으면 칸을 밤 4칸 뒤에서 이어 세요
   if (o.town && o.town.on && !o.town.turn) { if (o.town.part === 'dawn') o.town.used = (o.town.used || 0) + 4; o.town.rest = 0; }

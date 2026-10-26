@@ -792,3 +792,21 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .mk-prow .dish { width: 28px; height: 28px; flex: none; }
 .mk-prow span { flex: 1; min-width: 0; line-height: 1.2; }
 .mk-prow span small { display: block; color: var(--ink-soft); }
+
+/* 손님 수첩 */
+.bk-count { margin: 0 auto 0 8px; color: var(--ink-soft); }
+.bk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 8px 0; }
+.bk-cell { position: relative; height: 52px; padding: 0; overflow: hidden; background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; }
+.bk-cell.sel { border-color: var(--red); background: #fff3c4; }
+.bk-cell .bk-face { width: 32px; height: 64px; margin-top: -4px; image-rendering: pixelated; }
+.bk-cell.unseen .bk-face { filter: brightness(0); opacity: .3; }
+.bk-star { position: absolute; top: 1px; right: 2px; font-style: normal; color: var(--mustard); text-shadow: 0 1px 0 var(--ink); }
+.bk-hint { margin: 6px 0; color: var(--ink-soft); text-align: center; }
+.bk-info { padding: 6px 2px; }
+.bk-name { display: flex; align-items: baseline; gap: 8px; }
+.bk-name b { font-weight: normal; font-size: 20px; }
+.bk-name small { color: var(--ink-soft); }
+.bk-info p { margin: 4px 0; word-break: keep-all; }
+.bk-info > small { color: var(--ink-soft); word-break: keep-all; }
+.bk-info .face { width: 16px; height: 16px; vertical-align: middle; }
+.bk-foot { margin: 6px 0 0; color: var(--ink-soft); }

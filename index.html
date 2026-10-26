@@ -797,6 +797,24 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .mk-prow .dish { width: 28px; height: 28px; flex: none; }
 .mk-prow span { flex: 1; min-width: 0; line-height: 1.2; }
 .mk-prow span small { display: block; color: var(--ink-soft); }
+
+/* 손님 수첩 */
+.bk-count { margin: 0 auto 0 8px; color: var(--ink-soft); }
+.bk-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 8px 0; }
+.bk-cell { position: relative; height: 52px; padding: 0; overflow: hidden; background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; }
+.bk-cell.sel { border-color: var(--red); background: #fff3c4; }
+.bk-cell .bk-face { width: 32px; height: 64px; margin-top: -4px; image-rendering: pixelated; }
+.bk-cell.unseen .bk-face { filter: brightness(0); opacity: .3; }
+.bk-star { position: absolute; top: 1px; right: 2px; font-style: normal; color: var(--mustard); text-shadow: 0 1px 0 var(--ink); }
+.bk-hint { margin: 6px 0; color: var(--ink-soft); text-align: center; }
+.bk-info { padding: 6px 2px; }
+.bk-name { display: flex; align-items: baseline; gap: 8px; }
+.bk-name b { font-weight: normal; font-size: 20px; }
+.bk-name small { color: var(--ink-soft); }
+.bk-info p { margin: 4px 0; word-break: keep-all; }
+.bk-info > small { color: var(--ink-soft); word-break: keep-all; }
+.bk-info .face { width: 16px; height: 16px; vertical-align: middle; }
+.bk-foot { margin: 6px 0 0; color: var(--ink-soft); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1075,6 +1093,31 @@ const REGULARS = {
     bye: ['잘 먹었어. 내일 또 올게', '맛있네. 그 양반 맛이랑 비슷해', '수고해~'],
   },
 };
+// ── js/data/people.js ──
+// 손님 수첩 (ui/book.js): 가게에 오는 사람마다 이름과 한 줄 소개. 그림 번호 = data/customers.js PEOPLE (13번 박 할머니는 단골)
+// 처음 가게에 들어오면 수첩에 열려요. 세 번 다시 온 손님(맛있게 먹고 또 온 손님)은 「단골 후보」 — 2장 단골과 이어져요
+const PEOPLE_INFO = {
+  1: { name: '김 대리', bio: '근처 사무실 회사원입니다. 점심시간이 짧아 늘 서둘러 먹습니다.' },
+  2: { name: '민준', bio: '학원 가기 전에 들르는 중학생입니다.' },
+  3: { name: '서연', bio: '비니를 즐겨 쓰는 고등학생입니다. 친구와 나눠 먹습니다.' },
+  4: { name: '박 과장', bio: '야근이 잦아 저녁을 분식으로 때웁니다.' },
+  5: { name: '지호', bio: '동아리방 간식을 사 가는 대학생입니다.' },
+  6: { name: '도윤', bio: '자전거로 학원을 다니는 고등학생입니다.' },
+  7: { name: '최 사장님', bio: '옆 세탁소 사장님입니다. 말수가 적습니다.' },
+  8: { name: '이 기사님', bio: '골목을 도는 택배 기사님입니다. 김밥을 들고 가며 먹습니다.' },
+  9: { name: '미소 사장님', bio: '옆집 미소 꽃집 사장님입니다.' },
+  10: { name: '정 주임', bio: '길 건너 은행에 다닙니다.' },
+  11: { name: '태민', bio: '야구부 중학생입니다. 늘 배가 고픕니다.' },
+  12: { name: '준호 쌤', bio: '헬스장 트레이너입니다. 「오늘만 먹는다」고 매번 말합니다.' },
+  13: { name: '박 할머니', bio: '오 사장님 시절부터 오던 단골입니다. 김밥을 좋아합니다.' },
+  14: { name: '한 약사님', bio: '골목 약국 약사님입니다.' },
+  15: { name: '유나', bio: '미대 입시를 준비하는 고등학생입니다.' },
+  16: { name: '카메라 든 손님', bio: '먹기 전에 사진부터 찍습니다. 블로그를 한다는 소문이 있습니다.' },
+  17: { name: '소율', bio: '분홍 모자를 쓴 초등학생입니다. 용돈을 모아 옵니다.' },
+  19: { name: '강 할아버지', bio: '경로당에 다니는 어르신입니다. 천천히 드십니다.' },
+};
+const BOOK_ORDER = [1, 4, 8, 10, 12, 14, 16, 2, 3, 5, 6, 11, 15, 17, 9, 7, 13, 19];
+const REGULAR_BACK = 3; // 세 번 다시 오면 단골 후보
 // ── js/data/economy.js ──
 // 돈과 하루 (단위: 원·초)
 const START_CASH = 1500000;   // 개업 비용을 치르고 남은 돈 (자기 돈 300만 + 창업 대출 500만으로 시작)
@@ -1191,7 +1234,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.32';
+const GAME_VERSION = '0.33';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1315,6 +1358,7 @@ const ACTS = {
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
   counter: { name: '계산대 · 홍보', cost: 0, when: 'night' },
+  book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'night' },
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'night', money: 50000 },
   sleep: { name: '자러 가기', cost: 0, when: 'night' },
@@ -1326,7 +1370,7 @@ const ACTS = {
 const PLACE_ACTS = {
   home: ['sleep'],
   flower: ['talk'],
-  shop: ['ledger', 'recipe', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
+  shop: ['ledger', 'recipe', 'book', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
   market: ['market'],
@@ -2048,6 +2092,7 @@ function migrate(o) {
   if (!o.menuLv) o.menuLv = Object.fromEntries(MENU_IDS.map(m => [m, 1]));
   if (!o.mastery) o.mastery = Object.fromEntries(MENU_IDS.map(m => [m, o.history.reduce((s, h) => s + ((h.sold && h.sold[m]) || 0), 0)]));
   if (!o.fans) o.fans = {};
+  if (!o.book) o.book = Object.fromEntries(Object.entries(o.fans || {}).map(([ch, f]) => [ch, { first: o.day || 1, visits: (f.n || 0) + 1, sat: null }])); // 손님 수첩(v0.33) 이전: 맛있게 먹은 손님만
   if (!o.board) o.board = { lunch: null, after: null }; // 칠판 추천(v0.31) 이전 세이브
   // 밤·새벽 한 턴(v0.30) 이전 세이브: 새벽이었으면 칸을 밤 4칸 뒤에서 이어 세요
   if (o.town && o.town.on && !o.town.turn) { if (o.town.part === 'dawn') o.town.used = (o.town.used || 0) + 4; o.town.rest = 0; }
@@ -2069,9 +2114,10 @@ const SAVE_V = 1;
 // meta = 세이브 꼬리표 { id: 이 가게(판) 번호, at: 마지막 저장 시각 } — 클라우드 저장에서 같은 판인지·어느 쪽이 최근인지 봐요
 // prep = 오늘 아침 도착할 재료 주문량(메뉴마다 인분 — 프롤로그·1장 첫날) · inv = 원재료 창고 { 재료: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] } (sim/pantry.js)
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
+// book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js)
 // board = 가게 앞 칠판 · 오늘의 추천 { lunch, after } (sim/traffic.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book'];
 
 const G = { phase: 'title', run: null };
 
@@ -2101,6 +2147,7 @@ function newGame(shopName) {
     mastery: Object.fromEntries(MENU_IDS.map(m => [m, 0])),
     fans: {},
     board: { lunch: null, after: null },
+    book: {},
     phase: 'prep',
     run: null,
   });
@@ -2625,6 +2672,19 @@ function logPass(hour, type, n, entered) {
   if (entered) h.in[type] = (h.in[type] || 0) + n;
 }
 const nowHour = () => 9 + Math.floor(G.run.min / 60);
+// ── js/sim/book.js ──
+// 손님 수첩 기록 (data/people.js): 누가 몇 번 왔는지 · 마지막 만족 — 영업 중엔 G.run.log에 모았다가 마감 때 G.book에 더해요
+//  G.book { 그림 번호: { first: 처음 온 날, visits: 온 횟수, sat: 마지막 만족(1~5) } } · 맛있게 먹은 메뉴·다시 온 횟수는 G.fans (sim/upgrade.js)
+
+function noteVisit(char) { const L = G.run.log; L.visits[char] = (L.visits[char] || 0) + 1; }
+function noteBookSat(char, sat) { G.run.log.lastSat[char] = sat; }
+function bookEndDay() {
+  const L = G.run.log;
+  for (const ch in L.visits) { const b = (G.book[ch] = G.book[ch] || { first: G.day, visits: 0, sat: null }); b.visits += L.visits[ch]; }
+  for (const ch in L.lastSat) if (G.book[ch]) G.book[ch].sat = L.lastSat[ch];
+}
+const bookSeen = ch => !!(G.book && G.book[ch]);
+const regularCandidate = ch => !!(G.fans && G.fans[ch] && G.fans[ch].n >= REGULAR_BACK);
 // ── js/sim/tutorial.js ──
 // 오 사장님 가게 길잡이 규칙 (data/tutorial.js): 영업 중 일어난 일로 차례를 넘기고, 장면을 줄에 넣고, 시키는 동안 가게 시계를 멈춰요.
 // 화면은 만지지 않아요: 장면은 emit('story'), 띠·화살표는 화면이 tutAsk()를 읽어 그려요.
@@ -2832,6 +2892,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'ledger') { emit('town', 'ledger'); return true; }
   if (act === 'recipe') { emit('town', 'recipe'); return true; }
   if (act === 'counter') { emit('town', 'counter'); return true; }
+  if (act === 'book') { emit('town', 'book'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { goDawn('sleep'); return true; }
   if (act === 'market') {
@@ -3202,7 +3263,7 @@ function pay(c) {
     total += price;
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
-    noteSat(m, sat);
+    noteSat(m, sat); noteBookSat(m.char, sat);
     if (m.blog) { L.blogSat = sat; L.blogMenu = m.menu; emit('say', m.id, sat >= 4 ? '와, 이건 글 써야겠는데요?' : '음… 무난하네요.'); } // 파워블로거 (sim/traffic.js)
     const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
     L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
@@ -3227,7 +3288,7 @@ function atDoor(c) {
   logPass(hour, c.type, members.length, enter);
   if (enter) {
     r.log.entered += members.length;
-    members.forEach(m => { m.state = 'arrive'; m.lane = 0; });
+    members.forEach(m => { m.state = 'arrive'; m.lane = 0; noteVisit(m.char); }); // 손님 수첩
     if (c.reg) emit('say', c.id, pickLine(REGULARS[c.reg].lines));
     else if (c.blog) emit('say', c.id, '여기 맛있다고 해서 왔어요. 사진 좀 찍어도 되죠?');
     else if (!c.force) {
@@ -3556,7 +3617,7 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
-      mastery: {}, fans: {}, back: {}, hourly: {}, blogSat: null, blogMenu: null, // 시간대 기록 · 블로거 만족 (sim/traffic.js)
+      mastery: {}, fans: {}, back: {}, hourly: {}, blogSat: null, blogMenu: null, visits: {}, lastSat: {}, // 시간대 기록 · 블로거 만족 (sim/traffic.js)
       // 메뉴 업그레이드: 오늘 숙련도 · 맛있게 먹은 손님 · 다시 온 손님 (sim/upgrade.js, 마감 때 더해요)
       priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
@@ -3726,6 +3787,7 @@ function endDay() {
   if (dirty()) L.events.push({ kind: 'dirty', who: '손님' }); // 위생이 낮으면 리뷰에 나와요
   townEndDay();
   const masteryGain = upgradeEndDay();
+  bookEndDay(); // 손님 수첩
   const blog = bloggerEndDay(); // 블로거 평 → 며칠 동안 직장인·어르신 (null = 오늘 안 옴)
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
@@ -5388,9 +5450,30 @@ function boardHTML() {
       <p>숙련도는 내준 그릇 수입니다 (완벽 조리는 ${MASTERY_PERFECT}그릇). 숙련도가 차면 돈을 내고 올립니다</p>
     </details>`;
 }
+// ── js/ui/book.js ──
+// 손님 수첩 (마을 · 우리 가게 「손님 수첩」): 얼굴 칸 18개 — 아직 안 온 사람은 그림자, 누르면 아래에 그 사람 (기록은 sim/book.js)
+
+const typeOf = ch => PEOPLE[ch] || (Object.values(REGULARS).find(r => r.char === ch) || {}).type || 'elder';
+const satFace = s => (s >= 4.5 ? 'love' : s >= 3.5 ? 'happy' : s >= 2.5 ? 'meh' : 'angry');
+function bookHTML(sel) {
+  const seen = BOOK_ORDER.filter(bookSeen).length;
+  const cells = BOOK_ORDER.map(ch => `<button type="button" class="bk-cell${bookSeen(ch) ? '' : ' unseen'}${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="${bookSeen(ch) ? PEOPLE_INFO[ch].name : '아직 모르는 손님'}">${icon('char' + ch, 'bk-face')}${regularCandidate(ch) ? '<i class="bk-star">★</i>' : ''}</button>`).join('');
+  let info = '<p class="bk-hint">얼굴을 눌러 보세요</p>';
+  if (sel && !bookSeen(sel)) info = '<p class="bk-hint">아직 가게에 온 적이 없습니다</p>';
+  else if (sel) {
+    const P = PEOPLE_INFO[sel], b = G.book[sel], f = G.fans && G.fans[sel];
+    info = `<div class="bk-info"><div class="bk-name"><b>${P.name}</b><small>${CUSTOMER_TYPES[typeOf(sel)].name}</small>${regularCandidate(sel) ? '<span class="tag hot">단골 후보</span>' : ''}</div>
+      <p>${P.bio}</p>
+      <small>${b.visits}번 왔습니다${b.sat != null ? ` · 마지막 ${icon('face_' + satFace(b.sat), 'face')}` : ''}${f ? ` · ${josa(MENUS[f.m].name, '을/를')} 맛있게 먹었습니다 · 다시 온 ${f.n}번` : ''}</small></div>`;
+  }
+  return `<div class="ts-head"><b>손님 수첩</b><small class="bk-count">${seen}/${BOOK_ORDER.length}명</small><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    <div class="bk-grid">${cells}</div>${info}
+    <p class="bk-foot">맛있게 먹고 ${REGULAR_BACK}번 다시 온 손님은 ★ 단골 후보</p>`;
+}
 // ── js/ui/town.js ──
 // 마을 화면: 밤·새벽 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
 // 지도는 data/town.js (16px 칸), 그리기는 render/town.js, 규칙은 sim/town.js. 길 찾기는 칸 단위 너비 우선 탐색(상하좌우)
+let bookSel = 0; // 손님 수첩에서 고른 사람
 
 const WALK = 60;     // 걷는 빠르기 (지도 픽셀/초)
 const VIEW_W = 224;  // 화면에 보이는 지도 너비 (14칸 — 멀리서 보듯, 포켓몬 하트골드 정도). 높이는 화면에 맞춰요
@@ -5662,7 +5745,7 @@ function actRow(id, a) {
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : '처음 들어갈 때 한 칸')
       : a === 'insta' ? (ok ? '내일 학생 손님이 더 들어옵니다' : '오늘 밤은 이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · 내일 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : '내일 블로거가 옵니다')
-      : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost ? `<i>${(a === 'market' && Tn.marketIn) ? '' : cost}</i>` : ''}</button>`;
   }
 }
@@ -5760,6 +5843,7 @@ function initTown() {
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
+    else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
@@ -5768,6 +5852,7 @@ function initTown() {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
     if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { T.part = 'dawn'; playSfx('page'); if (arg === 'sleep') { closeSheet(); placeMe('home'); } } // 밤 칸을 다 쓰면 그 자리에서 새벽
@@ -5785,6 +5870,7 @@ function refreshTown() {
   if (s.classList.contains('market')) sheet(marketHTML(), 'market');
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
+  else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
 // ── js/ui/cutscene.js ──

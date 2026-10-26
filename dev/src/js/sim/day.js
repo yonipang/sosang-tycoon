@@ -19,6 +19,7 @@ import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, ingCost, marketNextDay, costBreakdown } from './market.js';
 import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, giveMenu, shortIng, todayMenus, menuOn } from './pantry.js';
 import { upgradeEndDay } from './upgrade.js';
+import { bookEndDay } from './book.js';
 import { townOpenRest } from './town.js';
 import { townEnterNight, townSpeedMul, setupUntil, referralPlan, townEndDay, dirty } from './town.js';
 import { bloggerToday, bloggerEndDay } from './traffic.js';
@@ -43,7 +44,7 @@ function newRun() {
     log: {
       sales: Object.fromEntries(MENU_IDS.map(m => [m, { n: 0, rev: 0 }])), tips: 0, served: 0,
       missed: { full: 0, wait: 0, price: 0, soldout: 0 }, sats: [], events: [], wasteDishes: 0, faces: {}, foot: 0, entered: 0,
-      mastery: {}, fans: {}, back: {}, hourly: {}, blogSat: null, blogMenu: null, // 시간대 기록 · 블로거 만족 (sim/traffic.js)
+      mastery: {}, fans: {}, back: {}, hourly: {}, blogSat: null, blogMenu: null, visits: {}, lastSat: {}, // 시간대 기록 · 블로거 만족 (sim/traffic.js)
       // 메뉴 업그레이드: 오늘 숙련도 · 맛있게 먹은 손님 · 다시 온 손님 (sim/upgrade.js, 마감 때 더해요)
       priceFaces: Object.fromEntries(MENU_IDS.map(m => [m, {}])),
     },
@@ -213,6 +214,7 @@ export function endDay() {
   if (dirty()) L.events.push({ kind: 'dirty', who: '손님' }); // 위생이 낮으면 리뷰에 나와요
   townEndDay();
   const masteryGain = upgradeEndDay();
+  bookEndDay(); // 손님 수첩
   const blog = bloggerEndDay(); // 블로거 평 → 며칠 동안 직장인·어르신 (null = 오늘 안 옴)
   // 팔지 못한 미리 끓인 그릇은 버려요 (그만큼 재료도 썼어요)
   let readyLeft = 0;
