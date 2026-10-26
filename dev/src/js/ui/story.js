@@ -215,7 +215,7 @@ export function updateQuestTrack() {
   const act = day ? activeIncidents() : [];
   const cur = act.length ? act[Math.floor(performance.now() / 3000) % act.length] : null;
   const curD = cur && incidentInfo(cur);
-  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">돌발</span><span class="inc-name">${curD.short || curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
+  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">!</span><span class="inc-name">${curD.short || curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
   // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
   const done = S ? S.done.length : 0;
   if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;

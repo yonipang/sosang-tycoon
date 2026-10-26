@@ -314,7 +314,10 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .toast.quest { background: var(--mustard); color: var(--ink); border-color: var(--ink); }
 
 /* 영업 중 위 막대: 할 일 (가게 그림을 가리지 않게 막대 안에) */
-#questTrack { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 104px; overflow: hidden; }
+#questTrack { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 116px; overflow: hidden; }
+#questTrack .qt.inc { gap: 3px; }
+#questTrack .qt.inc .inc-tag { padding: 0 5px; }
+#questTrack .qt.inc b { margin-right: 0; padding: 0 3px; }
 #questTrack .qt { flex: none; width: 100%; margin: 0; }
 #questTrack .qt.qbtn { justify-content: center; }
 .qt { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 0 1 auto; background: var(--paper-2); padding: 0 6px 0 0; border: 2px solid var(--ink); }

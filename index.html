@@ -52,7 +52,9 @@ img.px { object-fit: contain; }
 .pill b { font-weight: normal; }
 .pill.star { color: var(--red-dark); }
 .clock { background: var(--ink); color: var(--paper); padding: 0 6px; letter-spacing: 1px; }
-#tickets { display: flex; gap: 4px; margin-top: 6px; min-height: 48px; overflow: hidden; }
+#tickets { display: flex; gap: 4px; flex: 1; min-width: 0; min-height: 48px; overflow: hidden; }
+.hud-row2 { display: flex; gap: 6px; margin-top: 6px; align-items: stretch; } /* 주문표 · 오른쪽에 퀘스트 버튼과 돌발 띠 (v0.43: 위 막대 두 줄로) */
+.tk.more { display: flex; align-items: center; justify-content: center; }
 .tk { position: relative; width: 44px; height: 48px; flex: none; background: #fff; border: 2px solid var(--ink); }
 .tk img { position: absolute; left: 8px; top: 4px; width: 24px; height: 24px; }
 .tk b { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; line-height: 16px; font-weight: normal; color: var(--ink-soft); }
@@ -317,7 +319,12 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .toast.quest { background: var(--mustard); color: var(--ink); border-color: var(--ink); }
 
 /* 영업 중 위 막대: 할 일 (가게 그림을 가리지 않게 막대 안에) */
-#questTrack { display: flex; gap: 4px; margin-top: 4px; overflow: hidden; }
+#questTrack { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 116px; overflow: hidden; }
+#questTrack .qt.inc { gap: 3px; }
+#questTrack .qt.inc .inc-tag { padding: 0 5px; }
+#questTrack .qt.inc b { margin-right: 0; padding: 0 3px; }
+#questTrack .qt { flex: none; width: 100%; margin: 0; }
+#questTrack .qt.qbtn { justify-content: center; }
 .qt { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 0 1 auto; background: var(--paper-2); padding: 0 6px 0 0; border: 2px solid var(--ink); }
 .qt .q-face { width: 32px; height: 20px; border: 0; border-right: 2px solid var(--ink); }
 .qt .q-face img { margin-top: -14px; }
@@ -326,7 +333,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 
 /* ── 대화 창 ── */
 .talk { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 10px; padding-top: calc(max(8px, env(safe-area-inset-top)) + 60px); background: linear-gradient(0deg, rgba(29,35,64,0) 30%, rgba(29,35,64,.75)); cursor: pointer; } /* 대화는 위에 (v0.40 사용자 요청 — 아래는 잘 안 보여요). 위 막대(날짜·잔고)는 가리지 않게 */
-.tk-box { display: flex; align-items: flex-end; gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
+.tk-box { display: flex; align-items: flex-start; gap: 8px; max-width: 460px; width: 100%; margin: 0 auto; }
 .tk-face { flex: none; width: 64px; height: 80px; overflow: hidden; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); }
 .tk-face img { display: block; width: 64px; height: 128px; margin-top: -24px; } /* 4배: 머리부터 허리까지 */
 .tk-body { position: relative; flex: 1; min-height: 96px; background: var(--paper); border: 3px solid var(--ink); padding: 8px 10px 20px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
@@ -519,7 +526,7 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .inc-banner small { display: block; color: var(--mustard); letter-spacing: 2px; }
 .inc-banner b { font-weight: normal; font-size: 28px; line-height: 1.2; text-shadow: 0 2px 0 var(--red-dark); }
 @keyframes incBanner { 0% { transform: scale(2.2) rotate(-8deg); opacity: 0; } 60% { transform: scale(.9) rotate(-1deg); } }
-.inc-talk .tk-box { display: flex; align-items: flex-end; gap: 6px; }
+.inc-talk .tk-box { display: flex; align-items: flex-start; gap: 6px; }
 .inc-ui.think .tk-body { background: #efe9fb; border-style: dashed; }
 .inc-ui.think .tk-name { background: #6b5a9a; }
 .inc-ui.narr .tk-body { background: var(--night); color: var(--paper); border-color: var(--paper); }
@@ -934,6 +941,17 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .gd-done { flex: none; color: var(--green); }
 .gd-foot { margin: 8px 0 0; color: var(--ink-soft); text-align: right; font-size: 14px; }
 .town-sheet.furn .mk-foot { bottom: 0; margin-bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+
+/* 프롤로그 준비: 오늘의 메뉴 한 칸 (v0.43) */
+.pm-card .q-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-row { padding: 6px 10px 8px; border-top: 2px dashed var(--line); }
+.pm-row:first-of-type { border-top: 0; }
+.sum small { color: var(--ink-soft); }
+
+/* 가게 문을 지날 때 (ui/town.js doorFade) */
+#townFade { position: absolute; inset: 0; z-index: 40; background: #120e1c; opacity: 0; pointer-events: auto; }
+#townFade.in { opacity: 1; transition: opacity .22s steps(4); }
+#townFade.out { opacity: 0; transition: opacity .22s steps(4); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -945,8 +963,10 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
       <span class="pill star">★ <b id="hStar">3.0</b></span>
       <button id="bSet" type="button" class="gear" aria-label="설정"><svg viewBox="0 0 12 12" width="20" height="20" shape-rendering="crispEdges" aria-hidden="true"><g fill="currentColor"><rect x="5" y="0" width="2" height="2"/><rect x="5" y="10" width="2" height="2"/><rect x="0" y="5" width="2" height="2"/><rect x="10" y="5" width="2" height="2"/><rect x="1" y="1" width="2" height="2"/><rect x="9" y="1" width="2" height="2"/><rect x="1" y="9" width="2" height="2"/><rect x="9" y="9" width="2" height="2"/><rect x="2" y="3" width="8" height="6"/><rect x="3" y="2" width="6" height="8"/></g><rect x="5" y="5" width="2" height="2" fill="var(--paper)"/></svg></button>
     </div>
-    <div id="tickets" aria-label="주문표"></div>
-    <div id="questTrack" hidden aria-label="할 일"></div>
+    <div class="hud-row2">
+      <div id="tickets" aria-label="주문표"></div>
+      <div id="questTrack" hidden aria-label="할 일"></div>
+    </div>
   </header>
   <main id="stage">
     <div id="cvWrap">
@@ -977,7 +997,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
         </div>
       </div>
     </div>
-    <div id="town" hidden><div id="townBar"></div><canvas id="townCv" aria-label="골목 — 누른 채로 끌면 조이스틱, 짧게 누르면 그곳까지 걸어가요"></canvas><div id="townJoy" hidden aria-hidden="true"><i></i></div><div id="townNav"></div><div id="townSheet" class="town-sheet" hidden></div></div>
+    <div id="town" hidden><div id="townBar"></div><canvas id="townCv" aria-label="골목 — 누른 채로 끌면 조이스틱, 짧게 누르면 그곳까지 걸어가요"></canvas><div id="townJoy" hidden aria-hidden="true"><i></i></div><div id="townNav"></div><div id="townSheet" class="town-sheet" hidden></div><div id="townFade" hidden aria-hidden="true"></div></div>
   </main>
   <footer id="bar">
     <div class="hands-wrap"><small>손</small><div id="hands"></div></div>
@@ -1393,7 +1413,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.42';
+const GAME_VERSION = '0.43';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -5674,6 +5694,7 @@ const SOUNDS = {
   tap: () => tone(1200, 0.03, 'square', 0.025),
   surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
+  door: () => { tone(1568, 0.05, 'triangle', 0.04); tone(1319, 0.12, 'triangle', 0.04, 0, 0.05); }, // 가게 문 종소리 (딸랑)
 };
 // 진동: 손맛이 필요한 순간만 짧게 (설정에서 끌 수 있어요)
 const VIBE = { perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
@@ -5778,14 +5799,17 @@ function updateHud() {
   // 주문표: 들어온 순서대로 (손에 이미 든 몫은 흐리게)
   const handLeft = {};
   for (const d of r.hands) handLeft[d.menu] = (handLeft[d.menu] || 0) + 1;
-  const tk = r.tickets.slice(0, 7).map(t => {
+  // 주문표 칸에 들어가는 만큼만 (넘치면 마지막 칸이 +몇)
+  const fit = Math.max(2, Math.floor(($('tickets').clientWidth + 4) / 48));
+  const show = r.tickets.length > fit ? fit - 1 : fit;
+  const tk = r.tickets.slice(0, show).map(t => {
     const c = r.customers.find(q => q.id === t.cid);
     const f = c ? c.patience / c.patMax : 1;
     const ready = handLeft[t.menu] > 0 && (handLeft[t.menu]--, true);
     const ev = t.takeout || (c && c.tag && c.tag.state === 'on'); // 돌발 이벤트 주문은 빨간 표
     return `<div class="tk${ready ? ' ready' : ''}${f < 0.25 ? ' late' : ''}${ev ? ' ev' : ''}">${icon(t.menu)}<b>${t.table ? t.table + '번' : '포장'}</b><i style="width:${Math.round(f * 10) * 10}%"></i></div>`;
-  }).join('') + (r.tickets.length > 7 ? `<div class="tk more">+${r.tickets.length - 7}</div>` : '');
-  setHTML('tickets', tk || '<div class="tk-empty">주문이 들어오면 여기에 쌓입니다</div>');
+  }).join('') + (r.tickets.length > show ? `<div class="tk more">+${r.tickets.length - show}</div>` : '');
+  setHTML('tickets', tk); // 빈 주문표 안내 글은 빼요 (v0.43 화면 정리)
   // 손
   const hands = Array.from({ length: handsMax() }, (_, i) => i).map(i => { // 서빙 쟁반이 있으면 3칸
     const d = r.hands[i];
@@ -6069,7 +6093,7 @@ function updateQuestTrack() {
   const act = day ? activeIncidents() : [];
   const cur = act.length ? act[Math.floor(performance.now() / 3000) % act.length] : null;
   const curD = cur && incidentInfo(cur);
-  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">돌발</span><span class="inc-name">${curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
+  const inc = cur ? `<div class="qt inc${curD.left !== null && curD.left <= 0.25 ? ' hurry' : ''}" data-qopen="1"><span class="inc-tag">!</span><span class="inc-name">${curD.short || curD.name}</span>${curD.prog ? `<b>${curD.prog[0]}/${curD.prog[1]}</b>` : ''}${curD.left !== null ? '<i class="inc-time"><i></i></i>' : ''}${act.length > 1 ? `<small class="inc-more">+${act.length - 1}</small>` : ''}</div>` : '';
   // 퀘스트를 끝내면 버튼이 잠깐 반짝여요 (끝냈다는 알림은 toast로)
   const done = S ? S.done.length : 0;
   if (lastDone >= 0 && done > lastDone) popT = performance.now() + 1600;
@@ -6518,17 +6542,31 @@ function goPlace(id) {
 
 // ── 가게 안 (밤·새벽): 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
 const IN_WALK = 6; // 걷는 빠르기 (칸/초)
+// 문을 지날 때: 화면이 까맣게 닫혔다가 열려요 (들어가기 · 나오기 연출, v0.43)
+const FADE_MS = 220;
+function doorFade(swap) {
+  if (T.fading) return;
+  const f = $('townFade');
+  T.fading = true; closeSheet(); playSfx('door');
+  f.hidden = false; f.classList.remove('out'); void f.offsetWidth; f.classList.add('in');
+  setTimeout(() => {
+    swap();
+    f.classList.remove('in'); f.classList.add('out');
+    setTimeout(() => { f.hidden = true; f.classList.remove('out'); T.fading = false; }, FADE_MS + 40);
+  }, FADE_MS);
+}
 function enterShop() {
-  closeSheet();
-  T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
-  playSfx('page');
-  renderNav(); layoutTown();
+  doorFade(() => {
+    T.inside = { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+    renderNav(); layoutTown();
+  });
 }
 function leaveShop() {
-  T.inside = null; closeSheet();
-  placeMe('shop'); T.me.dir = 3;
-  playSfx('page');
-  renderNav(); layoutTown();
+  doorFade(() => {
+    T.inside = null;
+    placeMe('shop'); T.me.dir = 3;
+    renderNav(); layoutTown();
+  });
 }
 // 물건의 칸 · 서는 칸
 function spotTiles(S) {
@@ -6684,7 +6722,7 @@ function joyMove(dt, vx, vy) {
   const npc = Object.keys(TOWN_NPC).find(id => TOWN_NPC[id].open === G.town.part && TOWN_NPC[id].at[0] === bx && TOWN_NPC[id].at[1] === by);
   let place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : null;
   if (!place && hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) { T.bumped = key; me.moving = false; facePlace(place); openPlace(place); playSfx('tap'); return; }
+  if (place) { T.bumped = key; me.moving = false; facePlace(place); if (place === 'shop') enterShop(); else { openPlace(place); playSfx('tap'); } return; } // 우리 가게 문은 걸어 들어가요
   if (hitUp && vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) { T.bumped = key; me.moving = false; showVacant(); }
 }
 
@@ -6851,8 +6889,13 @@ function initTown() {
   // 누르기·끌기 (조이스틱)
   const cv = $('townCv'), joyEl = $('townJoy');
   cv.addEventListener('pointerdown', e => {
-    if (!T || talking()) return;
+    if (!T || talking() || T.fading) return;
     e.preventDefault();
+    const sh = $('townSheet');
+    if (!sh.hidden) { // 창이 떠 있으면 바깥을 누를 때 걷지 않아요: 이웃 대화는 넘기고, 다른 창은 닫아요
+      if (chatQ) sh.click(); else { closeSheet(); playSfx('tap'); }
+      return;
+    }
     cv.setPointerCapture(e.pointerId);
     T.joy = { id: e.pointerId, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, on: false, ev: e };
   });
@@ -7124,50 +7167,37 @@ function renderPrep() {
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
   const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 재료는 새벽 시장에서 사고, 가게는 새벽에 열어요
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
-  const cards = MENU_IDS.map(m => {
-    if (!menuOn(m)) return ''; // 아직 안 연 메뉴 · 오늘 쉬는 메뉴는 보여 주지 않아요 (이야기로 열리면 「새 메뉴」로 등장)
-    const M = MENUS[m];
-    const isNew = G.story.fresh.includes(m);
+  // 프롤로그 · 4일차(마을 전): 「오늘의 메뉴」 한 칸 — 메뉴마다 한 줄(가격 · 재료 주문), 원가율·장부는 그 아래 작게 (v0.43 화면 정리)
+  const rows = todayMenus().map(m => {
+    const M = MENUS[m], isNew = G.story.fresh.includes(m);
     const had = last ? (last.stockStart ? last.stockStart[m] : last.prep[m]) : 0;
     const soldOut = last && had && last.sold[m] >= had;
-    const inv = invServings(m), soon = recipeOf(m).filter(i => invToday(i) > 0).map(i => INGREDIENTS[i].name).join('·');
-    // 꼭 볼 것만 칩으로: 새 메뉴 · 어제 품절 · 만들 수 있는 그릇(오늘까지 써야 하는 재료가 있으면 빨갛게)
-    const lv = menuLv(m);
-    const chips = (lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : '') + (isNew ? '<span class="tag new">새 메뉴</span>' : '')
-      + (soldOut ? '<span class="tag hot">어제 품절</span>' : '')
-      + (inv ? `<span class="tag ${soon ? 'warn' : ''}">재고 ${inv}${soon ? ` · 오늘까지 ${soon}` : ''}</span>` : '');
-    const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} <small>${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} · ${I.shelf}일</small>`; }).join('<br>');
-    return `<div class="mcard">
+    const inv = invServings(m);
+    const chips = (isNew ? '<span class="tag new">새 메뉴</span>' : '') + (soldOut ? '<span class="tag hot">어제 품절</span>' : '') + (inv ? `<span class="tag">재고 ${inv}</span>` : '');
+    return `<div class="pm-row">
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
-      ${lv > 1 ? `<div class="lv-base"><span>Lv${lv} 기본 가격</span><b>${won(lvBasePrice(m))}</b></div>` : ''}
-      ${town ? `<div class="row"><span>재고</span><b class="stock-n">${inv}그릇${inv ? '' : ' · 새벽 시장에서 사 보세요'}</b></div>` : `<div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>`}
-      <details class="more"><summary>자세히</summary>
-        <p>원가 ${won(costOf(m))}${costOf(m) !== M.cost ? ` (평소 ${won(M.cost)})` : ''} · 원가율 ${Math.round(costRatio(m) * 100)}% · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}<br>오늘 만들 수 있는 양 ${inv + (town ? 0 : G.prep[m])}그릇${last ? ` · 어제 ${last.sold[m]}그릇 판매` : ''}</p>
-        <p class="recipe"><b>한 그릇에 하나씩</b> <small>(창고 · 받은 날부터 쓸 수 있는 날)</small><br>${recipe}</p>
-      </details>
+      <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>재료 주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
     </div>`;
   }).join('');
+  const cards = `<div class="tmcard pm-card"><div class="q-head"><small>오늘의 메뉴</small><span class="q-sub">주문한 재료는 아침에 옵니다</span></div>${rows}</div>`;
   if (town) { renderLedger(last, after, dawn); return; } // 1장부터: 오늘의 메뉴 칸 하나로 (화면 정리 — 기획서 「화면 정리」)
   showScreen(`
     <div class="prep">
       <div class="phase-tag night">${dawn ? '새벽 · ' : town ? '밤 · 가게 장부 · ' : '전날 밤 22:00 · '}${G.shop}</div>
       <h2>${dayLabel(G.day)} ${dawn ? '가게 열기' : '준비'}</h2>
-      <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : '주문한 재료는 아침에 도착합니다'}</p>
+      ${last ? `<p class="yday">어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명</p>` : ''}
       ${questCard()}
-      ${town ? todayCard() : ''}
-      ${town ? boardCard() : ''}
       ${toolsCard()}
       ${cards}
       <div class="sum">
-        ${town ? '' : `<div><span>${alba ? '재료 주문' : '주문'}</span><b>−${won(cost)}</b></div>`}
-        ${alba ? '<div class="due soft"><span>오 사장님 가게 돈으로 냅니다</span></div>' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
+        <div><span>재료 주문${alba ? ' <small>· 오 사장님 가게 돈</small>' : ''}</span><b>−${won(cost)}</b></div>
+        ${alba ? '' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
         ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       ${!town || dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다. 집에서 자고 일어나 보세요</p>'}
       ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
     </div>`, 'scr-prep');
 }
 
@@ -7192,7 +7222,6 @@ function renderLedger(last, after, dawn) {
       ${bills}
       ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
       <button class="btn" data-act="toTown">돌아가기</button>
-      <button class="btn ghost small" data-act="toTitle">처음 화면</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : ''}
     </div>`, 'scr-prep');
 }
@@ -7516,6 +7545,7 @@ function renderSettings(from) {
         <small class="set-h">계정 · 클라우드 저장</small>
         ${accountRows()}
       </div>
+      ${G.phase !== 'title' ? `<button class="btn" data-act="toTitle">처음 화면으로${G.run ? ' <small>(오늘 영업은 저장되지 않습니다)</small>' : ''}</button>` : ''}
       <button class="btn" data-act="credits">크레딧</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
       ${hasSave() || G.phase !== 'title' ? '<button type="button" class="set-restart" data-act="restart">처음부터 다시 하기</button>' : ''}
@@ -7565,7 +7595,6 @@ function renderPause() {
       <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
       ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button><button class="btn small" data-act="devMarket">시세 소식 (다음 날)</button></div>` : ''}
-      <button class="btn ghost" data-act="toTitle">처음 화면 (오늘 영업은 저장되지 않습니다)</button>
     </div>`, 'scr-pause');
 }
 
@@ -7629,7 +7658,7 @@ function initScreens(onStart) {
     else if (a === 'toTown') { mmOpen = null; playSfx('page'); hideScreen(); showTown(); }
     else if (a === 'resume') { runCmd('pause', { on: false }); }
     else if (a === 'closeEarly') { runCmd('pause', { on: false }); runCmd('closeEarly'); playSfx('page'); }
-    else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; renderTitle(); }
+    else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; hideTown(); renderTitle(); } // 설정에서만 (v0.43)
   });
 }
 // 확인 창 (되돌릴 수 없는 일 앞에서): 취소가 왼쪽, 창 밖을 눌러도 취소
