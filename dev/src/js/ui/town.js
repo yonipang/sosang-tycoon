@@ -83,9 +83,9 @@ function townPath(from, to) {
 // 누른 칸이 막혀 있으면 가장 가까운 갈 수 있는 칸으로
 // 누른 칸에서 가장 가까운, 지금 걸어갈 수 있는 칸 (누른 곳이 막혀 있으면 그 앞)
 //  건물 뒤처럼 멀리 돌아가야 닿는 칸은 피해요 — 돌아가는 만큼 벌점 (누르면 엉뚱한 곳으로 가던 것)
-function nearestOpen(tx, ty) {
-  const m = walls(), N = MAP_W * MAP_H, dist = new Int32Array(N).fill(-1);
-  const [sx, sy] = T ? meTile() : [tx, ty], s0 = sy * MAP_W + sx;
+// 내 칸에서 각 칸까지 걸음 수 (못 가는 칸은 -1)
+function reachDist(sx, sy) {
+  const m = walls(), N = MAP_W * MAP_H, dist = new Int32Array(N).fill(-1), s0 = sy * MAP_W + sx;
   dist[s0] = 0;
   const q = [s0];
   for (let i = 0; i < q.length; i++) {
@@ -96,6 +96,27 @@ function nearestOpen(tx, ty) {
       dist[k] = dist[c] + 1; q.push(k);
     }
   }
+  return dist;
+}
+// 사람 옆 네 칸 중 가장 빨리 닿는 칸 (위·아래·왼쪽·오른쪽 어디든)
+function besideTile(tx, ty) {
+  const [sx, sy] = meTile(), dist = reachDist(sx, sy);
+  let best = null, bd = 1e9;
+  for (const [dx, dy] of [[0, 1], [0, -1], [-1, 0], [1, 0]]) {
+    const x = tx + dx, y = ty + dy;
+    if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) continue;
+    const d = dist[y * MAP_W + x];
+    if (d >= 0 && d < bd) { bd = d; best = [x, y]; }
+  }
+  return best || nearestOpen(tx, ty + 1);
+}
+// 도착하면 그 사람 쪽을 봐요
+function faceTo(px, py) {
+  const dx = px - T.me.x, dy = py - T.me.y;
+  T.me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : 2) : (dy > 0 ? 3 : 1);
+}
+function nearestOpen(tx, ty) {
+  const [sx, sy] = T ? meTile() : [tx, ty], dist = reachDist(sx, sy);
   let best = null, bs = 1e9;
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const d = dist[y * MAP_W + x];
@@ -476,11 +497,11 @@ function tapTown(e) {
   const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
   closeSheet();
   playSfx('tap');
-  // 사람을 누르면 그 앞까지 걸어가요 — 이야기는 머리 위 「대화하기」 버튼으로 (v0.49 사용자 요청)
+  // 사람을 누르면 그 옆 가장 가까운 칸까지 걸어가요 (v0.51) — 이야기는 머리 위 「대화하기」 버튼으로 (v0.49 사용자 요청)
   const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
-  if (npc) { const [nx, ny] = TOWN_NPC[npc].at, at = nearestOpen(nx, ny + 1); if (at) walkTo(at, () => { T.me.dir = 1; }); return; }
+  if (npc) { const [nx, ny] = TOWN_NPC[npc].at, at = besideTile(nx, ny); if (at) walkTo(at, () => faceTo(nx * TILE + TILE / 2, ny * TILE + 13)); return; }
   const w = walkerAt(wx, wy);
-  if (w) { const at = nearestOpen(Math.floor(w.x / TILE) + (T.me.x < w.x ? -1 : 1), Math.floor(w.y / TILE)); if (at) { w.wait = Math.max(w.wait, 2); w.path = []; walkTo(at, () => { T.me.dir = T.me.x < w.x ? 0 : 2; }); } return; }
+  if (w) { const at = besideTile(Math.floor(w.x / TILE), Math.floor(w.y / TILE)); if (at) { w.wait = Math.max(w.wait, 2); w.path = []; walkTo(at, () => faceTo(w.x, w.y)); } return; }
   const place = Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
   if (place) { goPlace(place); return; }
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && inRect(wx, wy, propRect(q)));
