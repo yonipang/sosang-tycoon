@@ -34,7 +34,7 @@ window.__bot = (() => {
     if (front && front.patience / front.patMax < 0.6) { tap(8, 9); return; }
     if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
     if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) tap(8, 9); return; } // 포장은 계산대로
-    if (r.hands.some(d => !d.ahead) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { tap(6, 1); return; } // 미리 만든 몫은 들고 있어요
+    if (r.hands.some(d => !d.ahead) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { tap(8, 5); return; } // 미리 만든 몫은 들고 있어요 (퇴식대 — v0.66부터 홀 오른쪽 위)
     if (!atReg) tap(8, 9);
   }
   function check() {

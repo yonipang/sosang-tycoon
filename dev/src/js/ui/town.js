@@ -209,7 +209,7 @@ function doShop(act) {
   if (act === 'exit') { leaveShop(); return; }
   T.sheetPlace = 'shop';
   if (act === 'setup' && prepMax()) { prepCart = {}; sheet(stoveHTML(), 'stove'); playSfx('page'); return; } // 프렙 통이 있으면 조리대 창 (오픈 준비 + 프렙, v0.65)
-  if (act === 'counter') { openCounter(); playSfx('page'); return; }
+  if (act === 'counter') { openCounter('sales'); playSfx('page'); return; } // 누르면 바로 영수증 (v0.66)
   runCmd('townAct', { place: 'shop', act });
 }
 // 가게 안 조이스틱 (v0.48): 칸 단위 바닥에서 밀어서 걸어요. 물건·문에 부딪히면 그 일 (같은 칸에서는 한 번만)
@@ -554,9 +554,14 @@ function openPlace(id) {
 }
 // 홍보(인스타 올리기 · 파워블로거 섭외)는 휴대폰 앱에서 (v0.54 사용자 요청 — 전에는 계산대). 다른 장소 창에는 안 보여요
 const COUNTER_ACTS = ['insta', 'blogger'];
-function openCounter() { // 계산대: 판매 장부 · 손님 수첩
-  sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
-    <p class="ts-note">홍보는 휴대폰으로 합니다 (위 막대의 휴대폰)</p>`, 'counter');
+// 계산대 (v0.66 사용자 요청): 누르면 바로 영수증(판매 장부), 위 탭으로 손님 수첩
+let counterTab = 'sales';
+const noHead = h => h.replace(/^<div class="ts-head">[\s\S]*?<\/button><\/div>/, '');
+function openCounter(tab) {
+  if (tab) counterTab = tab;
+  const tabs = [['sales', '영수증'], ['book', '손님 수첩']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}</button>`).join('');
+  sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter');
   T.sheetPlace = 'shop';
 }
 
@@ -615,10 +620,15 @@ function actRow(id, a) {
   }
 }
 
-// 냉장고 (가게 안): 창고에 있는 재료 · 오늘까지 써야 하는 것 · 오늘의 메뉴마다 만들 수 있는 그릇
+// 냉장고 (가게 안): 창고에 있는 재료 · 유통기한(들어온 묶음마다) · 오늘의 메뉴마다 만들 수 있는 그릇
 function pantryHTML() {
   const ings = openIngs().filter(i => invOf(i) > 0);
-  const rows = ings.map(i => { const t = invToday(i); return `<div class="pt-row${t ? ' today' : ''}">${icon('ing_' + i, 'mk-ic')}<span>${INGREDIENTS[i].name}</span><b>${invOf(i)}</b>${t ? `<small>오늘까지 ${t}</small>` : ''}</div>`; }).join('');
+  // 유통기한 자세히 (v0.66 사용자 요청): 들어온 날마다 묶어 「몇 개 · 언제까지」 — 오늘까지 빨강 · 내일까지 주황
+  const when = d => (d <= 0 ? '오늘까지' : d === 1 ? '내일까지' : `${d}일 남음`);
+  const batches = i => { const by = {}; for (const b of G.inv[i] || []) if (b.n > 0) by[b.exp] = (by[b.exp] || 0) + b.n; return Object.keys(by).map(Number).sort((a, b) => a - b).map(e => ({ n: by[e], d: e - G.day })); };
+  const rows = ings.map(i => { const t = invToday(i), B = batches(i);
+    return `<div class="pt-row${t ? ' today' : ''}">${icon('ing_' + i, 'mk-ic')}<span>${INGREDIENTS[i].name}</span><b>${invOf(i)}</b>
+      <div class="pt-exp">${B.map(b => `<i class="${b.d <= 0 ? 'd0' : b.d === 1 ? 'd1' : ''}">${b.n}개 · ${when(b.d)}</i>`).join('')}</div></div>`; }).join('');
   const menus = todayMenus().map(m => `<span>${icon(m, 'dish')}${invServings(m)}그릇</span>`).join('');
   return `<div class="ts-head"><b>냉장고</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     <div class="pt-menus">${menus}</div>
@@ -758,7 +768,8 @@ export function initTown() {
     else if (k === 'callOpen') { const i = +b.dataset.i; callOpen = callOpen === i ? -1 : i; openPhone(); playSfx('tap'); }
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
-    else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
+    else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); if ($('townSheet').classList.contains('counter')) openCounter(); else sheet(bookHTML(bookSel), 'book'); }
+    else if (k === 'ctab') { openCounter(b.dataset.t); playSfx('tap'); }
     else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); showFurn(); }
     else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); showFurn(); }
     else if (k === 'fbuy') { furnToggle(b.dataset.c, b.dataset.k); playSfx('tap'); showFurn(); }
@@ -787,7 +798,7 @@ export function initTown() {
     if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
     if (what === 'pantry') { T.sheetPlace = 'shop'; sheet(pantryHTML(), 'pantry'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
-    if (what === 'counter') { openCounter(); playSfx('page'); return; }
+    if (what === 'counter') { openCounter('sales'); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { playSfx('page'); renderBar(); return; } // 4시간을 쓰면 시계가 새벽으로 (할 수 있는 일은 같아요)
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요

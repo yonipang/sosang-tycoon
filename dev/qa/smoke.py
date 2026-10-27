@@ -173,6 +173,14 @@ with sync_playwright() as pw:
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     if not pg.evaluate('!!(__T.G.lastReceipt.hourly && Object.keys(__T.G.lastReceipt.hourly).length)'): errs.append('영수증 시간대 기록이 없어요')
     to_prep(pg); shot(pg, '9-prep-day9')
+    # 계산대 (v0.66): 누르면 바로 영수증(판매 장부) · 탭으로 손님 수첩
+    pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'counter'})"); pg.wait_for_timeout(200)
+    if not pg.locator('#townSheet.counter .sl-row').count(): errs.append('계산대를 눌러도 영수증이 안 나와요')
+    else:
+        shot(pg, '9h-counter'); pg.click('[data-ts=ctab][data-t=book]'); pg.wait_for_timeout(150)
+        if not pg.locator('#townSheet.counter .bk-cell').count(): errs.append('계산대 손님 수첩 탭이 안 열려요')
+        else: shot(pg, '9i-counter-book')
+    pg.evaluate("document.querySelector('#townSheet [data-ts=close]') && document.querySelector('#townSheet [data-ts=close]').click()")
     # 메뉴 연구 칠판 (마을 · 우리 가게): 떡볶이 올리기
     pg.evaluate("__T.runCmd('townAct', {place:'shop',act:'recipe'})"); pg.wait_for_timeout(200)
     up = {'mastery': pg.evaluate('JSON.stringify(__T.G.mastery)')}
