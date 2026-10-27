@@ -242,22 +242,26 @@ function blogCard(good) {
   if (good === null || good === undefined) return '';
   return `<div class="hl wide ${good ? 'good' : 'warn'}"><small>파워블로거</small><b>${good ? '「맛있다」는 글이 올라갑니다' : '「무난하다」는 글이 올라갑니다'}</b><span>사흘 동안 직장인·어르신이 ${good ? '더' : '조금 덜'} 들어옵니다</span></div>`;
 }
-// 시간대별 손님 (sim/traffic.js logPass): 회색 = 지나간 사람, 색 = 손님층별 들어온 사람
+// 시간대별 손님 (sim/traffic.js logPass): 색 = 손님층별 들어온 사람 · 회색 = 지나간 사람(3장 상권 지도부터 — FOOT_REPORT)
+//  v0.63 사용자 결정: 1장(김밥 들어오는 날, 칠판 추천과 함께)부터 「들어온 손님」만 — 「1장 = 내 가게 장부 읽기, 3장 = 골목 읽기」
+//  막대를 누르면 그 시간 숫자 (아래 한 줄)
 const HOUR_TYPES = ['worker', 'student', 'elder'];
 function hourCard(H) {
   if (!H || !Object.keys(H).length) return '';
   const hours = Array.from({ length: 13 }, (_, i) => 9 + i);
   const sum = o => Object.values(o || {}).reduce((a, b) => a + b, 0);
-  const tot = h => (H[h] ? sum(H[h].pass) : 0), max = Math.max(1, ...hours.map(tot));
+  const inN = h => (H[h] ? sum(H[h].in) : 0), passN = h => (H[h] ? sum(H[h].pass) : 0);
+  const val = FOOT_REPORT ? passN : inN, max = Math.max(1, ...hours.map(val));
+  const say = h => { const I = (H[h] && H[h].in) || {}, who = HOUR_TYPES.filter(t => I[t]).map(t => `${CUSTOMER_TYPES[t].name} ${I[t]}`).join(' · '); return `${h}시 · ${who || '들어온 손님 없음'}${FOOT_REPORT ? ` · 지나간 사람 ${passN(h)}` : ''}`; };
   const cols = hours.map(h => {
     const ins = HOUR_TYPES.map(t => { const n = (H[h] && H[h].in[t]) || 0; return n ? `<i class="t-${t}" style="height:${n / max * 100}%"></i>` : ''; }).join('');
-    return `<div class="hc"><div class="hb"><div class="hp" style="height:${tot(h) / max * 100}%"></div><div class="hi">${ins}</div></div><small>${h}</small></div>`;
+    return `<button type="button" class="hc" data-act="hourPick" data-t="${say(h)}"><div class="hb">${FOOT_REPORT ? `<div class="hp" style="height:${passN(h) / max * 100}%"></div>` : ''}<div class="hi">${ins}</div></div><small>${h}</small></button>`;
   }).join('');
-  const peak = hours.reduce((a, h) => (tot(h) > tot(a) ? h : a), 9), P = H[peak] || { pass: {}, in: {} };
-  const top = HOUR_TYPES.reduce((a, t) => ((P.pass[t] || 0) > (P.pass[a] || 0) ? t : a));
-  return `<div class="hl wide hourly"><small>시간대별 손님 · 회색은 지나간 사람, 색은 들어온 사람</small><div class="hcols">${cols}</div>
+  const peak = hours.reduce((a, h) => (inN(h) > inN(a) ? h : a), 9), I = (H[peak] && H[peak].in) || {};
+  const top = HOUR_TYPES.reduce((a, t) => ((I[t] || 0) > (I[a] || 0) ? t : a));
+  return `<div class="hl wide hourly"><small>${FOOT_REPORT ? '시간대별 손님 · 회색은 지나간 사람, 색은 들어온 사람' : '시간대별 들어온 손님 · 막대를 눌러 보세요'}</small><div class="hcols">${cols}</div>
     <div class="hlegend">${HOUR_TYPES.map(t => `<span><i class="t-${t}"></i>${CUSTOMER_TYPES[t].name}</span>`).join('')}</div>
-    <span>가장 붐빈 때 ${peak}시: ${tot(peak)}명이 지나감 (${CUSTOMER_TYPES[top].name}이 가장 많음) · ${sum(P.in)}명 입장</span></div>`;
+    <span class="h-sum">가장 바빴던 때 ${peak}시 · ${inN(peak)}명 입장 (${CUSTOMER_TYPES[top].name}이 가장 많음)</span></div>`;
 }
 // 오늘 쌓은 숙련도 (메뉴 업그레이드가 열린 뒤)
 function masteryCard(g) {
@@ -295,7 +299,7 @@ export function renderReceipt() {
         ${R.newFaces ? `<p class="hero-new">리뷰가 쌓여 골목에 새 얼굴이 보이기 시작했습니다${R.newFaces > 1 ? ` (${R.newFaces}명)` : ''} · 손님 수첩</p>` : ''}
       </div>`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
-    FOOT_REPORT && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',
+    (FOOT_REPORT || boardOpen()) && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '', // 김밥 들어오는 날부터 (v0.63)
     `<div class="hls">${review}${masteryCard(R.mastery)}</div>`,
   ].filter(Boolean);
   rcPage = 0;
@@ -595,6 +599,7 @@ export function initScreens(onStart) {
     else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; pickOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
     else if (a === 'quests') openQuests();
+    else if (a === 'hourPick') { const c = b.closest('.hourly'); c.querySelectorAll('.hc.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); c.querySelector('.h-sum').textContent = b.dataset.t; playSfx('tap'); } // 시간대 막대: 그 시간 숫자
     else if (a === 'rcNext') receiptNext();
     else if (a === 'rcPrev') receiptNext(-1);
     else if (a === 'afterReceipt') { playSfx('page'); runCmd('afterReceipt'); }

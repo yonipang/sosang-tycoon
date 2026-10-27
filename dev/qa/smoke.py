@@ -154,6 +154,16 @@ with sync_playwright() as pw:
             pg.evaluate("(()=>{__T.runCmd('devIncident',{id:'takeout'}); __T.runFor(0.2)})()"); pg.wait_for_timeout(300); shot(pg, '6e-incident')
         play(pg)
         incs.append([d, pg.evaluate('JSON.stringify(__T.G.lastReceipt.incidents)'), pg.evaluate('(__T.G.lastReceipt.reviews||[]).map(v=>v.who).join(",")')])
+        if d == 7:  # 영수증 시간대 막대 (v0.63: 김밥 들어오는 날부터 · 들어온 손님만): 넘겨서 찾고 막대 하나 누르기
+            for _ in range(4):
+                if pg.locator('.hourly:visible').count(): break
+                if not pg.locator('[data-act=rcNext]:visible').count(): break
+                pg.locator('[data-act=rcNext]:visible').first.click(); pg.wait_for_timeout(150)
+            if not pg.locator('.hourly:visible').count(): errs.append('영수증에 시간대 막대가 안 나와요 (김밥 날부터)')
+            else:
+                before = pg.locator('.hourly .h-sum').inner_text()
+                pg.locator('.hourly .hc').nth(3).click(); pg.wait_for_timeout(100); shot(pg, '5b-receipt-hourly')
+                if pg.locator('.hourly .h-sum').inner_text() == before: errs.append('시간대 막대를 눌러도 숫자가 안 바뀌어요')
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     if not pg.evaluate('!!(__T.G.lastReceipt.hourly && Object.keys(__T.G.lastReceipt.hourly).length)'): errs.append('영수증 시간대 기록이 없어요')
     to_prep(pg); shot(pg, '9-prep-day9')
