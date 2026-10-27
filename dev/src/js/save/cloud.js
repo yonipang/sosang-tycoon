@@ -11,7 +11,9 @@ export const FB_CONFIG = { apiKey: 'AIzaSyDiLpLEkW4-CTe0Mp5OgTu3kRzAjiKlDSo', au
 export const CLOUD_COLLECTION = 'sosang';
 // st: off 시작 전 · na 못 씀 · loading 연결 중 · out 로그인 안 함 · in 로그인함
 // pending: 바꿔 넣을 클라우드 세이브 (지금 바꿀 수 없어서 기다리는 중) — 기다리는 동안은 올리지 않아요
-export const CLOUD = { st: 'off', err: '', user: null, api: null, doc: null, pending: null, busy: false, lastUp: 0 };
+// conflict: 이 기기와 클라우드가 서로 다른 게임 { cloud, local } — 고를 때까지 아무것도 올리지 않아요 (v0.56)
+// upAt · upErr: 마지막으로 올린 때 · 마지막 실패 이유 (설정에 보여요, v0.56)
+export const CLOUD = { st: 'off', err: '', user: null, api: null, doc: null, pending: null, busy: false, lastUp: 0, conflict: null, upAt: 0, upErr: '' };
 
 const FB_ERR = {
   'auth/popup-closed-by-user': '로그인 창이 닫혔습니다',
@@ -53,7 +55,7 @@ export async function cloudInit() {
   CLOUD.api.onAuth(u => {
     CLOUD.user = u ? { uid: u.uid, name: u.displayName || u.email || '구글 계정' } : null;
     CLOUD.st = u ? 'in' : 'out';
-    CLOUD.doc = null; CLOUD.pending = null; CLOUD.lastUp = 0;
+    CLOUD.doc = null; CLOUD.pending = null; CLOUD.lastUp = 0; CLOUD.conflict = null;
     changed();
     if (u) cloudCheck();
   });
@@ -77,9 +79,11 @@ export async function cloudCheck() {
   let doc;
   try { doc = await CLOUD.api.get(CLOUD.user.uid); } catch (e) { changed(cloudErr(e), 'warn'); return; } finally { checking = false; }
   CLOUD.doc = doc && doc.data ? doc : null;
+  if (CLOUD.pending && CLOUD.doc && CLOUD.pending.id === CLOUD.doc.id) { changed(); return; } // 고른 클라우드 세이브를 넣으려고 기다리는 중
   const local = saveSummary(saveText());
   const cl = CLOUD.doc && saveSummary(CLOUD.doc.data);
   if (!cl) { if (local) cloudUpload(true); changed(); return; }
+  if (local && cl.id !== local.id) { CLOUD.conflict = { cloud: CLOUD.doc, local: saveText() }; changed(); return; } // 서로 다른 게임: 시간으로 정하지 않고 고르게 (v0.56 사용자 요청)
   if (!local || cl.at > local.at + 2000) { CLOUD.pending = CLOUD.doc; tryApply(); changed(); return; } // 클라우드가 더 최근 (또는 이 기기엔 세이브 없음)
   CLOUD.lastUp = CLOUD.doc.at || 0;
   if (local.at > cl.at || local.id !== cl.id) cloudUpload(true); // 이 기기가 더 최근
@@ -108,7 +112,7 @@ export function cloudFlush() { if (upTimer) { clearTimeout(upTimer); upTimer = 0
 
 export async function cloudUpload(force) {
   upTimer = 0;
-  if (CLOUD.st !== 'in' || CLOUD.busy || CLOUD.pending) return false;
+  if (CLOUD.st !== 'in' || CLOUD.busy || CLOUD.pending || CLOUD.conflict) return false;
   const data = saveText(), sv = saveSummary(data);
   if (!sv) return false;
   if (!force && sv.at <= CLOUD.lastUp && (!CLOUD.doc || CLOUD.doc.id === sv.id)) return true; // 이미 올린 것 (새 가게면 올려요)
@@ -119,9 +123,18 @@ export async function cloudUpload(force) {
   else if (old && old.prev) doc.prev = old.prev;
   if (doc.prev && doc.prev.data.length + data.length > 900000) delete doc.prev; // 문서 한 개 한도(1MB) 안으로
   CLOUD.busy = true;
-  try { await CLOUD.api.put(CLOUD.user.uid, doc); CLOUD.doc = doc; CLOUD.lastUp = doc.at; changed(); return true; }
-  catch (e) { changed(cloudErr(e), 'warn'); return false; }
+  try { await CLOUD.api.put(CLOUD.user.uid, doc); CLOUD.doc = doc; CLOUD.lastUp = doc.at; CLOUD.upAt = Date.now(); CLOUD.upErr = ''; changed(); return true; }
+  catch (e) { CLOUD.upErr = cloudErr(e); changed(CLOUD.upErr, 'warn'); return false; }
   finally { CLOUD.busy = false; }
+}
+
+// 서로 다른 게임일 때 고르기 (v0.56): 'cloud' = 클라우드 세이브로 (이 기기 것은 이 기기 백업) · 'local' = 이 기기 세이브를 올림 (클라우드 것은 클라우드 백업)
+export function cloudChoose(which) {
+  const c = CLOUD.conflict;
+  if (!c) return;
+  CLOUD.conflict = null;
+  if (which === 'cloud') { CLOUD.pending = c.cloud; if (!tryApply()) changed('다음 준비 화면에서 클라우드 세이브를 불러옵니다', 'info'); else changed(); }
+  else { cloudUpload(true); changed(); }
 }
 
 // 클라우드 백업 (v0.55 사용자 요청): 다른 게임에 덮여 백업(prev)으로 밀려난 세이브를 다시 꺼내요.

@@ -10,8 +10,8 @@ import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus, nextSlot } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
-import { hasSave, loadGame, clearSave } from '../save/storage.js';
-import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine, cloudBackup, cloudRestore } from '../save/cloud.js';
+import { hasSave, loadGame, clearSave, backupLocal, localBackupText, swapLocalBackup, saveSummary } from '../save/storage.js';
+import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine, cloudBackup, cloudRestore, cloudChoose, cloudSaved } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
 import { townMode } from '../sim/town.js';
 import { showTown, hideTown } from './town.js';
@@ -442,11 +442,25 @@ function backupRow() {
   return `<div class="row cl-backup"><span>백업<br><small>${summaryLine(b.data)}</small></span><button type="button" class="btn small" data-act="cloudRestore">불러오기</button></div>`
     + '<p class="set-note">다른 게임에 덮인 예전 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p>';
 }
+// 이 기기 백업 (v0.56): 「처음부터 다시 하기」나 클라우드 세이브로 바꾸기 직전의 세이브 하나 — 처음 화면·준비 화면에서만 불러와요
+function localBackupCard() {
+  const t = localBackupText();
+  if (!t || !saveSummary(t) || (G.phase !== 'title' && G.phase !== 'prep')) return '';
+  return `<div class="set-card"><small class="set-h">이 기기 백업</small><div class="row cl-backup"><span>${summaryLine(t)}</span><button type="button" class="btn small" data-act="localRestore">불러오기</button></div>
+    <p class="set-note">처음부터 다시 하거나 다른 세이브로 바꾸기 전의 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p></div>`;
+}
+// 마지막으로 올린 때 · 실패 이유 (v0.56 — 안 올라가면 바로 알 수 있게)
+const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function upLine() {
+  if (CLOUD.conflict) return '<p class="set-note warn">이 기기와 클라우드가 서로 다른 게임입니다. 고를 때까지 올리지 않습니다.</p>';
+  return (CLOUD.upAt ? `<p class="set-note">마지막으로 올린 때: 오늘 ${hhmm(CLOUD.upAt)}</p>` : '')
+    + (CLOUD.upErr ? `<p class="set-note warn">올리지 못했습니다: ${CLOUD.upErr}</p>` : '');
+}
 function accountRows() {
   const st = CLOUD.st;
   if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
     + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`
-    + backupRow();
+    + upLine() + backupRow();
   if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
     + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
       : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
@@ -454,6 +468,7 @@ function accountRows() {
 }
 // 다시 그리기: 처음 화면이나 설정이 떠 있으면 클라우드 상태가 바뀔 때 새로 그려요
 export function refreshCloudUI() {
+  showConflict();
   const s = $('screen');
   if (s.hidden) return;
   if (s.classList.contains('scr-title')) renderTitle();
@@ -490,6 +505,7 @@ export function renderSettings(from) {
         <small class="set-h">계정 · 클라우드 저장</small>
         ${accountRows()}
       </div>
+      ${localBackupCard()}
       ${G.phase !== 'title' ? `<button class="btn" data-act="toTitle">처음 화면으로${G.run ? ' <small>(오늘 영업은 저장되지 않습니다)</small>' : ''}</button>` : ''}
       <button class="btn" data-act="credits">크레딧</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
@@ -593,15 +609,21 @@ export function initScreens(onStart) {
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'cloudRestore') { playSfx('tap'); cloudRestore(); }
+    else if (a === 'localRestore') { // 이 기기 백업과 자리 바꾸기 (v0.56)
+      playSfx('tap');
+      if (!swapLocalBackup()) { toast('백업을 불러오지 못했습니다', 'warn'); return; }
+      if (G.phase === 'title') renderTitle(); else if (loadGame()) { setMusic(null); onStart(); }
+      toast('이 기기 백업을 불러왔습니다', 'good'); cloudSaved();
+    }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       playSfx('tap');
-      askConfirm('정말 처음부터 다시 할까요?<br><small>지금까지의 가게 진행은 지워지고 되돌릴 수 없습니다.</small>', '다시 시작', () => {
-        clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
+      askConfirm('정말 처음부터 다시 할까요?<br><small>지금 가게는 이 기기 백업으로 남아서, 설정 「이 기기 백업」에서 다시 불러올 수 있습니다.</small>', '다시 시작', () => {
+        backupLocal(); clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
       });
     }
     else if (a === 'ver') { if (settingsFrom === 'title' && ++verTaps >= 7) { verTaps = 0; playSfx('perfect'); renderDev(); } }
-    else if (a === 'devJump') { clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
+    else if (a === 'devJump') { backupLocal(); clearSave(); runCmd('devJump', { id: b.dataset.j }); playSfx('page'); onStart(); }
     else if (a === 'devInc') { runCmd('pause', { on: false }); runCmd('devIncident', { id: b.dataset.i }); }
     else if (a === 'devCash') { runCmd('devCash'); }
     else if (a === 'devMarket') { runCmd('devMarket'); }
@@ -611,6 +633,19 @@ export function initScreens(onStart) {
     else if (a === 'toTitle') { if (G.run) runCmd('pause', { on: false }); G.run = null; G.phase = 'title'; hideTown(); renderTitle(); } // 설정에서만 (v0.43)
   });
 }
+// 이 기기와 클라우드가 서로 다른 게임이면 고르기 (v0.56 사용자 요청 — 시간만 보고 덮지 않아요). 처음 화면·준비 화면에서만 띄워요
+let conflictOn = false;
+export function showConflict() {
+  const c = CLOUD.conflict;
+  if (!c || conflictOn || !$('askModal').hidden) return;
+  if (!(G.phase === 'title' || (G.phase === 'prep' && !talking() && !cutActive()))) return;
+  const card = (t, who, k) => { const v = saveSummary(t); return `<button type="button" class="btn pick-save" data-ask="${k}"><small>${who}</small><b>${v.day}일차 · ${v.shop || '이름 없는 가게'}</b><span>${(CHAPTERS[v.ch] || CHAPTERS[0]).name} · ${summaryLine(t).split(' · ').slice(2).join(' · ') || '저장 시각 모름'}</span></button>`; };
+  $('askModal').innerHTML = `<div class="qm-card ask-card" role="alertdialog"><p>어느 세이브로 할까요?<br><small>이 기기와 클라우드에 서로 다른 게임이 있습니다. 고르지 않은 쪽은 백업으로 남습니다.</small></p>
+    ${card(c.local, '이 기기', 'local')}${card(c.cloud.data, '클라우드', 'cloud')}</div>`;
+  $('askModal').hidden = false; conflictOn = true;
+  playSfx('page');
+}
+
 // 확인 창 (되돌릴 수 없는 일 앞에서): 취소가 왼쪽, 창 밖을 눌러도 취소
 let askOk = null;
 function askConfirm(html, okLabel, onOk) {
@@ -621,6 +656,12 @@ function askConfirm(html, okLabel, onOk) {
 function initAsk() {
   $('askModal').addEventListener('click', e => {
     const b = e.target.closest('[data-ask]');
+    if (conflictOn) { // 세이브 고르기는 꼭 하나 골라야 닫혀요
+      if (!b) return;
+      conflictOn = false; $('askModal').hidden = true; $('askModal').innerHTML = '';
+      playSfx('tap'); cloudChoose(b.dataset.ask);
+      return;
+    }
     if (!b && e.target !== $('askModal')) return;
     const ok = b && b.dataset.ask === 'yes' ? askOk : null;
     $('askModal').hidden = true; $('askModal').innerHTML = ''; askOk = null;

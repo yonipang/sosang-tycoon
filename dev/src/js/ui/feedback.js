@@ -8,7 +8,7 @@ import { cloudSaved } from '../save/cloud.js';
 import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
-import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen } from './screens.js';
+import { renderPrep, renderReceipt, renderWeekly, renderPause, hideScreen, showConflict } from './screens.js';
 import { setupCook, renderRush, renderDawn } from './hud.js';
 import { showNextScene, updateQuestTrack, closeQuests } from './story.js';
 import { incidentInfo } from '../sim/incidents.js';
@@ -110,7 +110,7 @@ export function initFeedback() {
     if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p !== 'prep') hideTown();
     document.body.classList.toggle('in-town', p === 'prep' && townMode());
-    if (p === 'prep') { if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else renderPrep(); showNextScene(); }
+    if (p === 'prep') { setTimeout(showConflict, 0); if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else renderPrep(); showNextScene(); }
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();
