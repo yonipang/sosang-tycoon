@@ -80,6 +80,7 @@ defineCmd('menuDev', ({ menu }) => {
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
   emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
+  if (!G.story.devSeen) { G.story.devSeen = true; G.story.queue.push('menudev1'); emit('story'); } // 처음 개발하면 만드는 법 안내 카드 (v0.64)
   emit('prep');
   emit('menuUp', menu);
   return true;

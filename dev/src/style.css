@@ -1081,4 +1081,5 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .bk-lock { position: absolute; left: 50%; top: 50%; width: 14px; height: 11px; margin: -2px 0 0 -7px; background: #b49b6c; border: 2px solid #7a6440; }
 .bk-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid #7a6440; border-bottom: 0; border-radius: 4px 4px 0 0; }
 .bk-new { position: absolute; left: 1px; top: 1px; padding: 0 2px; background: var(--red); color: #fff; font-style: normal; font-size: 12px; line-height: 1.2; }
+.pk-row .bk-new, .q-sub .bk-new { position: static; display: inline-block; vertical-align: middle; } /* 새 메뉴 NEW (v0.64) */
 .hero-new { margin: 6px 0 0; color: var(--mustard); font-size: 16px; }

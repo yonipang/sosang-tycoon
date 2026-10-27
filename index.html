@@ -1086,6 +1086,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .bk-lock { position: absolute; left: 50%; top: 50%; width: 14px; height: 11px; margin: -2px 0 0 -7px; background: #b49b6c; border: 2px solid #7a6440; }
 .bk-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid #7a6440; border-bottom: 0; border-radius: 4px 4px 0 0; }
 .bk-new { position: absolute; left: 1px; top: 1px; padding: 0 2px; background: var(--red); color: #fff; font-style: normal; font-size: 12px; line-height: 1.2; }
+.pk-row .bk-new, .q-sub .bk-new { position: static; display: inline-block; vertical-align: middle; } /* 새 메뉴 NEW (v0.64) */
 .hero-new { margin: 6px 0 0; color: var(--mustard); font-size: 16px; }
 </style>
 
@@ -1633,7 +1634,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.63';
+const GAME_VERSION = '0.64';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2288,6 +2289,14 @@ const SCENES = {
       ['ohPhone', '장사 끝났냐? 이제 장사 끝나고 다음 장사 전까지도 니 시간이다. 가게 청소하고, 이웃들이랑 얘기도 좀 해라. 그래야 손님도 소개해 준다.'],
       ['ohPhone', '재료는 이제 니가 직접 사. 골목 끝 정 사장네 식자재 가게 가 봐라. 바쁘면 전화 주문도 되는데, 가서 사야 싸고 정도 쌓인다.'],
       ['ohPhone', '가게 안 칠판도 봐라. 많이 판 메뉴는 손에 익고, 손에 익으면 거기서 레시피를 손볼 수 있다.'],
+    ],
+  },
+  // 새 메뉴를 처음 개발했을 때 (sim/upgrade.js menuDev, v0.64 사용자 요청) · 시스템 안내
+  menudev1: {
+    tipTag: '새 메뉴',
+    lines: [
+      ['tip', '새 메뉴는 원래 메뉴와 같은 조리대에서 만듭니다. 떡볶이 갈래는 화구, 김밥 갈래는 김밥 자리, 튀김 갈래는 튀김기입니다. 주문이 들어온 메뉴부터 만들어집니다.', null, ['tteok', 'kimbap', 'twigim']],
+      ['tip', '오늘의 메뉴 칸에 올려야 팝니다. 칸이 꽉 찼으면 「가게 열기」에서 칸을 눌러 바꿔 보세요. 새 재료는 정 사장 식자재에서 삽니다.', null, ['ing_cheese']],
     ],
   },
   // 칠판 추천이 열릴 때 (김밥이 들어오는 날 — sim/traffic.js boardOpen, v0.62 사용자 결정) · 시스템 안내
@@ -3632,6 +3641,7 @@ defineCmd('menuDev', ({ menu }) => {
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
   emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
+  if (!G.story.devSeen) { G.story.devSeen = true; G.story.queue.push('menudev1'); emit('story'); } // 처음 개발하면 만드는 법 안내 카드 (v0.64)
   emit('prep');
   emit('menuUp', menu);
   return true;
@@ -5894,7 +5904,7 @@ function drawFrame(dt) {
   for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
-    const st = Object.values(STATIONS).find(s => s.menu === r.cook.menu);
+    const st = Object.values(STATIONS).find(s => s.menu === baseOf(r.cook.menu)); // 새 메뉴(치즈 떡볶이 등)는 기본 메뉴 조리대 — v0.64 고침: 전에는 못 찾아 그리기가 멈췄어요
     const [x, y] = st.tiles[0];
     ctx.fillStyle = 'rgba(255,255,255,.7)';
     for (let i = 0; i < 3; i++) {
@@ -8255,6 +8265,8 @@ function renderLedger(last, after, dawn) {
     </div>`, 'scr-prep');
 }
 // 칸 고르기 창 (오늘의 메뉴 칸을 누르면): 지금 메뉴(가격·추천 / 빼기) + 이 칸에 올릴 수 있는 메뉴 (v0.45 사용자 요청)
+// 개발하고 아직 한 번도 안 판 메뉴 (쉬는 메뉴에 있으면 「NEW」 — v0.64 사용자 요청)
+const neverSold = m => MENUS[m].base && !G.history.some(h => h.sold && h.sold[m]);
 function pickSheet(cur) {
   const on = cur && menuOn(cur) ? cur : '';
   const can = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
@@ -8262,7 +8274,7 @@ function pickSheet(cur) {
   const now = on ? `<div class="pk-now"><span>${won(G.prices[on])} · ${invServings(on)}그릇</span>
       <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격 · 추천</button>
       ${todayMenus().length > 1 ? `<button type="button" class="btn small" data-act="slotOff" data-m="${on}">빼기</button>` : ''}</div>` : '';
-  const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
+  const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}${neverSold(m) ? ' <i class="bk-new">NEW</i>' : ''}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="오늘의 메뉴 칸">
     <div class="mm-head">${head}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     ${now}
@@ -8315,7 +8327,7 @@ function todayCard() {
     if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
     return `<div class="slot locked" aria-label="잠긴 칸">${LOCK_SVG}</div>`; // 자물쇠만 (v0.46 사용자 요청)
   }).join('');
-  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
+  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.some(neverSold) ? '<i class="bk-new">NEW</i> 새 메뉴가 쉬는 중 · 칸을 눌러 올려 보세요' : `${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기`}</span></div>
     <div class="slots">${slots}</div>
   </div>`;
 }

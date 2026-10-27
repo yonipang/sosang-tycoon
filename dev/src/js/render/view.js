@@ -1,5 +1,6 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
+import { baseOf } from '../data/menu.js';
 import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER, FURN_SPOTS } from '../data/layout.js';
 import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
@@ -253,7 +254,7 @@ export function drawFrame(dt) {
   for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
-    const st = Object.values(STATIONS).find(s => s.menu === r.cook.menu);
+    const st = Object.values(STATIONS).find(s => s.menu === baseOf(r.cook.menu)); // 새 메뉴(치즈 떡볶이 등)는 기본 메뉴 조리대 — v0.64 고침: 전에는 못 찾아 그리기가 멈췄어요
     const [x, y] = st.tiles[0];
     ctx.fillStyle = 'rgba(255,255,255,.7)';
     for (let i = 0; i < 3; i++) {

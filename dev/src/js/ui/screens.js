@@ -146,6 +146,8 @@ function renderLedger(last, after, dawn) {
     </div>`, 'scr-prep');
 }
 // 칸 고르기 창 (오늘의 메뉴 칸을 누르면): 지금 메뉴(가격·추천 / 빼기) + 이 칸에 올릴 수 있는 메뉴 (v0.45 사용자 요청)
+// 개발하고 아직 한 번도 안 판 메뉴 (쉬는 메뉴에 있으면 「NEW」 — v0.64 사용자 요청)
+const neverSold = m => MENUS[m].base && !G.history.some(h => h.sold && h.sold[m]);
 function pickSheet(cur) {
   const on = cur && menuOn(cur) ? cur : '';
   const can = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
@@ -153,7 +155,7 @@ function pickSheet(cur) {
   const now = on ? `<div class="pk-now"><span>${won(G.prices[on])} · ${invServings(on)}그릇</span>
       <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격 · 추천</button>
       ${todayMenus().length > 1 ? `<button type="button" class="btn small" data-act="slotOff" data-m="${on}">빼기</button>` : ''}</div>` : '';
-  const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
+  const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}${neverSold(m) ? ' <i class="bk-new">NEW</i>' : ''}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="오늘의 메뉴 칸">
     <div class="mm-head">${head}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     ${now}
@@ -206,7 +208,7 @@ function todayCard() {
     if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
     return `<div class="slot locked" aria-label="잠긴 칸">${LOCK_SVG}</div>`; // 자물쇠만 (v0.46 사용자 요청)
   }).join('');
-  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기</span></div>
+  return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.some(neverSold) ? '<i class="bk-new">NEW</i> 새 메뉴가 쉬는 중 · 칸을 눌러 올려 보세요' : `${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기`}</span></div>
     <div class="slots">${slots}</div>
   </div>`;
 }
