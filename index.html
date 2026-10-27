@@ -1349,9 +1349,10 @@ const PREP_FIRST_DAY = { tteok: 12, kimbap: 8, twigim: 8 }; // 새 메뉴는 0 (
 //  roll 말기(김밥): taps번 빨리 눌러요. perfect·good = 다 마는 데 걸린 초. timeout 초가 지나면 보통
 //  fry 튀기기(튀김): 바늘이 한 번만 지나가요(sec초). 노릇한 구간에서 눌러 건져요. 끝까지 두면 타서 보통
 const COOK_GAMES = {
-  stir: { name: '졸이는 중', tip: '바늘이 가운데 오면 눌러 보세요', zone: { perfect: 0.08, good: 0.22 }, timeout: 3.2 },
-  roll: { name: '마는 중', tip: '여러 번 빠르게 눌러 보세요', taps: 6, perfect: 1.6, good: 2.6, timeout: 4.5 },
-  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.64, 0.76], good: [0.52, 0.87] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
+  // v0.65 사용자 결정: 미니게임은 쉽게 (승부는 데이터 읽기로) — 「완벽」·「좋음」 구간을 넓혔어요 (전: 졸이기 0.08/0.22 · 말기 1.6/2.6 · 튀기기 0.64~0.76/0.52~0.87)
+  stir: { name: '졸이는 중', tip: '바늘이 가운데 오면 눌러 보세요', zone: { perfect: 0.13, good: 0.28 }, timeout: 3.2 },
+  roll: { name: '마는 중', tip: '여러 번 빠르게 눌러 보세요', taps: 6, perfect: 2.1, good: 3.1, timeout: 4.5 },
+  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.6, 0.8], good: [0.48, 0.9] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
 };
 const QUALITY_NAME = ['보통', '좋음', '완벽'];
 // ── js/data/customers.js ──
@@ -1634,7 +1635,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.64';
+const GAME_VERSION = '0.65';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1841,7 +1842,7 @@ const SHOP_SPOTS = [
   { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
   { act: 'counter', name: '계산대', register: true },
   { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
-  { act: 'setup', name: '화구 · 오픈 준비', station: 'stove' },
+  { act: 'setup', name: '화구 · 오픈 준비 (프렙 통이 있으면 조리대 창: 오픈 준비 + 프렙)', station: 'stove' },
   { act: 'exit', name: '문 · 골목으로', door: true },
 ];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
@@ -2022,15 +2023,15 @@ const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 // 장사 도구 등급 업 (♥♥♥♥): 1장 도구(data/tools.js)를 가진 사람만
 const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
-  warmer: { name: '대형 보온 통', price: 300000, heart: 4, text: '새벽에 떡볶이 6그릇 + 김밥 3줄을 미리' },
+  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 12그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
   timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
 };
 const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
 // 디지털 타이머 구간 (주방 타이머보다 조금 더 넓게)
 const COOK_EASE2 = {
-  stir: { zone: { perfect: 0.16, good: 0.3 } },
-  roll: { perfect: 2.4, good: 3.4 },
-  fry: { perfect: [0.57, 0.82], good: [0.45, 0.92] },
+  stir: { zone: { perfect: 0.2, good: 0.34 } },
+  roll: { perfect: 2.8, good: 3.7 },
+  fry: { perfect: [0.53, 0.86], good: [0.42, 0.94] },
 };
 
 // 문 회장님 말 (철물점에 들를 때, 차례대로)
@@ -2238,7 +2239,7 @@ const SCENES = {
   tools: {
     lines: [
       ['ohPhone', '내일부터 김밥도 한다며? 할머니가 벌써 동네방네 소문냈다. 근데 메뉴가 늘면 손이 모자라.'],
-      ['ohPhone', '도구를 들여. 쟁반 하나면 한 번에 셋 나르고, 타이머 하나면 덜 태운다. 보온 통 있으면 문 열기 전에 떡볶이를 미리 끓여 둘 수 있고.', 'tools'],
+      ['ohPhone', '도구를 들여. 쟁반 하나면 한 번에 셋 나르고, 타이머 하나면 덜 태운다. 프렙 통 있으면 밤에 미리 만들어 둘 수 있고.', 'tools'],
       ['meThink', '사장님 말투가 꼭 장사 선생님 같다. …아니, 원래 선생님이었지.'],
     ],
     opens: 'tools', start: ['c1_tools'], startFirst: true, // 도구 칸을 먼저 열어 가리켜요
@@ -2714,19 +2715,24 @@ const CUTS = {
 };
 // ── js/data/tools.js ──
 // 장사 도구: 1장 중간(김밥이 열릴 무렵, 손이 모자라기 시작할 때) 오 사장님 권유로 준비 화면에 열려요. 한 번 사면 계속 써요.
-//  effect — hands: 손에 드는 수 +n · cookEase: 미니게임 「완벽」·「좋음」 구간 넓히기 · ready: 새벽에 미리 만들어 둘 수 있는 그릇 (메뉴: 최대 수, 직접 미니게임으로)
+//  effect — hands: 손에 드는 수 +n · cookEase: 미니게임 「완벽」·「좋음」 구간 넓히기 · prep: 준비 시간에 미리 만들어 둘 수 있는 그릇 수 (v0.65 — 전에는 보온 통 ready)
 const TOOLS = {
   tray: { name: '서빙 쟁반', price: 50000, desc: '음식을 한 번에 3개까지 듭니다', effect: { hands: 1 } },
-  timer: { name: '주방 타이머', price: 40000, desc: '조리할 때 「완벽」 구간이 넓어집니다', effect: { cookEase: true } },
-  warmer: { name: '보온 통', price: 80000, desc: '새벽에 떡볶이를 4그릇까지 미리 끓여 둡니다. 화구를 누르면 바로 나갑니다', effect: { ready: { tteok: 4 } } },
+  timer: { name: '주방 타이머', price: 40000, desc: '조리할 때 「완벽」 구간이 더 넓어집니다', effect: { cookEase: true } },
+  // v0.65 사용자 결정: 보온 통 → 프렙 통 (id는 옛 세이브를 위해 그대로 warmer)
+  warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 6 } },
 };
 const TOOL_IDS = ['tray', 'timer', 'warmer'];
 // 주방 타이머가 있을 때 미니게임 구간 (data/menu.js COOK_GAMES 대신)
 const COOK_EASE = {
-  stir: { zone: { perfect: 0.13, good: 0.27 } },
-  roll: { perfect: 2.1, good: 3.1 },
-  fry: { perfect: [0.6, 0.79], good: [0.5, 0.9] },
+  stir: { zone: { perfect: 0.17, good: 0.31 } },
+  roll: { perfect: 2.5, good: 3.4 },
+  fry: { perfect: [0.56, 0.83], good: [0.45, 0.92] },
 };
+// 프렙 (v0.65 사용자 결정): 한 번 만드는 데 1시간 · 미니게임 없이 「좋음」 · 팔지 못한 건 마감 때 버려요 · 큰 프렙 통(상인회)은 PREP_BIG그릇
+const PREP_COST = 1;
+const PREP_Q = 1;
+const PREP_BIG = 12;
 // ── js/data/incidents.js ──
 // 돌발 이벤트: 영업 중에 하루 1~2번, 손님이 뜸하거나 루즈해지는 시간에 떠요. 시간 안에 해내면 보상.
 // 시각은 게임 분 (0 = 09:00, 60 = 10:00 …). from~to 사이 무작위로 시작해요.
@@ -3863,15 +3869,10 @@ function cookRule(game) {
   if (fz) { g.perfect = [Math.min(g.perfect[0], fz.perfect[0]), Math.max(g.perfect[1], fz.perfect[1])]; g.good = [Math.min(g.good[0], fz.good[0]), Math.max(g.good[1], fz.good[1])]; }
   return g;
 }
-// 새벽에 미리 만들어 둘 수 있는 그릇 수 (보온 통 · 재료가 있는 만큼만) { 메뉴: 수 }
-function readyCap(stock) {
-  const out = {};
-  for (const id of G.story ? G.story.tools : []) {
-    const rd = id === 'warmer' && toolUp('warmer') ? { tteok: 6, kimbap: 3 } : TOOLS[id].effect.ready; // 대형 보온 통 (상인회)
-    if (rd) for (const m in rd) if (Math.min(rd[m], stock[m] || 0) > 0) out[m] = Math.min(rd[m], stock[m] || 0);
-  }
-  return out;
-}
+// 프렙 통: 준비 시간에 미리 만들어 둘 수 있는 그릇 수 (v0.65 — 보온 통의 새벽 끓이기 대신) · 큰 프렙 통(상인회)
+const prepMax = () => (hasTool('warmer') ? (toolUp('warmer') ? PREP_BIG : TOOLS.warmer.effect.prep) : 0);
+// (옛 새벽 끓이기 — v0.65부터 쓰지 않아요: 늘 빈 값이라 새벽 창이 열리지 않아요)
+function readyCap() { return {}; }
 
 defineCmd('buyTool', ({ id }) => {
   const t = TOOLS[id], S = G.story;
@@ -4166,7 +4167,7 @@ defineCmd('toolUp', ({ id }) => {
 //  v0.59: 밤·새벽을 나누지 않아요 — part는 시계·하늘빛만 (4시간을 쓰면 'dawn')
 // 화면은 만지지 않고 사건만: emit('town', 무엇, …) → ui/town.js · 저장은 emit('prep')(ui/feedback.js가 저장해요)
 
-const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0 });
+const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0, prep: {} });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 const townMode = () => !!(G.town && G.town.on);
 // 시간(코드 이름은 칸): 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 시간)
@@ -4194,7 +4195,7 @@ function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = []; T.prep = {};
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 시장에서 (원재료 낱개)
   dealsToday();
   if (first && !T.seen) { T.seen = true; G.story.queue.unshift('town1'); G.story.queue.push('town1h'); } // 오 사장님 첫 밤 전화가 먼저, 그날 다른 전화는 그 통화에 이어서 · 안내는 맨 끝 (v0.60)
@@ -4319,6 +4320,29 @@ defineCmd('marketBuyCart', ({ cart, phone }) => {
   emit('track', 'market_buy', { total, phone: phone ? 1 : 0 });
   emit('toast', `${phone ? '주문한 재료가 왔습니다' : '재료를 샀습니다'} · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
+  emit('prep');
+  return true;
+});
+
+// ── 프렙 (v0.65 사용자 결정 — 보온 통 대신): 준비 시간에 가게 조리대에서 미리 만들어 둬요 ──
+//  plan { 메뉴: 그릇 } · 한 번에 PREP_COST시간 · 미니게임 없이 「좋음」 · 재료는 영업 중 낼 때(또는 마감 때 버리며) 써요 (sim/day.js openShop)
+const prepUsed = () => Object.values((G.town && G.town.prep) || {}).reduce((a, b) => a + b, 0);
+const prepRoom = m => Math.max(0, invServings(m) - (((G.town && G.town.prep) || {})[m] || 0)); // 재고로 더 만들 수 있는 그릇
+defineCmd('prepMake', ({ plan }) => {
+  const T = G.town;
+  if (!townMode() || G.phase !== 'prep' || !prepMax()) return false;
+  T.prep = T.prep || {};
+  const on = todayMenus(), list = Object.entries(plan || {}).filter(([m, n]) => n > 0 && on.includes(m));
+  const total = list.reduce((s, [, n]) => s + n, 0);
+  if (!total) return false;
+  if (prepUsed() + total > prepMax()) { emit('toast', `프렙 통에는 ${prepMax()}그릇까지 들어갑니다`, 'warn'); return false; }
+  if (list.some(([m, n]) => n > prepRoom(m))) { emit('toast', '재료가 모자랍니다', 'warn'); return false; }
+  if (T.used + PREP_COST > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
+  useSlots(PREP_COST);
+  for (const [m, n] of list) T.prep[m] = (T.prep[m] || 0) + n;
+  emit('track', 'prep_make', { n: total });
+  emit('toast', `프렙 ${total}그릇을 만들어 두었습니다. 팔지 못한 건 마감 때 버립니다`, 'good');
+  emit('sfx', 'cookDone');
   emit('prep');
   return true;
 });
@@ -5067,7 +5091,12 @@ defineCmd('openShop', () => {
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startIng = { ...G.run.ing };
   G.run.startStock = Object.fromEntries(MENU_IDS.map(m => [m, stockOf(m)])); // 메뉴마다 만들 수 있던 그릇 (어제 품절 표시용)
-  G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
+  G.run.ready = {}; // 미리 만들어 둔 그릇 { 메뉴: [품질, …] } — v0.65부터 준비 시간의 프렙(G.town.prep, sim/town.js prepMake). 재료는 낼 때·마감 때 써요
+  const P = (G.town && G.town.prep) || {};
+  let prepN = 0;
+  for (const m in P) if (menuOn(m)) { const k = Math.min(P[m], stockOf(m)); if (k > 0) { G.run.ready[m] = Array(k).fill(PREP_Q); prepN += k; } }
+  if (G.town) G.town.prep = {};
+  if (prepN) emit('toast', `프렙 ${prepN}그릇이 준비되어 있습니다. 조리대를 누르면 바로 나갑니다`, 'info');
   // 마을(밤·새벽)에서 한 일: 피로·오픈 준비 → 사장 걸음, 이웃 소개 손님
   townOpenRest(); // 칸을 남긴 턴이면 피로가 풀려요
   G.run.player.speed = PLAYER_SPEED * townSpeedMul(); G.run.setupUntil = setupUntil();
@@ -7441,6 +7470,7 @@ function goSpot(act) {
 function doShop(act) {
   if (act === 'exit') { leaveShop(); return; }
   T.sheetPlace = 'shop';
+  if (act === 'setup' && prepMax()) { prepCart = {}; sheet(stoveHTML(), 'stove'); playSfx('page'); return; } // 프렙 통이 있으면 조리대 창 (오픈 준비 + 프렙, v0.65)
   if (act === 'counter') { openCounter(); playSfx('page'); return; }
   runCmd('townAct', { place: 'shop', act });
 }
@@ -7506,7 +7536,7 @@ function showTown() {
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
   if (T && T.inside) { // 가게 안: 할 일 버튼
-    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -7856,6 +7886,21 @@ function pantryHTML() {
     <div class="pt-menus">${menus}</div>
     ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 정 사장 식자재에서 사거나 휴대폰으로 주문해 보세요</p>'}`;
 }
+// 조리대 (프렙 통이 있을 때, v0.65 사용자 결정): 오픈 준비 + 프렙 만들기 — 메뉴마다 그릇 수를 골라 한 번에 (1시간 · 미니게임 없이 「좋음」)
+//  얼마나 만들지가 실력: 어제 판 그릇을 한 줄로 보여 줘요 (팔지 못한 프렙은 마감 때 버려요)
+let prepCart = {};
+function stoveHTML() {
+  const Tn = G.town, max = prepMax(), made = Tn.prep || {}, last = G.history[G.history.length - 1];
+  const cartN = Object.values(prepCart).reduce((a, b) => a + b, 0), left = max - prepUsed() - cartN;
+  const rows = todayMenus().map(m => { const k = prepCart[m] || 0, sold = last && last.sold ? last.sold[m] || 0 : 0;
+    return `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>어제 ${sold}그릇 팔림${made[m] ? ` · 프렙 ${made[m]}` : ''}</small></span><div class="step"><button type="button" data-ts="prepD" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 만들기" ${k ? '' : 'disabled'}>−</button><b>${k}그릇</b><button type="button" data-ts="prepD" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 만들기" ${left > 0 && k < prepRoom(m) ? '' : 'disabled'}>+</button></div></div>`; }).join('');
+  return `<div class="ts-head"><b>조리대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${actRow('shop', 'setup')}
+    <small class="mk-h">프렙 <i>${prepUsed() + cartN}/${max}그릇 · 미니게임 없이 바로 나갑니다</i></small>
+    <div class="mk-plan">${rows}</div>
+    <p class="ts-note">팔지 못한 프렙은 마감 때 버립니다</p>
+    <button type="button" class="btn primary big" data-ts="prepMake" ${cartN ? '' : 'disabled'}>${cartN ? `프렙 ${cartN}그릇 만들기 · 1시간` : '만들 그릇 수를 골라 보세요'}</button>`;
+}
 // 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
 function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
@@ -7989,6 +8034,8 @@ function initTown() {
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'menuDev') runCmd('menuDev', { menu: b.dataset.m });
     else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
+    else if (k === 'prepD') { const m = b.dataset.m; prepCart[m] = Math.max(0, (prepCart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(stoveHTML(), 'stove'); }
+    else if (k === 'prepMake') { if (runCmd('prepMake', { plan: prepCart })) prepCart = {}; refreshTown(); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart, phone: mkPhone })) cart = {}; refreshTown(); }
@@ -8025,6 +8072,7 @@ function refreshTown() {
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
   else if (s.classList.contains('pantry')) sheet(pantryHTML(), 'pantry');
+  else if (s.classList.contains('stove')) sheet(stoveHTML(), 'stove');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }
 // ── js/ui/cutscene.js ──

@@ -1,6 +1,6 @@
 // 장사 도구 규칙: 사기 · 효과 (손 수 · 미니게임 구간 · 미리 만들어 둔 그릇)
 import { G } from '../save/state.js';
-import { TOOLS, COOK_EASE } from '../data/tools.js';
+import { TOOLS, COOK_EASE, PREP_BIG } from '../data/tools.js';
 import { COOK_GAMES } from '../data/menu.js';
 import { HANDS_MAX } from '../data/economy.js';
 import { emit, defineCmd } from './events.js';
@@ -20,15 +20,10 @@ export function cookRule(game) {
   if (fz) { g.perfect = [Math.min(g.perfect[0], fz.perfect[0]), Math.max(g.perfect[1], fz.perfect[1])]; g.good = [Math.min(g.good[0], fz.good[0]), Math.max(g.good[1], fz.good[1])]; }
   return g;
 }
-// 새벽에 미리 만들어 둘 수 있는 그릇 수 (보온 통 · 재료가 있는 만큼만) { 메뉴: 수 }
-export function readyCap(stock) {
-  const out = {};
-  for (const id of G.story ? G.story.tools : []) {
-    const rd = id === 'warmer' && toolUp('warmer') ? { tteok: 6, kimbap: 3 } : TOOLS[id].effect.ready; // 대형 보온 통 (상인회)
-    if (rd) for (const m in rd) if (Math.min(rd[m], stock[m] || 0) > 0) out[m] = Math.min(rd[m], stock[m] || 0);
-  }
-  return out;
-}
+// 프렙 통: 준비 시간에 미리 만들어 둘 수 있는 그릇 수 (v0.65 — 보온 통의 새벽 끓이기 대신) · 큰 프렙 통(상인회)
+export const prepMax = () => (hasTool('warmer') ? (toolUp('warmer') ? PREP_BIG : TOOLS.warmer.effect.prep) : 0);
+// (옛 새벽 끓이기 — v0.65부터 쓰지 않아요: 늘 빈 값이라 새벽 창이 열리지 않아요)
+export function readyCap() { return {}; }
 
 defineCmd('buyTool', ({ id }) => {
   const t = TOOLS[id], S = G.story;

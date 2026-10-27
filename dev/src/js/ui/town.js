@@ -18,6 +18,8 @@ import { SPR } from '../art/atlas.js';
 import { drawTown } from '../render/town.js';
 import { townMode, slotsMax, actNow, placeOpen, marketUnit, phoneUnit, townClock, placeName, placeShort, placeActs, isDeal, marketCost, jungTalkOk, useOk, metToday } from '../sim/town.js';
 import { furnOpen } from '../sim/furniture.js';
+import { prepMax } from '../sim/tools.js';
+import { prepUsed, prepRoom } from '../sim/town.js';
 import { guildOpen } from '../sim/guild.js';
 import { guildHTML } from './guild.js';
 import { furnHTML, furnTheme, furnGrade, heartsHTML, drawFurnPreview, furnToggle, furnSetToCart, furnCartReset, furnCart } from './furn.js';
@@ -206,6 +208,7 @@ function goSpot(act) {
 function doShop(act) {
   if (act === 'exit') { leaveShop(); return; }
   T.sheetPlace = 'shop';
+  if (act === 'setup' && prepMax()) { prepCart = {}; sheet(stoveHTML(), 'stove'); playSfx('page'); return; } // 프렙 통이 있으면 조리대 창 (오픈 준비 + 프렙, v0.65)
   if (act === 'counter') { openCounter(); playSfx('page'); return; }
   runCmd('townAct', { place: 'shop', act });
 }
@@ -271,7 +274,7 @@ export function showTown() {
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
   if (T && T.inside) { // 가게 안: 할 일 버튼
-    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -621,6 +624,21 @@ function pantryHTML() {
     <div class="pt-menus">${menus}</div>
     ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 정 사장 식자재에서 사거나 휴대폰으로 주문해 보세요</p>'}`;
 }
+// 조리대 (프렙 통이 있을 때, v0.65 사용자 결정): 오픈 준비 + 프렙 만들기 — 메뉴마다 그릇 수를 골라 한 번에 (1시간 · 미니게임 없이 「좋음」)
+//  얼마나 만들지가 실력: 어제 판 그릇을 한 줄로 보여 줘요 (팔지 못한 프렙은 마감 때 버려요)
+let prepCart = {};
+function stoveHTML() {
+  const Tn = G.town, max = prepMax(), made = Tn.prep || {}, last = G.history[G.history.length - 1];
+  const cartN = Object.values(prepCart).reduce((a, b) => a + b, 0), left = max - prepUsed() - cartN;
+  const rows = todayMenus().map(m => { const k = prepCart[m] || 0, sold = last && last.sold ? last.sold[m] || 0 : 0;
+    return `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>어제 ${sold}그릇 팔림${made[m] ? ` · 프렙 ${made[m]}` : ''}</small></span><div class="step"><button type="button" data-ts="prepD" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 만들기" ${k ? '' : 'disabled'}>−</button><b>${k}그릇</b><button type="button" data-ts="prepD" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 만들기" ${left > 0 && k < prepRoom(m) ? '' : 'disabled'}>+</button></div></div>`; }).join('');
+  return `<div class="ts-head"><b>조리대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${actRow('shop', 'setup')}
+    <small class="mk-h">프렙 <i>${prepUsed() + cartN}/${max}그릇 · 미니게임 없이 바로 나갑니다</i></small>
+    <div class="mk-plan">${rows}</div>
+    <p class="ts-note">팔지 못한 프렙은 마감 때 버립니다</p>
+    <button type="button" class="btn primary big" data-ts="prepMake" ${cartN ? '' : 'disabled'}>${cartN ? `프렙 ${cartN}그릇 만들기 · 1시간` : '만들 그릇 수를 골라 보세요'}</button>`;
+}
 // 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
 function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
 
@@ -754,6 +772,8 @@ export function initTown() {
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
     else if (k === 'menuDev') runCmd('menuDev', { menu: b.dataset.m });
     else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
+    else if (k === 'prepD') { const m = b.dataset.m; prepCart[m] = Math.max(0, (prepCart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(stoveHTML(), 'stove'); }
+    else if (k === 'prepMake') { if (runCmd('prepMake', { plan: prepCart })) prepCart = {}; refreshTown(); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
     else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart, phone: mkPhone })) cart = {}; refreshTown(); }
@@ -790,5 +810,6 @@ export function refreshTown() {
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
   else if (s.classList.contains('pantry')) sheet(pantryHTML(), 'pantry');
+  else if (s.classList.contains('stove')) sheet(stoveHTML(), 'stove');
   else if (T.sheetPlace) openPlace(T.sheetPlace);
 }

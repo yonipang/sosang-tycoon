@@ -27,15 +27,15 @@ export const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 // 장사 도구 등급 업 (♥♥♥♥): 1장 도구(data/tools.js)를 가진 사람만
 export const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
-  warmer: { name: '대형 보온 통', price: 300000, heart: 4, text: '새벽에 떡볶이 6그릇 + 김밥 3줄을 미리' },
+  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 12그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
   timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
 };
 export const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
 // 디지털 타이머 구간 (주방 타이머보다 조금 더 넓게)
 export const COOK_EASE2 = {
-  stir: { zone: { perfect: 0.16, good: 0.3 } },
-  roll: { perfect: 2.4, good: 3.4 },
-  fry: { perfect: [0.57, 0.82], good: [0.45, 0.92] },
+  stir: { zone: { perfect: 0.2, good: 0.34 } },
+  roll: { perfect: 2.8, good: 3.7 },
+  fry: { perfect: [0.53, 0.86], good: [0.42, 0.94] },
 };
 
 // 문 회장님 말 (철물점에 들를 때, 차례대로)

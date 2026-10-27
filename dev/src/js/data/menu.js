@@ -117,8 +117,9 @@ export const PREP_FIRST_DAY = { tteok: 12, kimbap: 8, twigim: 8 }; // 새 메뉴
 //  roll 말기(김밥): taps번 빨리 눌러요. perfect·good = 다 마는 데 걸린 초. timeout 초가 지나면 보통
 //  fry 튀기기(튀김): 바늘이 한 번만 지나가요(sec초). 노릇한 구간에서 눌러 건져요. 끝까지 두면 타서 보통
 export const COOK_GAMES = {
-  stir: { name: '졸이는 중', tip: '바늘이 가운데 오면 눌러 보세요', zone: { perfect: 0.08, good: 0.22 }, timeout: 3.2 },
-  roll: { name: '마는 중', tip: '여러 번 빠르게 눌러 보세요', taps: 6, perfect: 1.6, good: 2.6, timeout: 4.5 },
-  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.64, 0.76], good: [0.52, 0.87] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
+  // v0.65 사용자 결정: 미니게임은 쉽게 (승부는 데이터 읽기로) — 「완벽」·「좋음」 구간을 넓혔어요 (전: 졸이기 0.08/0.22 · 말기 1.6/2.6 · 튀기기 0.64~0.76/0.52~0.87)
+  stir: { name: '졸이는 중', tip: '바늘이 가운데 오면 눌러 보세요', zone: { perfect: 0.13, good: 0.28 }, timeout: 3.2 },
+  roll: { name: '마는 중', tip: '여러 번 빠르게 눌러 보세요', taps: 6, perfect: 2.1, good: 3.1, timeout: 4.5 },
+  fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.6, 0.8], good: [0.48, 0.9] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
 };
 export const QUALITY_NAME = ['보통', '좋음', '완벽'];

@@ -15,6 +15,7 @@ import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
 import { menuOpen, storyNote, storyOpenDay, storyNextDay } from './story.js';
 import { readyCap } from './tools.js';
+import { PREP_Q } from '../data/tools.js';
 import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, ingCost, marketNextDay, costBreakdown } from './market.js';
 import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, giveMenu, shortIng, todayMenus, menuOn } from './pantry.js';
@@ -80,7 +81,12 @@ defineCmd('openShop', () => {
   G.run.ordered = ordered; G.run.orderCost = cost;
   G.run.startIng = { ...G.run.ing };
   G.run.startStock = Object.fromEntries(MENU_IDS.map(m => [m, stockOf(m)])); // 메뉴마다 만들 수 있던 그릇 (어제 품절 표시용)
-  G.run.ready = {}; // 새벽에 미리 끓여 둔 그릇 { 메뉴: [품질, …] }
+  G.run.ready = {}; // 미리 만들어 둔 그릇 { 메뉴: [품질, …] } — v0.65부터 준비 시간의 프렙(G.town.prep, sim/town.js prepMake). 재료는 낼 때·마감 때 써요
+  const P = (G.town && G.town.prep) || {};
+  let prepN = 0;
+  for (const m in P) if (menuOn(m)) { const k = Math.min(P[m], stockOf(m)); if (k > 0) { G.run.ready[m] = Array(k).fill(PREP_Q); prepN += k; } }
+  if (G.town) G.town.prep = {};
+  if (prepN) emit('toast', `프렙 ${prepN}그릇이 준비되어 있습니다. 조리대를 누르면 바로 나갑니다`, 'info');
   // 마을(밤·새벽)에서 한 일: 피로·오픈 준비 → 사장 걸음, 이웃 소개 손님
   townOpenRest(); // 칸을 남긴 턴이면 피로가 풀려요
   G.run.player.speed = PLAYER_SPEED * townSpeedMul(); G.run.setupUntil = setupUntil();

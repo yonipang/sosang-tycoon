@@ -155,7 +155,7 @@ export const SHOP_SPOTS = [
   { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
   { act: 'counter', name: '계산대', register: true },
   { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
-  { act: 'setup', name: '화구 · 오픈 준비', station: 'stove' },
+  { act: 'setup', name: '화구 · 오픈 준비 (프렙 통이 있으면 조리대 창: 오픈 준비 + 프렙)', station: 'stove' },
   { act: 'exit', name: '문 · 골목으로', door: true },
 ];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)

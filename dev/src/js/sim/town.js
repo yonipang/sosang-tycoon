@@ -15,9 +15,11 @@ import { guildOpen, guildNight, moonChat } from './guild.js';
 import { seedRand, rand } from '../engine/random.js';
 import { emit, defineCmd } from './events.js';
 import { ingCost } from './market.js';
-import { openIngs, stockIn } from './pantry.js';
+import { openIngs, stockIn, todayMenus, invServings } from './pantry.js';
+import { prepMax } from './tools.js';
+import { PREP_COST } from '../data/tools.js';
 
-export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0 });
+export const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0, prep: {} });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 export const townMode = () => !!(G.town && G.town.on);
 // 시간(코드 이름은 칸): 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 시간)
@@ -45,7 +47,7 @@ export function townEnterNight() {
   const T = G.town;
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
-  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = [];
+  T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = []; T.prep = {};
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 시장에서 (원재료 낱개)
   dealsToday();
   if (first && !T.seen) { T.seen = true; G.story.queue.unshift('town1'); G.story.queue.push('town1h'); } // 오 사장님 첫 밤 전화가 먼저, 그날 다른 전화는 그 통화에 이어서 · 안내는 맨 끝 (v0.60)
@@ -170,6 +172,29 @@ defineCmd('marketBuyCart', ({ cart, phone }) => {
   emit('track', 'market_buy', { total, phone: phone ? 1 : 0 });
   emit('toast', `${phone ? '주문한 재료가 왔습니다' : '재료를 샀습니다'} · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
+  emit('prep');
+  return true;
+});
+
+// ── 프렙 (v0.65 사용자 결정 — 보온 통 대신): 준비 시간에 가게 조리대에서 미리 만들어 둬요 ──
+//  plan { 메뉴: 그릇 } · 한 번에 PREP_COST시간 · 미니게임 없이 「좋음」 · 재료는 영업 중 낼 때(또는 마감 때 버리며) 써요 (sim/day.js openShop)
+export const prepUsed = () => Object.values((G.town && G.town.prep) || {}).reduce((a, b) => a + b, 0);
+export const prepRoom = m => Math.max(0, invServings(m) - (((G.town && G.town.prep) || {})[m] || 0)); // 재고로 더 만들 수 있는 그릇
+defineCmd('prepMake', ({ plan }) => {
+  const T = G.town;
+  if (!townMode() || G.phase !== 'prep' || !prepMax()) return false;
+  T.prep = T.prep || {};
+  const on = todayMenus(), list = Object.entries(plan || {}).filter(([m, n]) => n > 0 && on.includes(m));
+  const total = list.reduce((s, [, n]) => s + n, 0);
+  if (!total) return false;
+  if (prepUsed() + total > prepMax()) { emit('toast', `프렙 통에는 ${prepMax()}그릇까지 들어갑니다`, 'warn'); return false; }
+  if (list.some(([m, n]) => n > prepRoom(m))) { emit('toast', '재료가 모자랍니다', 'warn'); return false; }
+  if (T.used + PREP_COST > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
+  useSlots(PREP_COST);
+  for (const [m, n] of list) T.prep[m] = (T.prep[m] || 0) + n;
+  emit('track', 'prep_make', { n: total });
+  emit('toast', `프렙 ${total}그릇을 만들어 두었습니다. 팔지 못한 건 마감 때 버립니다`, 'good');
+  emit('sfx', 'cookDone');
   emit('prep');
   return true;
 });

@@ -107,6 +107,9 @@ def town_night_dawn(pg):
     if pg.locator('[data-ts=buyCart]:not([disabled])').count():
         pg.click('[data-ts=buyCart]'); pg.wait_for_timeout(50)
         if pg.evaluate('__T.G.cash') >= before: errs.append('시장 구매하기 버튼이 돈을 쓰지 않았어요')
+    if 'prep' not in seen and pg.evaluate("__T.G.story.tools.includes('warmer')"):  # 프렙 (v0.65 — 보온 통 대신): 떡볶이 2그릇 미리 → 다음 영업에 바로 나갈 그릇
+        seen.append('prep')
+        if not R('prepMake', "{plan:{tteok:2}}") or pg.evaluate("(__T.G.town.prep||{}).tteok") != 2: errs.append('프렙을 못 만들었어요')
     R('townAct', "{place:'shop',act:'setup'}")
     if pg.evaluate('__T.G.day') % 2: R('townAct', "{place:'home',act:'sleep'}"); talk(pg)  # 집에서 자면 가게 열기 화면으로 (v0.59)
     else: R('townAct', "{place:'shop',act:'open'}"); talk(pg)
@@ -148,6 +151,9 @@ with sync_playwright() as pw:
         chapters.append(pg.evaluate("[__T.G.day, __T.G.story.ch, __T.G.story.title, __T.G.story.menus.join('+'), __T.G.story.active.join(',')]"))
         if d == 4: shot(pg, '6-prep-ch1')
         open_shop(pg)
+        if 'prep' in seen and 'prepOk' not in seen:
+            if pg.evaluate('((__T.G.run.ready||{}).tteok||[]).length') == 2: seen.append('prepOk')
+            else: errs.append('만든 프렙이 영업에 안 들어왔어요')
         if d == 4:  # 1장 첫날: 냉장고 쪽지 「!」
             pg.evaluate('__bot.play(20)'); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, '6b-clue.png'))
         if d == 6:  # 영업 중 돌발 이벤트 화면 (시작 직후)
