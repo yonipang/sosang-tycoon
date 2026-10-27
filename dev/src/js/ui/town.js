@@ -325,18 +325,14 @@ function joyMove(dt, vx, vy) {
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
   T.sitUntil = 0;
-  // 걷는 손님에게 다가가면 이야기
-  const w = !T.sheet && (T.walkers || []).find(q => !q.talk && q.cool < T.time && Math.abs(q.x - me.x) < 12 && Math.abs(q.y - me.y) < 8);
-  if (w) { talkWalker(w); return; }
-  // 부딪힌 곳: 이웃이면 그 가게 · 문 앞에서 위로 밀면 그 가게 (같은 칸에서는 한 번만)
+  // 부딪힌 곳: 문 앞에서 위로 밀면 그 가게 · 물건 (같은 칸에서는 한 번만). 사람은 「대화하기」 버튼으로 (v0.49)
   const [tx, ty] = meTile();
   const key = tx + ',' + ty;
   if (T.bumped && T.bumped !== key) T.bumped = null;
   if ((!hitX && !hitY) || T.bumped || T.sheet) return;
   const bx = tx + (Math.abs(vx) >= Math.abs(vy) ? hitX : 0), by = ty + (Math.abs(vy) > Math.abs(vx) ? hitY : 0);
-  const npc = Object.keys(TOWN_NPC).find(id => TOWN_NPC[id].open === G.town.part && TOWN_NPC[id].at[0] === bx && TOWN_NPC[id].at[1] === by);
-  let place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : null;
-  if (!place && hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
+  let place = null;
+  if (hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
   if (place) { T.bumped = key; me.moving = false; facePlace(place); if (place === 'shop') enterShop(); else { openPlace(place); playSfx('tap'); } return; } // 우리 가게 문은 걸어 들어가요
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => a === bx && b === by));
   if (prop) { T.bumped = key; me.moving = false; openUse(prop); return; }
@@ -367,6 +363,7 @@ export function updateTown(dt) {
   T.cam.x = Math.max(0, Math.min(MAP_W * TILE - T.vw, me.x - T.vw / 2));
   T.cam.y = Math.max(0, Math.min(MAP_H * TILE - T.vh, me.y - 16 - T.vh / 2));
   if (!talking()) updateWalkers(dt);
+  updateTalkBtn();
   me.sit = T.sitUntil > T.time; // 벤치에서 쉬는 동안 앉아 있어요
   const dawn = G.town.part === 'dawn';
   const actors = [me, ...(T.walkers || [])];
@@ -439,6 +436,33 @@ function talkWalker(w) {
   showChat(lines.map(t => [who, t]));
   chatQ.after = () => { w.talk = false; w.cool = T.time + 3; w.wait = 1.5; if (first) toast(`${josa(P.name, '이/가')} 다음 영업에 들를 가능성이 높아졌습니다`, 'good'); };
 }
+// 「대화하기」 버튼: 사람 바로 앞에 서면 그 사람 머리 위에 떠요 (이웃 사장님 · 걷는 손님)
+const TALK_NEAR = { x: 22, y: 18 };
+function talkTarget() {
+  if (T.sheet || talking() || T.fading || T.inside || chatQ) return null;
+  const me = T.me, near = (x, y) => Math.abs(x - me.x) < TALK_NEAR.x && Math.abs(y - me.y) < TALK_NEAR.y;
+  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part && near(tileX(n.at[0]), tileY(n.at[1]))) return { npc: id, x: tileX(n.at[0]), y: tileY(n.at[1]) }; }
+  const w = (T.walkers || []).find(q => !q.talk && near(q.x, q.y));
+  return w ? { w, x: w.x, y: w.y } : null;
+}
+function updateTalkBtn() {
+  const b = $('townTalk'), t = talkTarget();
+  T.talkT = t;
+  if (!t) { if (!b.hidden) b.hidden = true; return; }
+  if (t.w) t.w.wait = Math.max(t.w.wait, 0.3); // 버튼이 뜬 동안은 그 자리에 서 있어요
+  const cv = $('townCv').getBoundingClientRect(), box = $('town').getBoundingClientRect();
+  b.style.left = (cv.left - box.left + (t.x - T.cam.x) / T.vw * cv.width) + 'px';
+  b.style.top = (cv.top - box.top + (t.y - 34 - T.cam.y) / T.vh * cv.height) + 'px';
+  b.hidden = false;
+}
+function talkPress() {
+  const t = T.talkT;
+  if (!t) return;
+  $('townTalk').hidden = true; playSfx('tap');
+  if (t.w) { talkWalker(t.w); return; }
+  const place = Object.keys(PLACES).find(id => PLACES[id].who === t.npc);
+  if (place) { T.me.path = []; T.me.dir = t.x > T.me.x + 4 ? 0 : t.x < T.me.x - 4 ? 2 : 1; openPlace(place); }
+}
 const walkerAt = (x, y) => (T.walkers || []).find(w => inRect(x, y, [w.x - 8, w.y - 30, 16, 32]));
 
 function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
@@ -452,11 +476,13 @@ function tapTown(e) {
   const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
   closeSheet();
   playSfx('tap');
+  // 사람을 누르면 그 앞까지 걸어가요 — 이야기는 머리 위 「대화하기」 버튼으로 (v0.49 사용자 요청)
   const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
-  const place = npc ? Object.keys(PLACES).find(id => PLACES[id].who === npc) : Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
-  if (place) { goPlace(place); return; }
+  if (npc) { const [nx, ny] = TOWN_NPC[npc].at, at = nearestOpen(nx, ny + 1); if (at) walkTo(at, () => { T.me.dir = 1; }); return; }
   const w = walkerAt(wx, wy);
-  if (w) { const [tx, ty] = [Math.floor(w.x / TILE), Math.floor(w.y / TILE)], at = nearestOpen(tx + (T.me.x < w.x ? -1 : 1), ty); if (!at || !walkTo(at, () => talkWalker(w))) talkWalker(w); return; }
+  if (w) { const at = nearestOpen(Math.floor(w.x / TILE) + (T.me.x < w.x ? -1 : 1), Math.floor(w.y / TILE)); if (at) { w.wait = Math.max(w.wait, 2); w.path = []; walkTo(at, () => { T.me.dir = T.me.x < w.x ? 0 : 2; }); } return; }
+  const place = Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
+  if (place) { goPlace(place); return; }
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && inRect(wx, wy, propRect(q)));
   if (prop) { goProp(prop); return; }
   const look = LOOKS.find(L => inRect(wx, wy, L.rect));
@@ -629,6 +655,7 @@ export function initTown() {
   addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
+  $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
     const inB = e.target.closest('[data-in]');
