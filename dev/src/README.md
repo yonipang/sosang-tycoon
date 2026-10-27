@@ -6,12 +6,25 @@
 |---|---|---|
 | engine | `util.js` `random.js` | 공통 도구 · 난수(rand/fxRand) |
 | sim | `events.js` | 사건(emit/onEvent) · 명령(defineCmd/runCmd) |
-| art | `atlas.js` | 그림 한 장 + 자리표 (art_pack.py가 만들어요) |
-| data | `menu.js` `customers.js` `economy.js` `layout.js` `reviews.js` `credits.js` `market.js` `town.js` `story.js` `tutorial.js` `cutscenes.js` `tools.js` `incidents.js` `district.js` `bond.js` `furniture.js` | 메뉴(레시피·원재료·오늘의 메뉴 칸)·손님·돈과 시간·가게 배치·리뷰 문구·크레딧·재료 시세 소식·마을(지도·장소·행동 칸)·이야기(인물·퀘스트·대화 장면)·오 사장님 가게 길잡이(프롤로그 1~2일차)·연출 대본·장사 도구·돌발 이벤트·상권·친밀도(세 사장님 하트)·미소 가구(테마·분위기) |
-| save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G · 브라우저 저장 · 클라우드 저장(구글 로그인, Firebase) |
-| sim | `market.js` `pantry.js` `bond.js` `furniture.js` `town.js` `story.js` `tutorial.js` `path.js` `customers.js` `day.js` `player.js` `loop.js` | 재료 시세·원가 · 재료 창고(원재료·유통기한·오늘의 메뉴) · 친밀도 · 미소 가구(사기·분위기·테마 보너스) · 마을 · 이야기 규칙(퀘스트 세기·메뉴 열기) · 가게 길잡이(차례·시키는 동안 시계 멈춤) · 길찾기 · 손님 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
-| render | `view.js` `cut.js` `town.js` | 가게 그리기 · 연출(밤 골목) 그리기 · 마을 지도(위에서 본 골목) 그리기 |
-| ui | `sfx.js` `icons.js` `hud.js` `story.js` `incident.js` `furn.js` `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 소리 · 작은 그림 · 위아래 막대 · 대화/골목 신문/퀘스트 표시 · 돌발 이벤트 대화·목표·결과 카드 · 미소 가구 창 · 연출 진행 · 준비/영수증 화면 · 사건 받기 · 입력 |
+| art · audio | `atlas.js` `music.js` | 그림 한 장 + 자리표 (art_pack.py) · 배경음악 (audio_pack.py) — 손으로 안 고쳐요 |
+| data | `menu.js` | 메뉴 18종(기본 3 + 2장 변형 15: `base`·`lv`)·레시피·원재료(유통기한)·메뉴 레벨·오늘의 메뉴 칸 |
+| | `customers.js` `people.js` | 손님층·시간대 흐름·좋아하는 메뉴 · 손님 수첩 인물(이름·소개·`fav`) |
+| | `economy.js` `layout.js` `reviews.js` `version.js` `credits.js` | 돈과 시간·별점 · 가게 배치(등급마다) · 리뷰 문구 · 게임 버전 · 크레딧(지우지 않기) |
+| | `market.js` `town.js` | 재료 시세 소식 · 마을(지도·장소·행동 칸·물건·걷는 손님·홍보) |
+| | `bond.js` `furniture.js` `guild.js` | 친밀도(미소·정 사장·문 회장) · 미소 가구(테마·분위기·확장공사) · 상인회(설비·도구 등급) |
+| | `story.js` `tutorial.js` `cutscenes.js` | 인물·퀘스트·대화 장면(프롤로그~2장) · 오 사장님 가게 길잡이 · 연출 대본 |
+| | `tools.js` `incidents.js` `district.js` | 장사 도구 · 돌발 이벤트 · 상권(게임 속 데이터) |
+| save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G(`SAVE_ORDER`) · 브라우저 저장 · 클라우드 저장 |
+| sim | `rating.js` `story.js` `pantry.js` `upgrade.js` | 별점(리뷰 수가 적으면 3점 쪽으로) · 이야기 규칙 · 재료 창고·오늘의 메뉴 · 메뉴 레벨·메뉴 개발 |
+| | `traffic.js` `book.js` `tutorial.js` `tools.js` | 유동인구 × 들어오는 비율(칠판·홍보·블로거) · 손님 수첩 기록 · 가게 길잡이 · 장사 도구 |
+| | `market.js` `bond.js` `furniture.js` `guild.js` `town.js` | 원가(`costOf`) · 친밀도 · 미소 가구 · 상인회 · 마을 규칙 |
+| | `path.js` `customers.js` `incidents.js` `day.js` `player.js` `loop.js` | 길찾기 · 손님 · 돌발 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
+| | `dev.js` | 개발자 모드 바로 가기(`DEV_JUMPS`) |
+| render | `view.js` `cut.js` `town.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 |
+| ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
+| | `hud.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
+| | `board.js` `book.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
+| | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
 
 ## 이야기 더하기
