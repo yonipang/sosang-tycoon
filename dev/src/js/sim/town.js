@@ -48,7 +48,7 @@ export function townEnterNight() {
   T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = [];
   for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 시장에서 (원재료 낱개)
   dealsToday();
-  if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
+  if (first && !T.seen) { T.seen = true; G.story.queue.unshift('town1'); G.story.queue.push('town1h'); } // 오 사장님 첫 밤 전화가 먼저, 그날 다른 전화는 그 통화에 이어서 · 안내는 맨 끝 (v0.60)
   if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
   else if (furnOpen() && G.guild && !G.guild.due) G.guild.due = G.day; // 미소 가구 이후 세이브
   guildNight(); // 문 회장님 (sim/guild.js)

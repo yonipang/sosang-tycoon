@@ -5,9 +5,17 @@ import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 
+// 통화 중에 끼어도 통화를 끊지 않는 줄: 안내 글(null) · 팁 · 내 속마음
+const aside = who => who === null || who === 'tip' || !!(CAST[who] && CAST[who].think);
 export const isPhone = who => !!(who && typeof who === 'string' && CAST[who] && CAST[who].phone);
-// 이 줄에서 전화가 새로 걸려 오나 (앞줄이 전화가 아니었으면)
-export const callStarts = (lines, i) => isPhone(lines[i] && lines[i][0]) && !(i > 0 && isPhone(lines[i - 1][0]));
+// 이 줄에서 전화가 새로 걸려 오나 (앞에서 말한 사람이 전화가 아니었으면 — 안내 글·속마음은 통화를 끊지 않아요, v0.60)
+export const callStarts = (lines, i) => {
+  if (!isPhone(lines[i] && lines[i][0])) return false;
+  for (let k = i - 1; k >= 0; k--) if (!aside(lines[k][0])) return !isPhone(lines[k][0]);
+  return true;
+};
+// 이 장면이 전화로 끝나나 (다음 장면이 같은 사람 전화면 이어서 말해요 — ui/story.js)
+export const callEnds = lines => { for (let k = (lines || []).length - 1; k >= 0; k--) if (!aside(lines[k][0])) return isPhone(lines[k][0]) ? lines[k][0] : null; return null; };
 const callerName = who => CAST[who].name.replace(/ · 전화$/, '');
 
 // 울리는 폰 (받기 버튼 하나 — 이야기 전화라 거절은 없어요)

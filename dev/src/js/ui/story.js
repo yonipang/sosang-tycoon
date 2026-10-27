@@ -15,9 +15,10 @@ import { setMusic } from './music.js';
 import { setting } from './settings.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 import { tutAsk } from '../sim/tutorial.js';
-import { callStarts, ringHTML, startRing, stopRing } from './phone.js';
+import { callStarts, callEnds, ringHTML, startRing, stopRing } from './phone.js';
 
-let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
+let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄, cont: 앞 장면에서 이어지는 전화 }
+let onCall = null; // 방금 끝난 장면이 전화로 끝났으면 그 사람 (바로 이어지는 같은 사람 전화는 다시 울리지 않아요 — v0.60 사용자 요청)
 const fill = s => s.replace(/\{shop\}/g, G.shop);
 // who: CAST 이름 또는 { name, char } (골목에서 만난 손님 등)
 const castOf = who => (who && typeof who === 'object' ? who : CAST[who]);
@@ -32,7 +33,7 @@ export function showNextScene() {
   // (v0.59: 밤·새벽을 나누지 않아 at: 'dawn' 장면도 준비 시간에 바로 봐요)
   if (G.phase === 'day' && G.run && G.run.cook) { setTimeout(showNextScene, 150); return; } // 영업 중 장면은 조리 미니게임이 끝난 뒤에
   if (G.phase === 'day') runCmd('hold', { on: true });
-  open = { id, i: 0 };
+  open = { id, i: 0, cont: onCall };
   // 연출이 붙은 장면은 연출을 먼저 보고, 남은 줄을 이어서 보여 줘요
   if (sc.cut) { playCut(sc.cut, () => { runCmd('sceneOpen'); $('talk').hidden = false; drawScene(); }); return; }
   runCmd('sceneOpen');
@@ -93,7 +94,7 @@ function drawScene() {
   if (open.i < sc.lines.length) {
     const [who, text, at, pic] = sc.lines[open.i];
     if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
-    if (callStarts(sc.lines, open.i) && open.rung !== open.i) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
+    if (callStarts(sc.lines, open.i) && open.rung !== open.i && !(open.i === 0 && open.cont === who)) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
@@ -149,6 +150,7 @@ function paperHTML(sc) {
 }
 
 function finish(name) {
+  const sc = open && SCENES[open.id];
   stopTyping();
   stopRing();
   open = null;
@@ -158,7 +160,9 @@ function finish(name) {
   runCmd('sceneDone', { name });
   if (G.phase === 'day') runCmd('hold', { on: false });
   updateQuestTrack();
+  onCall = sc && !sc.paper ? callEnds(sc.lines) : null;
   showNextScene();
+  onCall = null;
 }
 
 // 전화 받기
