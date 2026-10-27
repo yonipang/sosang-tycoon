@@ -8,6 +8,7 @@ import { targetAt } from './sim/player.js';
 import { initView, fitView, drawFrame, drawIdle, viewReady } from './render/view.js';
 import { loadIcons } from './ui/icons.js';
 import { updateHud, initRush, renderRush, initDawn } from './ui/hud.js';
+import { initReviews } from './ui/reviews.js';
 import { initScreens, renderTitle, refreshCloudUI } from './ui/screens.js';
 import { cloudInit, onCloud, cloudFlush, cloudCheck, CLOUD } from './save/cloud.js';
 import { toast } from './ui/feedback.js';
@@ -61,6 +62,7 @@ async function boot() {
   initCutscene();
   initMusic();
   initRush();
+  initReviews(); // 위 막대 ★ → 리뷰 기록 (v0.68)
   initDawn();
   initScreens(() => setPhase('prep'));
   layout();

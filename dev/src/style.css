@@ -212,6 +212,15 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .rvs { margin-top: 6px; }
 .rv { border-left: 4px solid var(--mustard); padding: 2px 8px; margin-top: 6px; background: var(--paper); }
 .rv p { margin: 0; }
+/* 리뷰 기록 (v0.68): 위 막대 ★을 누르면 */
+.pill.tap { cursor: pointer; }
+.rl-card { max-height: 80vh; }
+.rl-head { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; border-bottom: 2px dashed var(--line); }
+.rl-head b { font-weight: normal; font-size: 20px; }
+.rl-head small { flex: 1; color: var(--ink-soft); }
+.rl-day { display: block; margin-top: 10px; color: var(--ink-soft); }
+.rl-stars { color: var(--red); letter-spacing: 1px; margin-right: 6px; }
+.rl-none { color: var(--ink-soft); word-break: keep-all; }
 .rs { color: var(--mustard); display: flex; justify-content: space-between; }
 .rs small { color: var(--ink-soft); font-size: 16px; }
 .rc-foot { text-align: center; color: var(--ink-soft); margin-top: 10px; }
@@ -848,6 +857,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .fu-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 4px; margin-top: 6px; }
 .fu-tab small { font-size: 12px; color: var(--red); }
 .fu-tab { position: relative; padding: 4px 0; font: inherit; font-size: 15px; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; word-break: keep-all; }
+.ct-open { width: 100%; margin-top: 6px; }
 .ct-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; } /* 계산대 탭 (v0.66) */
 .fu-tab.sel { background: var(--mustard); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
 .fu-tab i { position: absolute; top: -8px; right: -4px; font-style: normal; font-size: 13px; line-height: 16px; min-width: 16px; background: var(--ink); color: var(--paper); border-radius: 8px; }

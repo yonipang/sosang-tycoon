@@ -22,7 +22,7 @@
 | | `dev.js` | 개발자 모드 바로 가기(`DEV_JUMPS`) |
 | render | `view.js` `cut.js` `town.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 |
 | ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
-| | `hud.js` `phone.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 전화 받기(울리는 폰 · 「받기」) · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
+| | `hud.js` `phone.js` `reviews.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 전화 받기(울리는 폰 · 「받기」) · 위 막대 ★ → 리뷰 기록 · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
 | | `board.js` `book.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
 | | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼·휴대폰: 인스타·블로그 홍보·최근 통화·상권 지도 자물쇠) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |

@@ -217,6 +217,15 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .rvs { margin-top: 6px; }
 .rv { border-left: 4px solid var(--mustard); padding: 2px 8px; margin-top: 6px; background: var(--paper); }
 .rv p { margin: 0; }
+/* 리뷰 기록 (v0.68): 위 막대 ★을 누르면 */
+.pill.tap { cursor: pointer; }
+.rl-card { max-height: 80vh; }
+.rl-head { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; border-bottom: 2px dashed var(--line); }
+.rl-head b { font-weight: normal; font-size: 20px; }
+.rl-head small { flex: 1; color: var(--ink-soft); }
+.rl-day { display: block; margin-top: 10px; color: var(--ink-soft); }
+.rl-stars { color: var(--red); letter-spacing: 1px; margin-right: 6px; }
+.rl-none { color: var(--ink-soft); word-break: keep-all; }
 .rs { color: var(--mustard); display: flex; justify-content: space-between; }
 .rs small { color: var(--ink-soft); font-size: 16px; }
 .rc-foot { text-align: center; color: var(--ink-soft); margin-top: 10px; }
@@ -853,6 +862,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .fu-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 4px; margin-top: 6px; }
 .fu-tab small { font-size: 12px; color: var(--red); }
 .fu-tab { position: relative; padding: 4px 0; font: inherit; font-size: 15px; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; word-break: keep-all; }
+.ct-open { width: 100%; margin-top: 6px; }
 .ct-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; } /* 계산대 탭 (v0.66) */
 .fu-tab.sel { background: var(--mustard); box-shadow: inset 0 -3px 0 rgba(0,0,0,.15); }
 .fu-tab i { position: absolute; top: -8px; right: -4px; font-style: normal; font-size: 13px; line-height: 16px; min-width: 16px; background: var(--ink); color: var(--paper); border-radius: 8px; }
@@ -1155,6 +1165,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
   <div id="qModal" class="modal" hidden></div>
   <div id="incUI" class="inc-ui" hidden></div>
   <div id="askModal" class="modal ask" hidden></div>
+  <div id="revModal" class="modal ask" hidden></div>
   <section id="screen" hidden></section>
   <div id="cut" hidden><canvas id="cutCv" aria-label="연출"></canvas><div id="cutCap" hidden></div><button id="cutSkip" type="button">건너뛰기 ▶▶</button></div>
   <div id="talk" class="talk" hidden aria-live="polite"></div>
@@ -1646,7 +1657,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.67';
+const GAME_VERSION = '0.68';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2352,12 +2363,10 @@ const SCENES = {
   // 2장 첫 밤: 미소 꽃집이 「미소 가구·인테리어」로 (sim/town.js townEnterNight)
   furn1: {
     lines: [
-      [null, '옆집 미소 꽃집 간판이 바뀌었습니다. 「미소 가구·인테리어」.'],
-      ['miso', '사장님! 저 가게 바꿨어요. 꽃만으로는 월세 내기가 빠듯해서요.'],
-      ['miso', '이제 벽지, 바닥, 식탁 같은 것도 해요. 가게 분위기가 좋으면 손님이 더 오래 기억하거든요.'],
-      ['miso', '첫 손님은 사장님이었으면 좋겠어요. 밤에 한번 들러요!'],
+      // v0.68 사용자 제보: 2장 여는 장면(아침 골목)에서 이미 가게를 바꾼다고 말해서, 여기서는 되풀이하지 않아요
+      [null, '옆집 간판이 「미소 가구·인테리어」로 바뀌었습니다.'],
+      ['miso', '사장님, 오늘 문 열었어요! 첫 손님은 사장님이었으면 좋겠어요. 지금 들러요!'],
       [null, '미소 가구에서 가게를 꾸밀 수 있습니다. 꾸밀수록 분위기가 올라 손님 만족이 오르고, 같은 테마를 네 가지 넘게 맞추면 그 테마를 좋아하는 손님이 더 반깁니다.'],
-      ['miso', '사장님 가게, 분위기만 조금 바꿔도 확 달라질 거예요. 제가 장담해요!'],
     ],
     start: ['c2_miso'],
   },
@@ -5290,7 +5299,7 @@ function endDay() {
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
-  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
+  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, revs: rec.reviews.map(v => ({ s: v.stars, w: v.who, t: v.text })), inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
   // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
@@ -6710,6 +6719,36 @@ function ringHTML(who, attr) { // attr: 받기 버튼에 더 붙일 속성 (돌�
 let ringT = 0;
 function startRing() { stopRing(); playSfx('ring'); ringT = setInterval(() => playSfx('ring'), 1400); }
 function stopRing() { if (ringT) { clearInterval(ringT); ringT = 0; } }
+// ── js/ui/reviews.js ──
+// 리뷰 기록 (v0.68 사용자 요청): 위 막대 별점(★)을 누르면 지금까지 받은 리뷰를 날마다 보여 줘요
+//  리뷰 글은 마감 때 G.history[].revs에 남겨요 (sim/day.js) — 이 기능 전의 날은 글이 없어요
+
+const starStr = n => '★'.repeat(Math.max(0, Math.min(5, Math.round(n)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(n))));
+let held = false;
+
+function reviewHTML() {
+  const days = (G.history || []).filter(h => h.revs && h.revs.length).slice().reverse();
+  const head = `<div class="rl-head"><b>리뷰 기록</b><small>★ ${G.rating == null ? '—' : G.rating.toFixed(1)} · 리뷰 ${G.ratingN || 0}개</small><button type="button" class="ts-x" data-rl="close" aria-label="닫기">✕</button></div>`;
+  if (!days.length) return `${head}<p class="rl-none">아직 남은 리뷰가 없습니다. 영업을 마치면 여기에 쌓입니다.</p>`;
+  return head + days.map(h => `<small class="rl-day">${h.day}일차</small>${h.revs.map(v => `<div class="rv"><div class="rs"><span class="rl-stars">${starStr(v.s)}</span><small>${v.w}</small></div><p>${v.t}</p></div>`).join('')}`).join('');
+}
+function close() {
+  $('revModal').hidden = true; $('revModal').innerHTML = '';
+  if (held) { runCmd('hold', { on: false }); held = false; }
+}
+function initReviews() {
+  const pill = $('hStar') && $('hStar').parentElement;
+  if (!pill) return;
+  pill.classList.add('tap');
+  pill.addEventListener('click', () => {
+    if (!G.story || !$('revModal').hidden) return;
+    if (G.phase === 'day' && G.run && !G.run.paused) { runCmd('hold', { on: true }); held = true; } // 영업 중이면 잠깐 멈춰요
+    $('revModal').innerHTML = `<div class="qm-card rl-card" role="dialog" aria-label="리뷰 기록">${reviewHTML()}</div>`;
+    $('revModal').hidden = false;
+    playSfx('page');
+  });
+  $('revModal').addEventListener('click', e => { if (e.target === $('revModal') || e.target.closest('[data-rl=close]')) { close(); playSfx('tap'); } });
+}
 // ── js/ui/story.js ──
 // 이야기 화면: 대화 창 · 골목 신문 · 가게 이름 짓기 · 퀘스트 카드(준비 화면) · 퀘스트 표시(영업 중 왼쪽 위)
 
@@ -7834,7 +7873,8 @@ function openCounter(tab) {
   if (tab) counterTab = tab;
   const tabs = [['sales', '영수증'], ['book', '손님 수첩']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}</button>`).join('');
   sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter');
+    <button type="button" class="btn primary ct-open" data-ts="act" data-a="open">가게 열기</button>
+    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
   T.sheetPlace = 'shop';
 }
 
@@ -9072,6 +9112,7 @@ async function boot() {
   initCutscene();
   initMusic();
   initRush();
+  initReviews(); // 위 막대 ★ → 리뷰 기록 (v0.68)
   initDawn();
   initScreens(() => setPhase('prep'));
   layout();

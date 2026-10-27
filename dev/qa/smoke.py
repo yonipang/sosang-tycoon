@@ -170,6 +170,11 @@ with sync_playwright() as pw:
                 before = pg.locator('.hourly .h-sum').inner_text()
                 pg.locator('.hourly .hc').nth(3).click(); pg.wait_for_timeout(100); shot(pg, '5b-receipt-hourly')
                 if pg.locator('.hourly .h-sum').inner_text() == before: errs.append('시간대 막대를 눌러도 숫자가 안 바뀌어요')
+            # 위 막대 ★ → 리뷰 기록 (v0.68)
+            pg.evaluate("document.getElementById('hStar').parentElement.click()"); pg.wait_for_timeout(150)
+            if not pg.locator('#revModal:visible .rv').count(): errs.append('★을 눌러도 리뷰 기록이 안 나와요')
+            else: shot(pg, '5c-reviews')
+            pg.evaluate("document.getElementById('revModal').click()"); pg.wait_for_timeout(100)
         if d == 7: r7 = pg.evaluate('JSON.stringify({foot:__T.G.lastReceipt.foot, entered:__T.G.lastReceipt.entered, served:__T.G.lastReceipt.served, quests:__T.G.lastReceipt.quests})')
     if not pg.evaluate('!!(__T.G.lastReceipt.hourly && Object.keys(__T.G.lastReceipt.hourly).length)'): errs.append('영수증 시간대 기록이 없어요')
     to_prep(pg); shot(pg, '9-prep-day9')
@@ -179,6 +184,7 @@ with sync_playwright() as pw:
     else:
         shot(pg, '9h-counter'); pg.click('[data-ts=ctab][data-t=book]'); pg.wait_for_timeout(150)
         if not pg.locator('#townSheet.counter .bk-cell').count(): errs.append('계산대 손님 수첩 탭이 안 열려요')
+        if not pg.locator('#townSheet.counter [data-a=open]').count(): errs.append('계산대에 가게 열기 버튼이 없어요')
         else: shot(pg, '9i-counter-book')
     pg.evaluate("document.querySelector('#townSheet [data-ts=close]') && document.querySelector('#townSheet [data-ts=close]').click()")
     # 메뉴 연구 칠판 (마을 · 우리 가게): 떡볶이 올리기

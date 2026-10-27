@@ -561,7 +561,8 @@ function openCounter(tab) {
   if (tab) counterTab = tab;
   const tabs = [['sales', '영수증'], ['book', '손님 수첩']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}</button>`).join('');
   sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter');
+    <button type="button" class="btn primary ct-open" data-ts="act" data-a="open">가게 열기</button>
+    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
   T.sheetPlace = 'shop';
 }
 
