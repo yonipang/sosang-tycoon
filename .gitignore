@@ -5,3 +5,8 @@ __pycache__/
 # 구매한 그림 원본은 올리지 않아요 (라이선스) — atlas.js만 올려요
 *.zip
 dev/art_src/limezu/
+
+# 클라우드 읽기 키 (절대 올리지 않아요)
+*-key.json
+*service-account*.json
+bigquery*.json

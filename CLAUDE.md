@@ -31,5 +31,11 @@
 - 개발자 모드(숨김): 처음 화면 → 설정 → 맨 아래 버전 글자를 7번 누르면 열려요. 원하는 날로 바로 가기 (`js/sim/dev.js` DEV_JUMPS — 새 장·새 기능을 만들면 가 볼 곳을 더해요).
 - 사용자에게는 한국어로 짧게: 무엇이 바뀌었는지, 확인한 것, 남은 것.
 
+## 플레이 기록 (GA4 → BigQuery)
+- 게임 쪽: `ui/analytics.js` (측정 ID `G-L04Y1ZQLTN`, github.io 주소에서만 · 설정 「플레이 기록」으로 끔). 규칙 코드는 `emit('track', 이름, {...})`만 해요. 모든 기록에 `day`·`ch`·`cash`(천 원)가 붙어요.
+- 기록 이름: `phase` · `leave`(앱을 닫은 지점) · `day_open` · `day_close`(revenue·net·served·missed·rating·reviews) · `weekly` · `quest` · `scene` · `chapter` · `menu_dev` · `menu_up` · `furn_buy` · `slot_buy` · `town_act` · `town_use` · `town_meet` · `market_buy` · `rush_buy` · `equip_up` · `tool_up` · `incident`(id·ok). 새 기능을 만들면 여기와 같이 더해요.
+- BigQuery: Google Cloud 프로젝트 `sosang-tycoon`, 위치 서울(`asia-northeast3`), 매일 내보내기(하루 늦게 들어옴 · 무료 샌드박스라 60일 지나면 지워짐). 표는 `events_YYYYMMDD`, 값은 `event_params`(key / value.int_value·string_value…).
+- 읽기 키(서비스 계정 JSON, BigQuery 데이터 뷰어 + 작업 사용자)는 **저장소에 절대 올리지 않아요** (공개 저장소). claude.ai 프로젝트 문서 `claude/bigquery-key.json`에 있어요 → `Projects project_read`로 꺼내 작업 공간에만 두고 써요.
+
 ## 나중에 (프로토타입 확인 뒤)
 - 비교 테스트·기능별 테스트 묶음, 자동 배포 워크플로, 게임 현황 문서(`dev/design/`), 기획 결정 기록.
