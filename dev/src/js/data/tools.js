@@ -4,7 +4,7 @@ export const TOOLS = {
   tray: { name: '서빙 쟁반', price: 50000, desc: '음식을 한 번에 3개까지 듭니다', effect: { hands: 1 } },
   timer: { name: '주방 타이머', price: 40000, desc: '조리할 때 「완벽」 구간이 더 넓어집니다', effect: { cookEase: true } },
   // v0.65 사용자 결정: 보온 통 → 프렙 통 (id는 옛 세이브를 위해 그대로 warmer)
-  warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 6 } },
+  warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 15 } }, // v0.67 사용자 요청: 넉넉하게 6 → 15
 };
 export const TOOL_IDS = ['tray', 'timer', 'warmer'];
 // 주방 타이머가 있을 때 미니게임 구간 (data/menu.js COOK_GAMES 대신)
@@ -16,4 +16,4 @@ export const COOK_EASE = {
 // 프렙 (v0.65 사용자 결정): 한 번 만드는 데 1시간 · 미니게임 없이 「좋음」 · 팔지 못한 건 마감 때 버려요 · 큰 프렙 통(상인회)은 PREP_BIG그릇
 export const PREP_COST = 1;
 export const PREP_Q = 1;
-export const PREP_BIG = 12;
+export const PREP_BIG = 30; // v0.67: 12 → 30

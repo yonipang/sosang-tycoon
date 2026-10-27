@@ -1531,7 +1531,7 @@ function fameMul(n) {
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 // ── js/data/layout.js ──
 // 가게 배치 (가로 10칸, 한 칸 16px). 가게 등급(확장공사 — 미소 가구)마다 홀이 아래로 두 줄씩 길어져요
-//  1등급(세로 13칸): y0~1 뒷벽 · y2 주방 설비 · y3 주방 바닥 · y4~10 홀(2인 네모 탁자 6개 · 퇴식대는 오른쪽 위 · 계산대는 오른쪽 아래) · y11 앞벽(문 x5) · y12 가게 앞 보도
+//  1등급(세로 13칸): y0~1 뒷벽 · y2 주방 설비 · y3 주방 바닥 · y4~10 홀(2인 네모 탁자 6개 · 퇴식대는 왼쪽 아래 문 옆 · 계산대는 오른쪽 아래) · y11 앞벽(문 x5) · y12 가게 앞 보도
 //  2등급(세로 15칸): 홀 y4~12 · 탁자 8개 · 앞벽 y13 · 보도 y14
 //  배치는 applyShopLv(등급)로 바꿔요 — 배열·물건은 그 자리에서 고쳐 쓰고(다른 파일이 같은 것을 봐요), H·FRONT_Y·WALK_Y는 let
 const W = 10;
@@ -1562,14 +1562,13 @@ const BACK_FURNITURE = [
   { spr: 'fryer', x: 4, y: 1, station: 'fryer' },
   { spr: 'counter', x: 6, y: 1 }, { spr: 'counter', x: 8, y: 1 }, // x6~7: 빈 조리대 자리 (v0.66 퇴식대를 홀로 옮기고 비움 — 새 갈래 메뉴의 조리대가 들어올 곳)
 ];
-// 퇴식대 (v0.66 사용자 결정: 주방 → 홀 오른쪽 위, 화분 아래): 빈 그릇이 놓인 선반
-const TRASH_FURNITURE = [{ spr: 'counter', x: 8, y: 5 }, { spr: 'plate', x: 8.15, y: 4.95, over: true }, { spr: 'plate', x: 8.95, y: 5.0, over: true }];
+// 퇴식대 (v0.67 사용자 요청: 홀 왼쪽 아래 문 옆, 작게 — v0.66엔 오른쪽 위였어요): 빈 그릇이 놓인 낮은 선반 2칸 · 칸은 applyShopLv에서
 // 조리대: 누를 수 있는 칸과 사장이 서는 칸
 const STATIONS = {
   stove: { menu: 'tteok', tiles: [[1, 1], [1, 2]], stand: [[1, 3]], label: '떡볶이 화구' },
   mat: { menu: 'kimbap', tiles: [[2, 1], [3, 1], [2, 2], [3, 2]], stand: [[2, 3], [3, 3]], label: '김밥 자리' },
   fryer: { menu: 'twigim', tiles: [[4, 1], [5, 1], [4, 2], [5, 2]], stand: [[4, 3], [5, 3]], label: '튀김기' },
-  trash: { menu: null, tiles: [[8, 5], [9, 5], [8, 6], [9, 6]], stand: [[8, 7], [9, 7]], label: '퇴식대' }, // v0.66: 홀로 옮김
+  trash: { menu: null, tiles: [], stand: [], label: '퇴식대' }, // v0.67: 홀 왼쪽 아래 (applyShopLv)
   fridge: { menu: null, tiles: [[0, 0], [0, 1], [0, 2]], stand: [[0, 3]], label: '냉장고' }, // 재료 보기·급구매
 };
 const REGISTER = { tiles: [], stand: [] }; // 계산대 (홀 오른쪽 아래 2×2)
@@ -1600,9 +1599,11 @@ function applyShopLv(lv) {
   PAY_SPOTS.length = 0; PAY_SPOTS.push([7, last], [6, last], [4, last]);
   QUEUE_SPOTS.length = 0; QUEUE_SPOTS.push([6, WALK_Y], [7, WALK_Y], [4, WALK_Y]);
   FURNITURE.length = 0;
+  STATIONS.trash.tiles = [[0, last], [1, last]]; STATIONS.trash.stand = [[2, last], [0, last - 1]];
+  const TRASH_FURNITURE = [{ spr: 'table2', x: 0, y: last - TABLE_LIFT / TILE }, { spr: 'plate', x: 0.1, y: last - 0.75, over: true }, { spr: 'plate', x: 0.95, y: last - 0.7, over: true }];
   FURNITURE.push(...BACK_FURNITURE, ...TRASH_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
     { spr: 'counter', x: 8, y: last - 1 }, { spr: 'register', x: 9, y: last - 1.125, over: true });
-  FURN_SPOTS.plant = [[0, 4], [0, last]];
+  FURN_SPOTS.plant = [[0, 4], [0, last - 2]]; // 아래 화분은 퇴식대 위로 (v0.67)
   return true;
 }
 applyShopLv(1);
@@ -1645,7 +1646,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.66';
+const GAME_VERSION = '0.67';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2033,7 +2034,7 @@ const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 // 장사 도구 등급 업 (♥♥♥♥): 1장 도구(data/tools.js)를 가진 사람만
 const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
-  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 12그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
+  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 30그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
   timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
 };
 const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
@@ -2730,7 +2731,7 @@ const TOOLS = {
   tray: { name: '서빙 쟁반', price: 50000, desc: '음식을 한 번에 3개까지 듭니다', effect: { hands: 1 } },
   timer: { name: '주방 타이머', price: 40000, desc: '조리할 때 「완벽」 구간이 더 넓어집니다', effect: { cookEase: true } },
   // v0.65 사용자 결정: 보온 통 → 프렙 통 (id는 옛 세이브를 위해 그대로 warmer)
-  warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 6 } },
+  warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 15 } }, // v0.67 사용자 요청: 넉넉하게 6 → 15
 };
 const TOOL_IDS = ['tray', 'timer', 'warmer'];
 // 주방 타이머가 있을 때 미니게임 구간 (data/menu.js COOK_GAMES 대신)
@@ -2742,7 +2743,7 @@ const COOK_EASE = {
 // 프렙 (v0.65 사용자 결정): 한 번 만드는 데 1시간 · 미니게임 없이 「좋음」 · 팔지 못한 건 마감 때 버려요 · 큰 프렙 통(상인회)은 PREP_BIG그릇
 const PREP_COST = 1;
 const PREP_Q = 1;
-const PREP_BIG = 12;
+const PREP_BIG = 30; // v0.67: 12 → 30
 // ── js/data/incidents.js ──
 // 돌발 이벤트: 영업 중에 하루 1~2번, 손님이 뜸하거나 루즈해지는 시간에 떠요. 시간 안에 해내면 보상.
 // 시각은 게임 분 (0 = 09:00, 60 = 10:00 …). from~to 사이 무작위로 시작해요.
@@ -9083,7 +9084,7 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk };
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk, trashAt: () => STATIONS.trash.tiles[0] }; // trashAt: 시험 봇이 퇴식대를 찾아요
 }
 boot();
 })();

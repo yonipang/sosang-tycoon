@@ -27,7 +27,7 @@ export const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 // 장사 도구 등급 업 (♥♥♥♥): 1장 도구(data/tools.js)를 가진 사람만
 export const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
-  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 12그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
+  warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 30그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
   timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
 };
 export const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
