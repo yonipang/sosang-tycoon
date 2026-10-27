@@ -1380,7 +1380,7 @@ const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 const FOOT_PER_HOUR = { 9: 14, 10: 12, 11: 16, 12: 24, 13: 20, 14: 12, 15: 14, 16: 18, 17: 16, 18: 22, 19: 18, 20: 12, 21: 10, 22: 8 };
 // 시각(9~20시)마다 들어오는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심이 가장 많고, 하교·퇴근에도 몰려요 (아침에 조금 나눠 둠)
 // 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
-// 가게 앞 칠판 · 오늘의 추천 (1장부터, 가게 장부): 아침·점심·오후 세 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
+// 가게 앞 칠판 · 오늘의 추천 (v0.62부터 김밥이 들어오는 날부터 — sim/traffic.js boardOpen · 처음 열 때 안내 카드 board1): 아침·점심·오후 세 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
 //  들어오는 비율 × (1 + BOARD_MUL × 그 손님층이 그 메뉴를 좋아하는 정도(가장 좋아하는 메뉴 = 1))
 const BOARD_SLOTS = { morning: { name: '아침', from: 9, to: 11 }, lunch: { name: '점심', from: 11, to: 14 }, after: { name: '오후', from: 14, to: 18 } }; // 아침: v0.47 사용자 요청 (출근길 직장인 김밥)
 const BOARD_MUL = 0.25;
@@ -1632,7 +1632,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.61';
+const GAME_VERSION = '0.62';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2097,7 +2097,7 @@ const QUESTS = {
   p_keys: { who: 'oh', title: '사흘만 맡아 봐', goal: '영업 사흘 마치기', kind: 'dayEnd', need: 3, after: ['p_stir', 'p_serve', 'p_book'], wait: '오 사장님의 다른 부탁을 마저 들어 보세요', give: { scenes: ['handover', 'paper0', 'ch1'] } },
   c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 8명 받기', kind: 'dayServed', need: 8, // v0.58 손님 수를 줄여서 10 → 8
     give: { scenes: ['plant'] } },
-  c1_note: { who: 'park', title: '김밥도 있었잖아', goal: '냉장고 뒤 쪽지 찾기', kind: 'note', need: 1, give: { scenes: ['note', 'tools'], menuNext: 'kimbap' } },
+  c1_note: { who: 'park', title: '김밥도 있었잖아', goal: '냉장고 뒤 쪽지 찾기', kind: 'note', need: 1, give: { scenes: ['note', 'tools', 'board1'], menuNext: 'kimbap' } }, // board1: 칠판 추천이 열려요 (v0.62)
   c1_kimbap: { who: 'park', title: '그 시절 그 김밥', goal: '김밥 내주기', kind: 'served', menu: 'kimbap', need: 3, give: { scenes: ['choi'] } },
   c1_tools: { who: 'oh', title: '도구를 들여라', goal: '장사 도구 하나 사기', kind: 'buyTool', need: 1 },
   c1_fryer: { who: 'oh', title: '튀김기 살리기', goal: '수리비 3만 원 내기', kind: 'pay', cost: 30000, need: 1, give: { scenes: ['fryer'], menuNow: 'twigim' } },
@@ -2218,6 +2218,7 @@ const SCENES = {
       ['me', '김밥이요? 레시피를 모르는데…'],
       ['park', '오 사장 그 양반, 중요한 건 다 냉장고 뒤에 붙여 놨었어.'],
       ['ohPhone', '첫날이다. 긴장되지? 오늘 재료는 내가 마지막으로 거래처에 시켜 놨다. 모자라면 손님 그냥 돌아가니까 잘 봐 둬.'],
+      ['ohPhone', '그리고 여긴 빌라랑 학원 사이 골목이다. 점심엔 회사원, 낮엔 동네 어르신, 학원 끝나면 학생. 시간마다 오는 사람이 다르다.'], // 상권 유형 「주거 · 학원가」를 말로 먼저 (v0.62 — 3장 상권 지도에서 숫자로 확인)
       ['ohPhone', '당분간은 내가 전화로 봐 줄게. 할 일은 준비 화면에 적어 둬라.', 'quest'],
     ],
     start: ['c1_first', 'c1_note', 'c1_stock'],
@@ -2286,6 +2287,14 @@ const SCENES = {
       ['ohPhone', '장사 끝났냐? 이제 장사 끝나고 다음 장사 전까지도 니 시간이다. 가게 청소하고, 이웃들이랑 얘기도 좀 해라. 그래야 손님도 소개해 준다.'],
       ['ohPhone', '재료는 이제 니가 직접 사. 골목 끝 정 사장네 식자재 가게 가 봐라. 바쁘면 전화 주문도 되는데, 가서 사야 싸고 정도 쌓인다.'],
       ['ohPhone', '가게 안 칠판도 봐라. 많이 판 메뉴는 손에 익고, 손에 익으면 거기서 레시피를 손볼 수 있다.'],
+    ],
+  },
+  // 칠판 추천이 열릴 때 (김밥이 들어오는 날 — sim/traffic.js boardOpen, v0.62 사용자 결정) · 시스템 안내
+  board1: {
+    tipTag: '칠판 추천',
+    lines: [
+      ['tip', '이제 가게 앞 칠판에 추천 메뉴를 걸 수 있습니다. 오늘의 메뉴 칸에서 메뉴를 누르고 아침 · 점심 · 오후 중 시간을 고르세요.', null, ['tteok', 'kimbap']],
+      ['tip', '시간마다 지나가는 손님이 다릅니다. 그 시간 손님이 좋아하는 메뉴를 걸면 더 많이 들어옵니다. 어느 시간에 누가 많이 오는지 장사하며 살펴보세요.', null, ['face_love']],
     ],
   },
   // 휴대폰을 처음 열 때 안내 카드 (v0.61 사용자 요청 — 오 사장님 말이 아니라 시스템 안내) · 그림 'ph:이름'은 휴대폰 앱 아이콘 (ui/story.js tipHTML)
@@ -3665,7 +3674,7 @@ function upgradeEndDay() {
 // 시간대 기록: G.run.log.hourly { 시: { pass: {손님층: 명}, in: {손님층: 명} } } → 영수증 시간대 그래프
 
 // ── 가게 앞 칠판 · 오늘의 추천 (G.board { morning, lunch, after }) ──
-const boardOpen = () => townMode();
+const boardOpen = () => menuOpen('kimbap'); // v0.62 사용자 결정: 김밥이 들어오는 날부터 (메뉴가 둘이어야 고르는 일이 돼요)
 function boardMenuAt(hour) {
   if (!boardOpen() || !G.board) return null;
   for (const k in BOARD_SLOTS) { const S = BOARD_SLOTS[k], m = G.board[k]; if (m && hour >= S.from && hour < S.to && menuOn(m)) return m; }
@@ -8195,6 +8204,7 @@ function renderPrep() {
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
+      ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${boardBtns(m)}</span></div>` : ''}
       <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>재료 주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
     </div>`;
   }).join('');
@@ -8259,18 +8269,23 @@ function pickSheet(cur) {
     ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 메뉴 연구 칠판에서 새 메뉴를 개발해 보세요' : ''}</p>`}
   </div></div>`;
 }
+// 칠판 추천 버튼 (아침 · 점심 · 오후) — 메뉴 창과 프롤로그 준비 화면이 같이 써요
+function boardBtns(m, on = true) {
+  const B = G.board || {};
+  return Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
+}
 // 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
 function menuSheet(m, last) {
   const M = MENUS[m], on = menuOn(m), B = G.board || {}, lv = menuLv(m);
   const inv = invServings(m);
   const step = `<div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 줄이기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 늘리기">+</button></div>`;
-  const board = Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
+  const board = boardBtns(m, on);
   const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} ${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} <small>· ${I.shelf}일</small>`; }).join('<br>');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="${M.name}">
     <div class="mm-head">${icon(m, 'dish')}<b>${M.name}</b>${lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : ''}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     <div class="row"><span>가격</span>${step}</div>
     ${ledgerLine(m)}
-    <div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>
+    ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>` : ''}
     <div class="row"><span>재고</span><b class="stock-n">${inv}그릇</b></div>
     <details class="more"><summary>자세히</summary>
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>

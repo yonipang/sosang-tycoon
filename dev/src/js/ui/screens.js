@@ -7,6 +7,7 @@ import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
 import { prepCost, weekBills } from '../sim/day.js';
 import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
+import { boardOpen } from '../sim/traffic.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus, nextSlot } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
@@ -95,6 +96,7 @@ export function renderPrep() {
       <div class="mhead">${icon(m, 'dish')}<b>${M.name}</b><span class="tags">${chips}</span></div>
       <div class="row"${m === 'tteok' ? ' data-guide="price"' : ''}><span>가격</span>${step('price', m, `${M.name} 가격`, won(G.prices[m]))}</div>
       ${ledgerLine(m)}
+      ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${boardBtns(m)}</span></div>` : ''}
       <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>재료 주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
     </div>`;
   }).join('');
@@ -159,18 +161,23 @@ function pickSheet(cur) {
     ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 메뉴 연구 칠판에서 새 메뉴를 개발해 보세요' : ''}</p>`}
   </div></div>`;
 }
+// 칠판 추천 버튼 (아침 · 점심 · 오후) — 메뉴 창과 프롤로그 준비 화면이 같이 써요
+function boardBtns(m, on = true) {
+  const B = G.board || {};
+  return Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
+}
 // 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
 function menuSheet(m, last) {
   const M = MENUS[m], on = menuOn(m), B = G.board || {}, lv = menuLv(m);
   const inv = invServings(m);
   const step = `<div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 줄이기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 늘리기">+</button></div>`;
-  const board = Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
+  const board = boardBtns(m, on);
   const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} ${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} <small>· ${I.shelf}일</small>`; }).join('<br>');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="${M.name}">
     <div class="mm-head">${icon(m, 'dish')}<b>${M.name}</b>${lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : ''}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     <div class="row"><span>가격</span>${step}</div>
     ${ledgerLine(m)}
-    <div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>
+    ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>` : ''}
     <div class="row"><span>재고</span><b class="stock-n">${inv}그릇</b></div>
     <details class="more"><summary>자세히</summary>
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>

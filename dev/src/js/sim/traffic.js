@@ -12,7 +12,7 @@ import { townMode } from './town.js';
 import { menuOpen } from './story.js';
 
 // ── 가게 앞 칠판 · 오늘의 추천 (G.board { morning, lunch, after }) ──
-export const boardOpen = () => townMode();
+export const boardOpen = () => menuOpen('kimbap'); // v0.62 사용자 결정: 김밥이 들어오는 날부터 (메뉴가 둘이어야 고르는 일이 돼요)
 export function boardMenuAt(hour) {
   if (!boardOpen() || !G.board) return null;
   for (const k in BOARD_SLOTS) { const S = BOARD_SLOTS[k], m = G.board[k]; if (m && hour >= S.from && hour < S.to && menuOn(m)) return m; }

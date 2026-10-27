@@ -26,7 +26,7 @@ export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 export const FOOT_PER_HOUR = { 9: 14, 10: 12, 11: 16, 12: 24, 13: 20, 14: 12, 15: 14, 16: 18, 17: 16, 18: 22, 19: 18, 20: 12, 21: 10, 22: 8 };
 // 시각(9~20시)마다 들어오는 일행 수 기대값 (가게가 충분히 알려졌을 때) — 점심이 가장 많고, 하교·퇴근에도 몰려요 (아침에 조금 나눠 둠)
 // 일행은 평균 1.3명쯤이라 하루 약 36팀 ≈ 47명. 개업 초기에는 data/economy.js openingMul만큼 줄어요
-// 가게 앞 칠판 · 오늘의 추천 (1장부터, 가게 장부): 아침·점심·오후 세 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
+// 가게 앞 칠판 · 오늘의 추천 (v0.62부터 김밥이 들어오는 날부터 — sim/traffic.js boardOpen · 처음 열 때 안내 카드 board1): 아침·점심·오후 세 칸. 그 시간에 그 메뉴를 좋아하는 손님층이 더 들어와요 (sim/traffic.js)
 //  들어오는 비율 × (1 + BOARD_MUL × 그 손님층이 그 메뉴를 좋아하는 정도(가장 좋아하는 메뉴 = 1))
 export const BOARD_SLOTS = { morning: { name: '아침', from: 9, to: 11 }, lunch: { name: '점심', from: 11, to: 14 }, after: { name: '오후', from: 14, to: 18 } }; // 아침: v0.47 사용자 요청 (출근길 직장인 김밥)
 export const BOARD_MUL = 0.25;
