@@ -128,7 +128,7 @@ export const ACTS = {
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
-  counter: { name: '계산대 · 홍보', cost: 0, when: 'any' },
+  counter: { name: '계산대', cost: 0, when: 'any' }, // 판매 장부 · 손님 수첩 (홍보는 v0.54부터 휴대폰에서)
   book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 홍보는 밤·새벽 언제든 (v0.45 사용자 요청) — 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },

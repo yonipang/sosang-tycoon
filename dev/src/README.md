@@ -22,15 +22,16 @@
 | | `dev.js` | 개발자 모드 바로 가기(`DEV_JUMPS`) |
 | render | `view.js` `cut.js` `town.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 |
 | ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
-| | `hud.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
+| | `hud.js` `phone.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 전화 받기(울리는 폰 · 「받기」) · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
 | | `board.js` `book.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
-| | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
+| | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼·휴대폰: 인스타·블로그 홍보·최근 통화·상권 지도 자물쇠) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
 
 ## 이야기 더하기
 - 인물·퀘스트·대화 장면은 `data/story.js`에만 써요. 퀘스트 `kind`가 새로 필요하면 `sim/story.js` `storyNote`에 세는 법을 더하고, 그 일이 일어나는 규칙 코드에서 `storyNote('이름', {...})`를 불러요.
 - 메뉴는 날짜가 아니라 이야기로 열려요 (`menuOpen`, 퀘스트 `give.menuNext`·`menuNow`).
-- 연출은 `data/cutscenes.js`에 대본(steps)으로 쓰고, 이야기 장면에 `cut: '이름'`을 붙이면 그 장면 앞에 나와요.
+- 연출은 `data/cutscenes.js`에 대본(steps)으로 쓰고, 이야기 장면에 `cut: '이름'`을 붙이면 그 장면 앞에 나와요. 장이 시작될 때는 연출 끝에 `title: ['N장', '이름']` 카드 (1장 = handover 끝, 2장 = ch2open).
+- 전화로 말하는 사람은 `CAST`에 `phone: true` (ohPhone · caller). 그 사람이 말을 꺼내는 줄 앞에서 폰이 울리고 「받기」를 눌러야 이어져요(ui/phone.js). 「전화가 울립니다」 같은 설명 줄은 쓰지 않아요.
 
 ## 원가율 · 재료 시세
 - 메뉴 1인분 원가는 `sim/market.js` `costOf(m)` (그날 시세 반영). `MENUS[m].cost`를 직접 쓰지 말고 이걸 써요.

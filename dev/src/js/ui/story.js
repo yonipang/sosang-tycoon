@@ -15,6 +15,7 @@ import { setMusic } from './music.js';
 import { setting } from './settings.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 import { tutAsk } from '../sim/tutorial.js';
+import { callStarts, ringHTML, startRing, stopRing } from './phone.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄 }
 const fill = s => s.replace(/\{shop\}/g, G.shop);
@@ -92,6 +93,7 @@ function drawScene() {
   if (open.i < sc.lines.length) {
     const [who, text, at, pic] = sc.lines[open.i];
     if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
+    if (callStarts(sc.lines, open.i) && open.rung !== open.i) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
@@ -148,6 +150,7 @@ function paperHTML(sc) {
 
 function finish(name) {
   stopTyping();
+  stopRing();
   open = null;
   guide(null);
   setMusic(null);
@@ -156,6 +159,14 @@ function finish(name) {
   if (G.phase === 'day') runCmd('hold', { on: false });
   updateQuestTrack();
   showNextScene();
+}
+
+// 전화 받기
+function answer() {
+  stopRing();
+  open.ringing = false; open.rung = open.i;
+  playSfx('open');
+  drawScene();
 }
 
 function advance() {
@@ -175,6 +186,7 @@ export function initStory() {
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     if (cutWaiting()) { cutTap(); return; }
     if (!open || cutActive()) return;
+    if (open.ringing) { if (e.target.closest('[data-ring]')) answer(); return; } // 울리는 동안은 「받기」만
     if (e.target.closest('[data-talk=name]')) { finish($('talkName').value); return; }
     if (e.target.closest('input')) return;
     advance();
@@ -183,6 +195,7 @@ export function initStory() {
   addEventListener('keydown', e => {
     if ((e.code === 'Space' || e.code === 'Enter') && stopTyping()) { e.preventDefault(); return; }
     if (cutWaiting() && (e.code === 'Space' || e.code === 'Enter')) { cutTap(); e.preventDefault(); return; }
+    if (open && open.ringing && (e.code === 'Space' || e.code === 'Enter')) { answer(); e.preventDefault(); return; }
     if (open && !cutActive() && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); }
   });
 }

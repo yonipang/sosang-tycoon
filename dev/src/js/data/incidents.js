@@ -27,7 +27,6 @@ export const INCIDENTS = {
     kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 100, tip: 3000,
     text: '{menu} {qty}인분 포장 주문!',
     intro: [
-      [null, '따르릉— 가게 전화가 울립니다.'],
       ['caller', '여보세요, 거기 분식집이죠? {menu} {qty}인분 포장돼요? 금방 찾으러 갈게요.'],
       ['me', '네! 바로 준비해 두겠습니다.'],
     ],

@@ -1004,6 +1004,61 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 #townTalk::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--ink); }
 #townTalk:active { transform: translate(-50%, calc(-100% + 3px)); box-shadow: none; }
 @keyframes talkBob { 50% { margin-top: -2px; } }
+
+/* 전화 받기 (v0.54, ui/phone.js): 아래에서 폰이 올라와 떨고, 「받기」를 눌러야 대화 */
+.talk.ring-mode { justify-content: flex-end; align-items: center; background: rgba(20,16,30,.55); padding-bottom: max(28px, env(safe-area-inset-bottom)); cursor: default; }
+.inc-ui.ring { justify-content: space-between; align-items: center; cursor: default; }
+.ring-phone { width: 208px; padding: 12px 14px 16px; background: var(--night); color: var(--paper); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 0 0 3px #3a4170 inset, 0 5px 0 rgba(0,0,0,.4); text-align: center; line-height: 1.4; animation: ringUp .35s ease-out both, ringShake .9s .35s infinite; }
+.ring-phone::before { content: ''; display: block; width: 36px; height: 4px; margin: 0 auto 8px; background: #3a4170; border-radius: 2px; }
+.ring-tag { display: block; color: var(--mustard); font-size: 16px; }
+.ring-face { display: block; width: 64px; height: 64px; margin: 8px auto; overflow: hidden; background: var(--paper-2); border: 3px solid var(--paper); border-radius: 50%; }
+.ring-face img { display: block; width: 64px; height: 128px; margin-top: -38px; }
+.ring-name { display: block; font-weight: normal; font-size: 20px; }
+.ring-phone .ring-ok { background: var(--green); text-shadow: 0 2px 0 #2f6322; margin-top: 12px; }
+@keyframes ringUp { from { transform: translateY(120%); } to { transform: translateY(0); } }
+@keyframes ringShake { 0%, 40%, 100% { transform: rotate(0); } 5%, 15%, 25% { transform: rotate(-3deg); } 10%, 20%, 30% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .ring-phone { animation: none; } }
+
+/* 휴대폰 (v0.54, ui/town.js openPhone): 위 막대 버튼 · 폰 화면 · 앱 아이콘(가게 그림처럼 단순하게 — 실제 앱 로고는 쓰지 않아요) */
+.tb-phone { width: 26px; height: 30px; padding: 0; background: var(--paper); border: 2px solid var(--paper); box-shadow: 0 2px 0 rgba(0,0,0,.4); cursor: pointer; }
+.tb-phone i { display: block; width: 14px; height: 22px; margin: 2px auto; background: var(--night); border: 2px solid var(--ink); border-radius: 3px; box-shadow: inset 0 -3px 0 #3a4170; }
+.tb-phone:active { transform: translateY(2px); box-shadow: none; }
+.town-sheet.phone { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.ph { margin: 0 auto; max-width: 340px; padding: 8px 10px 14px; background: var(--night); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 3px #3a4170; }
+.ph-top { display: flex; align-items: center; justify-content: space-between; color: var(--paper); padding: 0 4px 6px; }
+.ph-top .ts-x { background: var(--paper); color: var(--ink); }
+.ph-screen { min-height: 120px; padding: 10px; background: linear-gradient(#f6ecd6, #efe2c4); border: 2px solid var(--ink); border-radius: 8px; }
+.ph-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ph-app { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; background: none; border: 0; font: inherit; font-size: 16px; color: var(--ink); cursor: pointer; line-height: 1.2; word-break: keep-all; text-align: center; }
+.ph-app:active .ph-ic { transform: translateY(2px); }
+.ph-ic { position: relative; display: block; width: 44px; height: 44px; border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.ph-ic.insta { background: #e86a92; }
+.ph-ic.insta::before { content: ''; position: absolute; left: 8px; top: 11px; width: 22px; height: 16px; background: #fff; border-radius: 3px; }
+.ph-ic.insta::after { content: ''; position: absolute; left: 14px; top: 14px; width: 6px; height: 6px; border: 2px solid #e86a92; border-radius: 50%; }
+.ph-ic.blog { background: #f0a030; }
+.ph-ic.blog::before { content: ''; position: absolute; left: 9px; top: 7px; width: 20px; height: 24px; background: #fff; box-shadow: none; }
+.ph-ic.blog::after { content: ''; position: absolute; left: 12px; top: 12px; width: 14px; height: 2px; background: #f0a030; box-shadow: 0 5px 0 #f0a030, 0 10px 0 #f0a030; }
+.ph-ic.call { background: var(--green); }
+.ph-ic.call::before { content: ''; position: absolute; left: 10px; top: 9px; width: 4px; height: 4px; background: #fff; box-shadow: 7px 0 #fff, 14px 0 #fff, 0 7px #fff, 7px 7px #fff, 14px 7px #fff, 0 14px #fff, 7px 14px #fff, 14px 14px #fff; }
+.ph-ic.map { background: #3d6fd6; }
+.ph-ic.map::before { content: ''; position: absolute; left: 11px; top: 6px; width: 16px; height: 16px; background: #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
+.ph-ic.map::after { content: ''; position: absolute; left: 16px; top: 11px; width: 6px; height: 6px; background: #3d6fd6; border-radius: 50%; }
+.ph-app.lock .ph-ic { filter: grayscale(1) brightness(.85); }
+.ph-app.lock .ph-ic::after { background: #888; }
+.ph-lock { position: absolute; right: -7px; bottom: -6px; width: 14px; height: 11px; background: var(--mustard); border: 2px solid var(--ink); }
+.ph-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid var(--ink); border-bottom: 0; border-radius: 4px 4px 0 0; }
+.ph-head { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; border-bottom: 2px dashed var(--line); }
+.ph-head b { font-weight: normal; font-size: 20px; }
+.ph-back { min-width: 40px; min-height: 36px; font-size: 20px; background: var(--paper-2); border: 2px solid var(--ink); font: inherit; cursor: pointer; }
+.ph-note { margin: 8px 0 0; color: var(--ink-soft); font-size: 16px; line-height: 1.5; word-break: keep-all; }
+.ph-call { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 4px 8px; background: var(--paper-2); border: 2px solid var(--ink); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.ph-face { flex: none; width: 32px; height: 32px; overflow: hidden; background: var(--paper); border: 2px solid var(--ink); border-radius: 50%; }
+.ph-face img { display: block; width: 32px; height: 64px; margin-top: -19px; }
+.ph-cw { display: flex; flex-direction: column; line-height: 1.2; }
+.ph-cw b { font-weight: normal; }
+.ph-cw small { color: var(--ink-soft); font-size: 16px; }
+.ph-lines { padding: 6px 10px; background: #fffaf0; border: 2px solid var(--ink); border-top: 0; font-size: 16px; line-height: 1.5; }
+.ph-lines p { margin: 4px 0; word-break: keep-all; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1544,7 +1599,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.53';
+const GAME_VERSION = '0.54';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1724,7 +1779,7 @@ const ACTS = {
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'night' },
   talk: { name: '이야기하기', cost: 1, when: 'night' },
-  counter: { name: '계산대 · 홍보', cost: 0, when: 'any' },
+  counter: { name: '계산대', cost: 0, when: 'any' }, // 판매 장부 · 손님 수첩 (홍보는 v0.54부터 휴대폰에서)
   book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 홍보는 밤·새벽 언제든 (v0.45 사용자 요청) — 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
@@ -1956,13 +2011,13 @@ const CAST = {
   me: { name: '나', char: 0 },
   meThink: { name: '나 · 속마음', char: 0, think: true },
   oh: { name: '오 사장님', char: 18 },
-  ohPhone: { name: '오 사장님 · 전화', char: 18 },
+  ohPhone: { name: '오 사장님 · 전화', char: 18, phone: true }, // phone: 말을 꺼내기 전에 폰이 울리고 「받기」 (ui/phone.js)
   jung: { name: '정 사장 · 식자재', char: 19 },
   park: { name: '박 할머니', char: 13 },
   // 돌발 이벤트 (data/incidents.js)
   kids: { name: '학원 끝난 아이', char: 2 },
   kids2: { name: '학원 끝난 아이들', char: 5 },
-  caller: { name: '포장 손님 · 전화', char: 12 },
+  caller: { name: '포장 손님 · 전화', char: 12, phone: true },
   blogger: { name: '카메라 든 손님', char: 16 },
   rainy: { name: '비 맞은 손님', char: 12 },
   foreman: { name: '공사장 반장님', char: 4 },
@@ -2125,7 +2180,6 @@ const SCENES = {
       ['park', '옛날엔 여기 김밥도 팔았잖아. 그게 참 맛있었는데.'],
       ['me', '김밥이요? 레시피를 모르는데…'],
       ['park', '오 사장 그 양반, 중요한 건 다 냉장고 뒤에 붙여 놨었어.'],
-      [null, '전화가 울립니다.'],
       ['ohPhone', '첫날이다. 긴장되지? 오늘 재료는 내가 마지막으로 거래처에 시켜 놨다. 모자라면 손님 그냥 돌아가니까 잘 봐 둬.'],
       ['ohPhone', '당분간은 내가 전화로 봐 줄게. 할 일은 준비 화면에 적어 둬라.', 'quest'],
     ],
@@ -2262,6 +2316,8 @@ const SCENES = {
   },
   // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
   ch2soon: {
+    at: 'dawn', // 아침 골목 장면이라 새벽에 (밤에 이웃과 이야기하다 갑자기 뜨지 않게)
+    cut: 'ch2open', // 2장 여는 장면: 아침 골목 → 「2장 · 골목 사람들」 (data/cutscenes.js)
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
       ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
@@ -2269,7 +2325,7 @@ const SCENES = {
       ['ohPhone', '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
       ['ohPhone', '그리고 칠판. 메뉴가 손에 익으면 새 메뉴도 만들어 봐라. 요즘 애들은 로제니 크림이니 하더라.'],
       [null, '메뉴 연구 칠판에서 새 메뉴를 개발할 수 있습니다. 기본 메뉴 레벨이 오르면 하나씩 열리고, 개발한 메뉴는 오늘의 메뉴 칸에 올려 팝니다.'],
-      [null, '2장 「골목 사람들」이 시작됩니다. 자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
+      [null, '자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
     ],
     start: ['c2_park'],
   },
@@ -2344,8 +2400,9 @@ const SCENES = {
 //  ch 장 · title 칭호 · active 진행 중 퀘스트 · done 끝난 퀘스트 · prog 진행도 · queue 보여 줄 장면
 //  menus 연 메뉴 · soon 다음 날 열 메뉴 · fresh 오늘 처음 연 메뉴(「새 메뉴」 표시) · decor 장식 · today 오늘 끝낸 퀘스트
 //  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js) · tut 끝낸 가게 길잡이 차례 (data/tutorial.js)
+//  calls 최근 통화 [{ id 장면, day }] (휴대폰 · v0.54, 옛 세이브엔 없을 수 있어요)
 function newStory() {
-  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [] };
+  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [], calls: [] };
 }
 
 // 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요
@@ -2534,6 +2591,59 @@ const CUTS = {
       { title: null },
     ],
   },
+  // 2장 여는 장면 (v0.54 사용자 요청 「장마다 프롤로그 연출」): 첫 주를 버틴 다음 날 아침, 골목 사람들이 하나씩 지나가요 → 「2장 · 골목 사람들」
+  ch2open: {
+    night: false,
+    cam: { x: 72, y: 14 },
+    actors: {
+      me: { char: 0, x: 120, y: 150, dir: 3, hidden: true },
+      miso: { char: 9, x: 44, y: 160, dir: 0 },
+      park: { char: 13, x: -12, y: 168, dir: 0, hidden: true },
+      kim: { char: 1, x: 214, y: 172, dir: 2 },
+      doyun: { char: 6, x: 230, y: 170, dir: 2, hidden: true },
+    },
+    props: [{ spr: 'lamp', x: 84, y: 174 }],
+    steps: [
+      { fade: 1, sec: 0.3 },
+      { caption: '첫 주를 버틴 다음 날 아침.', sec: 1.8 },
+      { caption: '' },
+      { fade: 0, sec: 1.0 },
+      { door: true, sec: 0.3 },
+      { show: 'me' },
+      { walk: ['me', 120, 164] },
+      { door: false, sec: 0.3 },
+      { say: ['meThink', '가게 문을 연 지 일주일. 이제야 골목이 조금씩 눈에 들어온다.'] },
+      { walk: ['kim', 160, 172] },
+      { emote: ['kim', 'sweat'], sec: 0.6 },
+      { say: ['kim', '늦었다, 늦었어! …점심엔 저 분식집 가 봐야지.'] },
+      { walk: ['kim', 20, 172], pan: [8, 14], sec: 2.4 },
+      { hide: 'kim' },
+      { face: ['me', 2], sec: 0.3 },
+      { say: ['miso', '사장님, 좋은 아침! 나 꽃집 접고 가구랑 인테리어 해 보려고요.'] },
+      { emote: ['me', '!'], sec: 0.8 },
+      { say: ['me', '네? 꽃집을요?'] },
+      { say: ['miso', '꽃은 가게 꾸밀 때 같이 팔 거예요. 오늘 밤에 새로 열어요. 옆집이니까 놀러 와요!'] },
+      { show: 'park' },
+      { walk: ['park', 103, 168] },
+      { face: ['me', 2], sec: 0.2 },
+      { say: ['park', '새 사장, 오늘은 떡볶이 맛 좀 봐야겠어. 오 사장 맛이 나나 보게.'] },
+      { emote: ['me', 'sweat'], sec: 0.8 },
+      { say: ['me', '네, 할머님. 오늘도 열심히 졸여 볼게요.'] },
+      { pan: [72, 14], sec: 1.6 },
+      { show: 'doyun' },
+      { walk: ['doyun', 176, 170] },
+      { emote: ['doyun', '…'], sec: 1.2 },
+      { say: ['doyun', '(하품) 학교 끝나면 학원… 오늘도 길다.'] },
+      { walk: ['doyun', 230, 172] },
+      { hide: 'doyun' },
+      { face: ['me', 3], sec: 0.4 },
+      { say: ['meThink', '같은 얼굴들이 매일 이 골목을 지나간다.'] },
+      { say: ['meThink', '이 사람들이 우리 가게 단골이 되어 줄까.'] },
+      { fade: 1, sec: 1.2 },
+      { title: ['2장', '골목 사람들'], sec: 2.4 },
+      { title: null },
+    ],
+  },
 };
 // ── js/data/tools.js ──
 // 장사 도구: 1장 중간(김밥이 열릴 무렵, 손이 모자라기 시작할 때) 오 사장님 권유로 준비 화면에 열려요. 한 번 사면 계속 써요.
@@ -2580,7 +2690,6 @@ const INCIDENTS = {
     kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 100, tip: 3000,
     text: '{menu} {qty}인분 포장 주문!',
     intro: [
-      [null, '따르릉— 가게 전화가 울립니다.'],
       ['caller', '여보세요, 거기 분식집이죠? {menu} {qty}인분 포장돼요? 금방 찾으러 갈게요.'],
       ['me', '네! 바로 준비해 두겠습니다.'],
     ],
@@ -3212,6 +3321,8 @@ defineCmd('sceneDone', ({ name }) => {
   if (sc.opens === 'tools') S.toolsOpen = true;
   // 가게를 넘겨받을 때: 오 사장님 가게 돈은 사장님이 정리해 가고, 내 돈과 창업 대출로 새로 시작
   tutSceneDone(id);
+  // 휴대폰 「최근 통화」(ui/town.js): 전화 장면은 기록해 두고 다시 읽을 수 있게 (v0.54)
+  if ((sc.lines || []).some(l => CAST[l[0]] && CAST[l[0]].phone)) S.calls = [{ id, day: G.day }, ...(S.calls || [])].slice(0, 12);
   emit('track', 'scene', { id }); // 어디까지 봤나 (그만둔 지점)
   if (sc.ch !== undefined) emit('track', 'chapter', { to: sc.ch });
   if (sc.money === 'start') { G.cash = START_CASH; G.loan = START_LOAN; G.weekSales = 0; emit('toast', `가게 통장 · ${START_CASH.toLocaleString('ko-KR')}원으로 시작합니다`, 'good'); }
@@ -5384,6 +5495,7 @@ const DEV_JUMPS = [
   { id: 'c2j', name: '10일차 전날 밤 · 정 사장 ♥♥♥♥♥ (특가 2개·빼 둔 재료·새벽 배달)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 80 }, cash: 3000000 },
   { id: 'c2k', name: '12일차 전날 밤 · 2장 김 대리 부탁 (점심에 기다리다 간 손님 없는 날)', day: 12, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join'], active: ['c2_kim', 'c2_miso'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 20, miso: 10, jung: 20 }, cash: 1500000 },
   { id: 'c2e', name: '14일차 전날 밤 · 2장 끝 직전 (주간 정산 때 별점 3.5 이상이면 「동네 사장」)', day: 14, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join', 'c2_kim', 'c2_doyun', 'c2_miso'], active: ['c2_end'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 30, miso: 20, jung: 30 }, cash: 2000000 },
+  { id: 'c2o', name: '8일차 전날 밤 · 2장 여는 장면 (집에서 자면 새벽에: 아침 골목 → 「2장 · 골목 사람들」 · 오 사장님 전화)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, queue: ['ch2soon'] },
   { id: 'c2', name: '8일차 · 2장 첫날 (박 할머니 부탁)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
@@ -6194,10 +6306,11 @@ const SOUNDS = {
   tap: () => tone(1200, 0.03, 'square', 0.025),
   surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
+  ring: () => { for (let k = 0; k < 8; k++) tone(k % 2 ? 1175 : 1480, 0.05, 'square', 0.03, 0, k * 0.055); }, // 전화 따르릉 (ui/phone.js)
   door: () => { tone(1568, 0.05, 'triangle', 0.04); tone(1319, 0.12, 'triangle', 0.04, 0, 0.05); }, // 가게 문 종소리 (딸랑)
 };
 // 진동: 손맛이 필요한 순간만 짧게 (설정에서 끌 수 있어요)
-const VIBE = { perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
+const VIBE = { ring: [90, 60, 90], perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
 function playSfx(name) { const f = SOUNDS[name]; if (f) f(); if (VIBE[name]) vibrate(VIBE[name]); }
 // ── js/ui/music.js ──
 // 배경음악: 장면마다 원하는 곡을 정하면(setMusic) 부드럽게 바꿔 틀어요. 곡은 js/audio/music.js (dev/audio_pack.py가 만들어요)
@@ -6391,6 +6504,31 @@ function setupCook(menu, game) {
   else if (game === 'fry') { zone('zoneGood', g.good[0], g.good[1]); zone('zonePerfect', g.perfect[0], g.perfect[1]); }
   else { zone('zoneGood', 0, 0); zone('zonePerfect', 0, 0); $('cookNeedle').style.left = '100%'; }
 }
+// ── js/ui/phone.js ──
+// 전화 받기 (v0.54 사용자 요청): 전화로 말하는 사람(data/story.js CAST의 phone: true)이 말을 꺼내기 전에
+//  폰이 울리고 「받기」를 눌러야 대화가 이어져요. 이야기 장면(ui/story.js)과 돌발 이벤트(ui/incident.js)가 같이 써요.
+//  휴대폰 화면(홍보·최근 통화·상권 지도)은 마을 화면(ui/town.js)에 있어요.
+
+const isPhone = who => !!(who && typeof who === 'string' && CAST[who] && CAST[who].phone);
+// 이 줄에서 전화가 새로 걸려 오나 (앞줄이 전화가 아니었으면)
+const callStarts = (lines, i) => isPhone(lines[i] && lines[i][0]) && !(i > 0 && isPhone(lines[i - 1][0]));
+const callerName = who => CAST[who].name.replace(/ · 전화$/, '');
+
+// 울리는 폰 (받기 버튼 하나 — 이야기 전화라 거절은 없어요)
+function ringHTML(who, attr) { // attr: 받기 버튼에 더 붙일 속성 (돌발 이벤트 data-inc)
+  const p = CAST[who];
+  return `<div class="ring-phone" role="dialog" aria-label="${callerName(who)} 전화">
+    <small class="ring-tag">전화가 왔습니다</small>
+    <span class="ring-face">${icon('char' + p.char)}</span>
+    <b class="ring-name">${callerName(who)}</b>
+    <button type="button" class="btn primary big ring-ok" data-ring="1" ${attr || ''}>받기</button>
+  </div>`;
+}
+
+// 따르릉 (울리는 동안 1.4초마다, 진동도)
+let ringT = 0;
+function startRing() { stopRing(); playSfx('ring'); ringT = setInterval(() => playSfx('ring'), 1400); }
+function stopRing() { if (ringT) { clearInterval(ringT); ringT = 0; } }
 // ── js/ui/story.js ──
 // 이야기 화면: 대화 창 · 골목 신문 · 가게 이름 짓기 · 퀘스트 카드(준비 화면) · 퀘스트 표시(영업 중 왼쪽 위)
 
@@ -6470,6 +6608,7 @@ function drawScene() {
   if (open.i < sc.lines.length) {
     const [who, text, at, pic] = sc.lines[open.i];
     if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
+    if (callStarts(sc.lines, open.i) && open.rung !== open.i) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
     box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
     box.innerHTML = lineHTML(who, text);
@@ -6526,6 +6665,7 @@ function paperHTML(sc) {
 
 function finish(name) {
   stopTyping();
+  stopRing();
   open = null;
   guide(null);
   setMusic(null);
@@ -6534,6 +6674,14 @@ function finish(name) {
   if (G.phase === 'day') runCmd('hold', { on: false });
   updateQuestTrack();
   showNextScene();
+}
+
+// 전화 받기
+function answer() {
+  stopRing();
+  open.ringing = false; open.rung = open.i;
+  playSfx('open');
+  drawScene();
 }
 
 function advance() {
@@ -6553,6 +6701,7 @@ function initStory() {
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     if (cutWaiting()) { cutTap(); return; }
     if (!open || cutActive()) return;
+    if (open.ringing) { if (e.target.closest('[data-ring]')) answer(); return; } // 울리는 동안은 「받기」만
     if (e.target.closest('[data-talk=name]')) { finish($('talkName').value); return; }
     if (e.target.closest('input')) return;
     advance();
@@ -6561,6 +6710,7 @@ function initStory() {
   addEventListener('keydown', e => {
     if ((e.code === 'Space' || e.code === 'Enter') && stopTyping()) { e.preventDefault(); return; }
     if (cutWaiting() && (e.code === 'Space' || e.code === 'Enter')) { cutTap(); e.preventDefault(); return; }
+    if (open && open.ringing && (e.code === 'Space' || e.code === 'Enter')) { answer(); e.preventDefault(); return; }
     if (open && !cutActive() && !SCENES[open.id].ask && (e.code === 'Space' || e.code === 'Enter')) { advance(); e.preventDefault(); }
   });
 }
@@ -6686,6 +6836,7 @@ function incNext() {
 
 function incClose() {
   stopTyping();
+  stopRing();
   incCur = null;
   $('incUI').hidden = true; $('incUI').innerHTML = '';
   incHold(false);
@@ -6700,6 +6851,10 @@ function incDraw() {
   if (incCur.kind === 'intro') {
     if (incCur.i < D.intro.length) { // 대화
       const [who, text] = D.intro[incCur.i];
+      if (callStarts(D.intro, incCur.i) && incCur.rung !== incCur.i) { // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
+        incCur.ringing = true; el.className = 'inc-ui ring';
+        el.innerHTML = incBanner(D, '돌발 이벤트!') + ringHTML(who, 'data-inc="ring"'); startRing(); return;
+      }
       el.className = 'inc-ui talking' + (who && CAST[who].think ? ' think' : '') + (who ? '' : ' narr');
       el.innerHTML = incBanner(D, '돌발 이벤트!') + `<div class="inc-talk">${lineHTML(who, text)}</div>`;
       typeIn(el);
@@ -6731,6 +6886,7 @@ function incDraw() {
 function initIncidentUI() {
   $('incUI').addEventListener('click', e => {
     if (!incCur) return;
+    if (incCur.ringing) { if (e.target.closest('[data-ring]')) { stopRing(); incCur.ringing = false; incCur.rung = incCur.i; playSfx('open'); incDraw(); } return; } // 울리는 동안은 「받기」만
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     const b = e.target.closest('[data-inc]');
     if (incCur.kind === 'intro' && incCur.i < incidentInfo(incCur.x).intro.length) { incCur.i++; playSfx('tap'); incDraw(); return; }
@@ -6738,7 +6894,7 @@ function initIncidentUI() {
   });
 }
 // 영업이 끝나면 남은 화면은 치워요 (결과는 영수증에도 나와요)
-function incidentReset() { incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
+function incidentReset() { stopRing(); incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
 // ── js/ui/board.js ──
 // 메뉴 연구 칠판 (마을 · 우리 가게 「메뉴 연구 칠판」): 메뉴마다 레벨 · 숙련 막대 · 다음 레벨 효과 · 올리기 (규칙은 sim/upgrade.js)
 // 마을 아래 창(ui/town.js sheet)에 칠판 모양으로 그려요. 올리기 = data-ts="menuUp"
@@ -7231,7 +7387,8 @@ function renderBar() {
   $('townBar').innerHTML = `<span class="tb-time ${dawn ? 'dawn' : 'night'}">${dawn ? '새벽' : '밤'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</span>
     <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
-    <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>`;
+    <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>
+    <button type="button" class="tb-phone" data-tb="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
 }
 
 // 할 일이 있는 곳 「!」: 새벽 시장(아직 안 감) · 새벽 가게(열기) · 밤 할 일을 다 했으면 집
@@ -7474,14 +7631,53 @@ function openPlace(id) {
   sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : placeName(id)}</b>${who}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || `<p class="ts-note">${id === 'board' ? '동네 소식과 행사 안내가 붙어 있습니다' : '지금 할 일이 없습니다'}</p>`}`);
   T.sheetPlace = id;
 }
-// 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
+// 홍보(인스타 올리기 · 파워블로거 섭외)는 휴대폰 앱에서 (v0.54 사용자 요청 — 전에는 계산대). 다른 장소 창에는 안 보여요
 const COUNTER_ACTS = ['insta', 'blogger'];
-function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(밤)
-  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === 'any' || ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join(''); // 홍보는 밤·새벽 언제든 (v0.45)
+function openCounter() { // 계산대: 판매 장부 · 손님 수첩
   sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
-    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">지금은 홍보할 수 없습니다</p>'}`, 'counter');
+    <p class="ts-note">홍보는 휴대폰으로 합니다 (위 막대의 휴대폰)</p>`, 'counter');
   T.sheetPlace = 'shop';
 }
+
+// ── 휴대폰 (v0.54 사용자 요청): 위 막대 휴대폰 → 앱 — 인스타 · 블로그(홍보) · 전화(최근 통화) · 상권 지도(3장에 열려요, 지금은 자물쇠) ──
+let phoneApp = null, callOpen = -1;
+const APPS = [
+  { id: 'insta', name: '인스타' },
+  { id: 'blog', name: '블로그' },
+  { id: 'call', name: '전화' },
+  { id: 'map', name: '상권 지도', lock: true }, // 3장 「길 건너 대결」에서 깔려요 (기획서 3장 탭)
+];
+function openPhone(app) {
+  if (app !== undefined) { phoneApp = app; callOpen = -1; }
+  sheet(phoneHTML(), 'phone');
+  T.sheetPlace = 'shop'; // 홍보는 우리 가게 일로 셈 (sim/town.js townAct)
+}
+function phoneHTML() {
+  const min = townClock(), clock = `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const A = APPS.find(a => a.id === phoneApp);
+  let body;
+  if (!A) body = `<div class="ph-apps">${APPS.map(a => `<button type="button" class="ph-app${a.lock ? ' lock' : ''}" data-ts="app" data-p="${a.id}"><i class="ph-ic ${a.id}">${a.lock ? '<b class="ph-lock"></b>' : ''}</i><span>${a.name}</span></button>`).join('')}</div>`;
+  else {
+    const head = `<div class="ph-head"><button type="button" class="ph-back" data-ts="app" data-p="" aria-label="뒤로">◂</button><b>${A.name}</b></div>`;
+    if (A.id === 'insta') body = head + actRow('shop', 'insta');
+    else if (A.id === 'blog') body = head + actRow('shop', 'blogger');
+    else body = head + callsHTML();
+  }
+  return `<div class="ph"><div class="ph-top"><span>${clock}</span><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><div class="ph-screen">${body}</div></div>`;
+}
+// 최근 통화: 받은 전화(이야기 장면)를 다시 읽어요
+function callsHTML() {
+  const calls = (G.story && G.story.calls) || [];
+  if (!calls.length) return '<p class="ph-note">아직 받은 전화가 없습니다.</p>';
+  return calls.map((c, i) => {
+    const lines = ((SCENES[c.id] && SCENES[c.id].lines) || []).filter(l => CAST[l[0]] && CAST[l[0]].phone);
+    if (!lines.length) return '';
+    const who = CAST[lines[0][0]], open = i === callOpen;
+    return `<button type="button" class="ph-call${open ? ' open' : ''}" data-ts="callOpen" data-i="${i}"><span class="ph-face">${icon('char' + who.char)}</span><span class="ph-cw"><b>${who.name.replace(/ · 전화$/, '')}</b><small>${c.day}일차</small></span></button>`
+      + (open ? `<div class="ph-lines">${lines.map(l => `<p>${l[1].replace(/\{shop\}/g, G.shop)}</p>`).join('')}</div>` : '');
+  }).join('');
+}
+
 function actRow(id, a) {
   const Tn = G.town;
   {
@@ -7492,7 +7688,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -7603,6 +7799,7 @@ function initTown() {
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
+  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); } }); // 휴대폰 (v0.54)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
     const inB = e.target.closest('[data-in]');
@@ -7619,6 +7816,8 @@ function initTown() {
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'use') { const u = b.dataset.u; if (runCmd('townUse', { use: u })) { closeSheet(); if (u === 'rest') { T.sitUntil = T.time + 2.5; T.me.path = []; } } }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
+    else if (k === 'app') { const p = b.dataset.p; if (p && APPS.find(a => a.id === p).lock) { toast('아직 깔리지 않은 앱입니다', 'info'); playSfx('tap'); return; } openPhone(p || null); playSfx('tap'); }
+    else if (k === 'callOpen') { const i = +b.dataset.i; callOpen = callOpen === i ? -1 : i; openPhone(); playSfx('tap'); }
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
@@ -7666,6 +7865,7 @@ function refreshTown() {
   else if (s.classList.contains('furn')) showFurn();
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
+  else if (s.classList.contains('phone')) openPhone();
   else if (s.classList.contains('guild')) sheet(guildHTML(), 'guild');
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');

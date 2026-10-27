@@ -51,7 +51,7 @@ window.__bot = (() => {
     const ui = document.getElementById('incUI'); // 돌발 이벤트 대화·카드는 넘겨요 (봇은 runFor라 멈춤과 상관없이 돌아요)
     for (let k = 0; k < 20 && !ui.hidden; k++) { const b = ui.querySelector('[data-inc]'); (b || ui).click(); }
     const talk = document.getElementById('talk'); // 영업 중 대화·요령 카드도 넘겨요 (오 사장님 가게 길잡이)
-    while (G.phase === 'day' && t < sec) { for (let k = 0; k < 4 && !talk.hidden; k++) talk.click(); think(); runFor(0.1); check(); t += 0.1; }
+    while (G.phase === 'day' && t < sec) { for (let k = 0; k < 4 && !talk.hidden; k++) (talk.querySelector('[data-ring]') || talk).click(); think(); runFor(0.1); check(); t += 0.1; }
     return G.phase;
   }
   return { think, play, problems, games };

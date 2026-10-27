@@ -35,8 +35,9 @@ const SOUNDS = {
   tap: () => tone(1200, 0.03, 'square', 0.025),
   surprise: () => { tone(880, 0.06, 'square', 0.04); tone(1320, 0.12, 'square', 0.04, 0, 0.06); },
   page: () => tone(440, 0.06, 'triangle', 0.05, 520),
+  ring: () => { for (let k = 0; k < 8; k++) tone(k % 2 ? 1175 : 1480, 0.05, 'square', 0.03, 0, k * 0.055); }, // 전화 따르릉 (ui/phone.js)
   door: () => { tone(1568, 0.05, 'triangle', 0.04); tone(1319, 0.12, 'triangle', 0.04, 0, 0.05); }, // 가게 문 종소리 (딸랑)
 };
 // 진동: 손맛이 필요한 순간만 짧게 (설정에서 끌 수 있어요)
-const VIBE = { perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
+const VIBE = { ring: [90, 60, 90], perfect: [12, 40, 12], coin: [8], serve: [6], angry: [45], surprise: [20, 30, 20], trash: [15] };
 export function playSfx(name) { const f = SOUNDS[name]; if (f) f(); if (VIBE[name]) vibrate(VIBE[name]); }

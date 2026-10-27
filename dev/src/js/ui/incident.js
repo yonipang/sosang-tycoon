@@ -11,6 +11,7 @@ import { CAST } from '../data/story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { lineHTML, typeIn, stopTyping, talking } from './story.js';
+import { callStarts, ringHTML, startRing, stopRing } from './phone.js';
 import { cutActive } from './cutscene.js';
 
 const incQueue = []; // 보여 줄 차례 [{ kind: 'intro'|'result', x }]
@@ -45,6 +46,7 @@ function incNext() {
 
 function incClose() {
   stopTyping();
+  stopRing();
   incCur = null;
   $('incUI').hidden = true; $('incUI').innerHTML = '';
   incHold(false);
@@ -59,6 +61,10 @@ function incDraw() {
   if (incCur.kind === 'intro') {
     if (incCur.i < D.intro.length) { // 대화
       const [who, text] = D.intro[incCur.i];
+      if (callStarts(D.intro, incCur.i) && incCur.rung !== incCur.i) { // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
+        incCur.ringing = true; el.className = 'inc-ui ring';
+        el.innerHTML = incBanner(D, '돌발 이벤트!') + ringHTML(who, 'data-inc="ring"'); startRing(); return;
+      }
       el.className = 'inc-ui talking' + (who && CAST[who].think ? ' think' : '') + (who ? '' : ' narr');
       el.innerHTML = incBanner(D, '돌발 이벤트!') + `<div class="inc-talk">${lineHTML(who, text)}</div>`;
       typeIn(el);
@@ -90,6 +96,7 @@ function incDraw() {
 export function initIncidentUI() {
   $('incUI').addEventListener('click', e => {
     if (!incCur) return;
+    if (incCur.ringing) { if (e.target.closest('[data-ring]')) { stopRing(); incCur.ringing = false; incCur.rung = incCur.i; playSfx('open'); incDraw(); } return; } // 울리는 동안은 「받기」만
     if (stopTyping()) return; // 한 글자씩 나오는 중이면 먼저 다 보여 줘요
     const b = e.target.closest('[data-inc]');
     if (incCur.kind === 'intro' && incCur.i < incidentInfo(incCur.x).intro.length) { incCur.i++; playSfx('tap'); incDraw(); return; }
@@ -97,4 +104,4 @@ export function initIncidentUI() {
   });
 }
 // 영업이 끝나면 남은 화면은 치워요 (결과는 영수증에도 나와요)
-export function incidentReset() { incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
+export function incidentReset() { stopRing(); incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }

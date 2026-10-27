@@ -24,7 +24,7 @@ def cut(pg):
 def talk(pg):
     """열린 대화 장면을 끝까지 넘겨요 (장면마다 첫 화면 사진, 가게 이름은 「떡집」)"""
     cut(pg)
-    for _ in range(80):
+    for _ in range(120):
         if not pg.evaluate("!document.getElementById('talk').hidden"): return
         sid = pg.evaluate('__T.G.story.queue[0]')
         if sid not in seen:
@@ -32,6 +32,9 @@ def talk(pg):
             if sid in SHOT_SCENES: shot(pg, 'talk-' + sid)
         if pg.locator('#talkName').count():
             shot(pg, 'talk-name'); pg.fill('#talkName', '떡집'); pg.click('[data-talk=name]')
+        elif pg.locator('#talk [data-ring]').count():  # 전화가 울리면 「받기」 (v0.54)
+            if 'ring' not in seen: seen.append('ring'); shot(pg, 'talk-ring')
+            pg.click('#talk [data-ring]')
         else: pg.click('#talk')
     raise RuntimeError('대화가 끝나지 않아요')
 def to_prep(pg):
@@ -56,8 +59,8 @@ def to_prep(pg):
     if not town:
         for btn in pg.locator('[data-act=prep][data-d="1"]').all(): btn.click(); btn.click()
 def town_chat(pg):
-    for _ in range(10):
-        if pg.evaluate("!document.getElementById('talk').hidden"):  # 이야기 장면(신문 등)이 위에 떠 있으면 먼저 넘겨요
+    for _ in range(20):
+        if pg.evaluate("!document.getElementById('talk').hidden || !document.getElementById('cut').hidden"):  # 이야기 장면(신문·연출 등)이 위에 떠 있으면 먼저 넘겨요
             print('  마을 대화 중 장면:', pg.evaluate('__T.G.story.queue[0]')); talk(pg); continue
         if pg.evaluate("document.getElementById('townSheet').hidden || !document.getElementById('townSheet').classList.contains('chat')"): return
         pg.click('#townSheet'); pg.wait_for_timeout(30)
@@ -69,7 +72,7 @@ def town_night_dawn(pg):
         pg.wait_for_timeout(300); shot(pg, '9-town-night')
     R('townAct', "{place:'shop',act:'clean'}")
     R('townAct', "{place:'laundry',act:'talk'}"); town_chat(pg)
-    R('townAct', "{place:'shop',act:'insta'}")  # 계산대 · 홍보
+    R('townAct', "{place:'shop',act:'insta'}")  # 홍보 (v0.54부터 휴대폰 앱 — 규칙은 그대로 우리 가게 일)
     if pg.evaluate('__T.G.story.ch') >= 2 and 'furn' not in seen:  # 미소 가구 (2장 · 밤 네 번째 칸): 들르면 이야기 → 가구 창(새벽이 돼도 창은 그대로) · 벽지 하나 사기
         seen.append('furn')
         pg.evaluate("__T.runCmd('townAct', {place:'flower',act:'furn'})"); pg.wait_for_timeout(100); town_chat(pg); pg.wait_for_timeout(150)

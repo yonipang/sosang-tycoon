@@ -999,3 +999,58 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 #townTalk::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -5px; border: 5px solid transparent; border-top-color: var(--ink); }
 #townTalk:active { transform: translate(-50%, calc(-100% + 3px)); box-shadow: none; }
 @keyframes talkBob { 50% { margin-top: -2px; } }
+
+/* 전화 받기 (v0.54, ui/phone.js): 아래에서 폰이 올라와 떨고, 「받기」를 눌러야 대화 */
+.talk.ring-mode { justify-content: flex-end; align-items: center; background: rgba(20,16,30,.55); padding-bottom: max(28px, env(safe-area-inset-bottom)); cursor: default; }
+.inc-ui.ring { justify-content: space-between; align-items: center; cursor: default; }
+.ring-phone { width: 208px; padding: 12px 14px 16px; background: var(--night); color: var(--paper); border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 0 0 3px #3a4170 inset, 0 5px 0 rgba(0,0,0,.4); text-align: center; line-height: 1.4; animation: ringUp .35s ease-out both, ringShake .9s .35s infinite; }
+.ring-phone::before { content: ''; display: block; width: 36px; height: 4px; margin: 0 auto 8px; background: #3a4170; border-radius: 2px; }
+.ring-tag { display: block; color: var(--mustard); font-size: 16px; }
+.ring-face { display: block; width: 64px; height: 64px; margin: 8px auto; overflow: hidden; background: var(--paper-2); border: 3px solid var(--paper); border-radius: 50%; }
+.ring-face img { display: block; width: 64px; height: 128px; margin-top: -38px; }
+.ring-name { display: block; font-weight: normal; font-size: 20px; }
+.ring-phone .ring-ok { background: var(--green); text-shadow: 0 2px 0 #2f6322; margin-top: 12px; }
+@keyframes ringUp { from { transform: translateY(120%); } to { transform: translateY(0); } }
+@keyframes ringShake { 0%, 40%, 100% { transform: rotate(0); } 5%, 15%, 25% { transform: rotate(-3deg); } 10%, 20%, 30% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .ring-phone { animation: none; } }
+
+/* 휴대폰 (v0.54, ui/town.js openPhone): 위 막대 버튼 · 폰 화면 · 앱 아이콘(가게 그림처럼 단순하게 — 실제 앱 로고는 쓰지 않아요) */
+.tb-phone { width: 26px; height: 30px; padding: 0; background: var(--paper); border: 2px solid var(--paper); box-shadow: 0 2px 0 rgba(0,0,0,.4); cursor: pointer; }
+.tb-phone i { display: block; width: 14px; height: 22px; margin: 2px auto; background: var(--night); border: 2px solid var(--ink); border-radius: 3px; box-shadow: inset 0 -3px 0 #3a4170; }
+.tb-phone:active { transform: translateY(2px); box-shadow: none; }
+.town-sheet.phone { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.ph { margin: 0 auto; max-width: 340px; padding: 8px 10px 14px; background: var(--night); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 rgba(0,0,0,.4), inset 0 0 0 3px #3a4170; }
+.ph-top { display: flex; align-items: center; justify-content: space-between; color: var(--paper); padding: 0 4px 6px; }
+.ph-top .ts-x { background: var(--paper); color: var(--ink); }
+.ph-screen { min-height: 120px; padding: 10px; background: linear-gradient(#f6ecd6, #efe2c4); border: 2px solid var(--ink); border-radius: 8px; }
+.ph-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ph-app { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; background: none; border: 0; font: inherit; font-size: 16px; color: var(--ink); cursor: pointer; line-height: 1.2; word-break: keep-all; text-align: center; }
+.ph-app:active .ph-ic { transform: translateY(2px); }
+.ph-ic { position: relative; display: block; width: 44px; height: 44px; border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.ph-ic.insta { background: #e86a92; }
+.ph-ic.insta::before { content: ''; position: absolute; left: 8px; top: 11px; width: 22px; height: 16px; background: #fff; border-radius: 3px; }
+.ph-ic.insta::after { content: ''; position: absolute; left: 14px; top: 14px; width: 6px; height: 6px; border: 2px solid #e86a92; border-radius: 50%; }
+.ph-ic.blog { background: #f0a030; }
+.ph-ic.blog::before { content: ''; position: absolute; left: 9px; top: 7px; width: 20px; height: 24px; background: #fff; box-shadow: none; }
+.ph-ic.blog::after { content: ''; position: absolute; left: 12px; top: 12px; width: 14px; height: 2px; background: #f0a030; box-shadow: 0 5px 0 #f0a030, 0 10px 0 #f0a030; }
+.ph-ic.call { background: var(--green); }
+.ph-ic.call::before { content: ''; position: absolute; left: 10px; top: 9px; width: 4px; height: 4px; background: #fff; box-shadow: 7px 0 #fff, 14px 0 #fff, 0 7px #fff, 7px 7px #fff, 14px 7px #fff, 0 14px #fff, 7px 14px #fff, 14px 14px #fff; }
+.ph-ic.map { background: #3d6fd6; }
+.ph-ic.map::before { content: ''; position: absolute; left: 11px; top: 6px; width: 16px; height: 16px; background: #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
+.ph-ic.map::after { content: ''; position: absolute; left: 16px; top: 11px; width: 6px; height: 6px; background: #3d6fd6; border-radius: 50%; }
+.ph-app.lock .ph-ic { filter: grayscale(1) brightness(.85); }
+.ph-app.lock .ph-ic::after { background: #888; }
+.ph-lock { position: absolute; right: -7px; bottom: -6px; width: 14px; height: 11px; background: var(--mustard); border: 2px solid var(--ink); }
+.ph-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid var(--ink); border-bottom: 0; border-radius: 4px 4px 0 0; }
+.ph-head { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; border-bottom: 2px dashed var(--line); }
+.ph-head b { font-weight: normal; font-size: 20px; }
+.ph-back { min-width: 40px; min-height: 36px; font-size: 20px; background: var(--paper-2); border: 2px solid var(--ink); font: inherit; cursor: pointer; }
+.ph-note { margin: 8px 0 0; color: var(--ink-soft); font-size: 16px; line-height: 1.5; word-break: keep-all; }
+.ph-call { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 4px 8px; background: var(--paper-2); border: 2px solid var(--ink); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.ph-face { flex: none; width: 32px; height: 32px; overflow: hidden; background: var(--paper); border: 2px solid var(--ink); border-radius: 50%; }
+.ph-face img { display: block; width: 32px; height: 64px; margin-top: -19px; }
+.ph-cw { display: flex; flex-direction: column; line-height: 1.2; }
+.ph-cw b { font-weight: normal; }
+.ph-cw small { color: var(--ink-soft); font-size: 16px; }
+.ph-lines { padding: 6px 10px; background: #fffaf0; border: 2px solid var(--ink); border-top: 0; font-size: 16px; line-height: 1.5; }
+.ph-lines p { margin: 4px 0; word-break: keep-all; }

@@ -7,13 +7,13 @@ export const CAST = {
   me: { name: '나', char: 0 },
   meThink: { name: '나 · 속마음', char: 0, think: true },
   oh: { name: '오 사장님', char: 18 },
-  ohPhone: { name: '오 사장님 · 전화', char: 18 },
+  ohPhone: { name: '오 사장님 · 전화', char: 18, phone: true }, // phone: 말을 꺼내기 전에 폰이 울리고 「받기」 (ui/phone.js)
   jung: { name: '정 사장 · 식자재', char: 19 },
   park: { name: '박 할머니', char: 13 },
   // 돌발 이벤트 (data/incidents.js)
   kids: { name: '학원 끝난 아이', char: 2 },
   kids2: { name: '학원 끝난 아이들', char: 5 },
-  caller: { name: '포장 손님 · 전화', char: 12 },
+  caller: { name: '포장 손님 · 전화', char: 12, phone: true },
   blogger: { name: '카메라 든 손님', char: 16 },
   rainy: { name: '비 맞은 손님', char: 12 },
   foreman: { name: '공사장 반장님', char: 4 },
@@ -176,7 +176,6 @@ export const SCENES = {
       ['park', '옛날엔 여기 김밥도 팔았잖아. 그게 참 맛있었는데.'],
       ['me', '김밥이요? 레시피를 모르는데…'],
       ['park', '오 사장 그 양반, 중요한 건 다 냉장고 뒤에 붙여 놨었어.'],
-      [null, '전화가 울립니다.'],
       ['ohPhone', '첫날이다. 긴장되지? 오늘 재료는 내가 마지막으로 거래처에 시켜 놨다. 모자라면 손님 그냥 돌아가니까 잘 봐 둬.'],
       ['ohPhone', '당분간은 내가 전화로 봐 줄게. 할 일은 준비 화면에 적어 둬라.', 'quest'],
     ],
@@ -313,6 +312,8 @@ export const SCENES = {
   },
   // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
   ch2soon: {
+    at: 'dawn', // 아침 골목 장면이라 새벽에 (밤에 이웃과 이야기하다 갑자기 뜨지 않게)
+    cut: 'ch2open', // 2장 여는 장면: 아침 골목 → 「2장 · 골목 사람들」 (data/cutscenes.js)
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
       ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
@@ -320,7 +321,7 @@ export const SCENES = {
       ['ohPhone', '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
       ['ohPhone', '그리고 칠판. 메뉴가 손에 익으면 새 메뉴도 만들어 봐라. 요즘 애들은 로제니 크림이니 하더라.'],
       [null, '메뉴 연구 칠판에서 새 메뉴를 개발할 수 있습니다. 기본 메뉴 레벨이 오르면 하나씩 열리고, 개발한 메뉴는 오늘의 메뉴 칸에 올려 팝니다.'],
-      [null, '2장 「골목 사람들」이 시작됩니다. 자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
+      [null, '자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
     ],
     start: ['c2_park'],
   },
@@ -395,8 +396,9 @@ export const SCENES = {
 //  ch 장 · title 칭호 · active 진행 중 퀘스트 · done 끝난 퀘스트 · prog 진행도 · queue 보여 줄 장면
 //  menus 연 메뉴 · soon 다음 날 열 메뉴 · fresh 오늘 처음 연 메뉴(「새 메뉴」 표시) · decor 장식 · today 오늘 끝낸 퀘스트
 //  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js) · tut 끝낸 가게 길잡이 차례 (data/tutorial.js)
+//  calls 최근 통화 [{ id 장면, day }] (휴대폰 · v0.54, 옛 세이브엔 없을 수 있어요)
 export function newStory() {
-  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [] };
+  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [], calls: [] };
 }
 
 // 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요

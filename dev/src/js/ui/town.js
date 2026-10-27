@@ -4,7 +4,7 @@ import { G } from '../save/state.js';
 import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
-import { CAST } from '../data/story.js';
+import { CAST, SCENES } from '../data/story.js';
 import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y, solidForPlayer } from '../data/layout.js';
 import { drawShopTo, shopViewSize } from '../render/view.js';
 import { findPath } from '../sim/path.js';
@@ -305,7 +305,8 @@ function renderBar() {
   $('townBar').innerHTML = `<span class="tb-time ${dawn ? 'dawn' : 'night'}">${dawn ? '새벽' : '밤'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</span>
     <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
-    <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>`;
+    <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>
+    <button type="button" class="tb-phone" data-tb="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
 }
 
 // 할 일이 있는 곳 「!」: 새벽 시장(아직 안 감) · 새벽 가게(열기) · 밤 할 일을 다 했으면 집
@@ -548,14 +549,53 @@ function openPlace(id) {
   sheet(`<div class="ts-head"><b>${id === 'shop' ? G.shop : placeName(id)}</b>${who}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${rows || `<p class="ts-note">${id === 'board' ? '동네 소식과 행사 안내가 붙어 있습니다' : '지금 할 일이 없습니다'}</p>`}`);
   T.sheetPlace = id;
 }
-// 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
+// 홍보(인스타 올리기 · 파워블로거 섭외)는 휴대폰 앱에서 (v0.54 사용자 요청 — 전에는 계산대). 다른 장소 창에는 안 보여요
 const COUNTER_ACTS = ['insta', 'blogger'];
-function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(밤)
-  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === 'any' || ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join(''); // 홍보는 밤·새벽 언제든 (v0.45)
+function openCounter() { // 계산대: 판매 장부 · 손님 수첩
   sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
-    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">지금은 홍보할 수 없습니다</p>'}`, 'counter');
+    <p class="ts-note">홍보는 휴대폰으로 합니다 (위 막대의 휴대폰)</p>`, 'counter');
   T.sheetPlace = 'shop';
 }
+
+// ── 휴대폰 (v0.54 사용자 요청): 위 막대 휴대폰 → 앱 — 인스타 · 블로그(홍보) · 전화(최근 통화) · 상권 지도(3장에 열려요, 지금은 자물쇠) ──
+let phoneApp = null, callOpen = -1;
+const APPS = [
+  { id: 'insta', name: '인스타' },
+  { id: 'blog', name: '블로그' },
+  { id: 'call', name: '전화' },
+  { id: 'map', name: '상권 지도', lock: true }, // 3장 「길 건너 대결」에서 깔려요 (기획서 3장 탭)
+];
+function openPhone(app) {
+  if (app !== undefined) { phoneApp = app; callOpen = -1; }
+  sheet(phoneHTML(), 'phone');
+  T.sheetPlace = 'shop'; // 홍보는 우리 가게 일로 셈 (sim/town.js townAct)
+}
+function phoneHTML() {
+  const min = townClock(), clock = `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const A = APPS.find(a => a.id === phoneApp);
+  let body;
+  if (!A) body = `<div class="ph-apps">${APPS.map(a => `<button type="button" class="ph-app${a.lock ? ' lock' : ''}" data-ts="app" data-p="${a.id}"><i class="ph-ic ${a.id}">${a.lock ? '<b class="ph-lock"></b>' : ''}</i><span>${a.name}</span></button>`).join('')}</div>`;
+  else {
+    const head = `<div class="ph-head"><button type="button" class="ph-back" data-ts="app" data-p="" aria-label="뒤로">◂</button><b>${A.name}</b></div>`;
+    if (A.id === 'insta') body = head + actRow('shop', 'insta');
+    else if (A.id === 'blog') body = head + actRow('shop', 'blogger');
+    else body = head + callsHTML();
+  }
+  return `<div class="ph"><div class="ph-top"><span>${clock}</span><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><div class="ph-screen">${body}</div></div>`;
+}
+// 최근 통화: 받은 전화(이야기 장면)를 다시 읽어요
+function callsHTML() {
+  const calls = (G.story && G.story.calls) || [];
+  if (!calls.length) return '<p class="ph-note">아직 받은 전화가 없습니다.</p>';
+  return calls.map((c, i) => {
+    const lines = ((SCENES[c.id] && SCENES[c.id].lines) || []).filter(l => CAST[l[0]] && CAST[l[0]].phone);
+    if (!lines.length) return '';
+    const who = CAST[lines[0][0]], open = i === callOpen;
+    return `<button type="button" class="ph-call${open ? ' open' : ''}" data-ts="callOpen" data-i="${i}"><span class="ph-face">${icon('char' + who.char)}</span><span class="ph-cw"><b>${who.name.replace(/ · 전화$/, '')}</b><small>${c.day}일차</small></span></button>`
+      + (open ? `<div class="ph-lines">${lines.map(l => `<p>${l[1].replace(/\{shop\}/g, G.shop)}</p>`).join('')}</div>` : '');
+  }).join('');
+}
+
 function actRow(id, a) {
   const Tn = G.town;
   {
@@ -566,7 +606,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -677,6 +717,7 @@ export function initTown() {
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
+  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); } }); // 휴대폰 (v0.54)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
     const inB = e.target.closest('[data-in]');
@@ -693,6 +734,8 @@ export function initTown() {
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'use') { const u = b.dataset.u; if (runCmd('townUse', { use: u })) { closeSheet(); if (u === 'rest') { T.sitUntil = T.time + 2.5; T.me.path = []; } } }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
+    else if (k === 'app') { const p = b.dataset.p; if (p && APPS.find(a => a.id === p).lock) { toast('아직 깔리지 않은 앱입니다', 'info'); playSfx('tap'); return; } openPhone(p || null); playSfx('tap'); }
+    else if (k === 'callOpen') { const i = +b.dataset.i; callOpen = callOpen === i ? -1 : i; openPhone(); playSfx('tap'); }
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); sheet(bookHTML(bookSel), 'book'); }
@@ -740,6 +783,7 @@ export function refreshTown() {
   else if (s.classList.contains('furn')) showFurn();
   else if (s.classList.contains('chalk')) sheet(boardHTML(), 'chalk');
   else if (s.classList.contains('counter')) openCounter();
+  else if (s.classList.contains('phone')) openPhone();
   else if (s.classList.contains('guild')) sheet(guildHTML(), 'guild');
   else if (s.classList.contains('sales')) sheet(salesHTML(), 'sales');
   else if (s.classList.contains('book')) sheet(bookHTML(bookSel), 'book');
