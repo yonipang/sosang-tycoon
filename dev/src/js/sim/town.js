@@ -64,6 +64,7 @@ function useSlots(n) {
 defineCmd('townAct', ({ place, act }) => {
   const T = G.town, A = ACTS[act];
   if (!townMode() || G.phase !== 'prep' || !PLACES[place] || !A) return false;
+  emit('track', 'town_act', { act, part: T.part });
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (A.cost && !(act === 'market' && (G.town.marketIn || !marketCost())) && G.town.used + A.cost > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
@@ -169,6 +170,7 @@ defineCmd('marketBuyCart', ({ cart }) => {
     T.bought[i] = (T.bought[i] || 0) + n;
   }
   if (T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래
+  emit('track', 'market_buy', { total });
   emit('toast', `재료를 샀습니다 · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
   emit('prep');
@@ -187,6 +189,7 @@ defineCmd('townUse', ({ use }) => {
   const T = G.town;
   if (!townMode() || G.phase !== 'prep' || !USES[use]) return false;
   if (!useOk(use)) { emit('toast', T.fatigue <= 0 ? '지금은 피곤하지 않습니다' : use === 'drink' && T.drink === G.day ? '오늘은 이미 마셨습니다' : use === 'drink' ? '잔고가 모자랍니다' : '더는 쉴 틈이 없습니다', 'info'); return false; }
+  emit('track', 'town_use', { use });
   if (use === 'rest') { useSlots(REST_COST); T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `벤치에 앉아 한숨 돌렸습니다 (피로 ${T.fatigue})`, 'good'); }
   else if (use === 'drink') { G.cash -= DRINK_PRICE; T.drink = G.day; T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `캔커피 한 모금에 정신이 듭니다 (피로 ${T.fatigue})`, 'good'); emit('sfx', 'coin'); }
   if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
@@ -199,6 +202,7 @@ defineCmd('townMeet', ({ char }) => {
   const T = G.town;
   if (!townMode() || G.phase !== 'prep' || metToday(char)) return false;
   (T.met = T.met || []).push(char);
+  emit('track', 'town_meet', { who: char });
   return true;
 });
 // 영업 시작 때: 어젯밤·새벽에 이야기한 손님이 올 시각 (그날 씨앗 rand)

@@ -12,6 +12,7 @@ import { initScreens, renderTitle, refreshCloudUI } from './ui/screens.js';
 import { cloudInit, onCloud, cloudFlush, cloudCheck, CLOUD } from './save/cloud.js';
 import { toast } from './ui/feedback.js';
 import { initFeedback, watchHints, updateSpeech } from './ui/feedback.js';
+import { initAnalytics } from './ui/analytics.js';
 import { initInput } from './ui/input.js';
 import { initStory, updateQuestTrack, updateTutBar } from './ui/story.js';
 import { initIncidentUI } from './ui/incident.js';
@@ -52,6 +53,7 @@ async function boot() {
   initView($('cv'));
   await loadIcons();
   initFeedback();
+  initAnalytics(); // 익명 플레이 기록 (웹앱 주소에서만)
   initInput();
   initStory();
   initIncidentUI();

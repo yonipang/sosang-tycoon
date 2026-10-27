@@ -89,6 +89,7 @@ defineCmd('openShop', () => {
   G.run.blog = bloggerToday() ? { at: PROMO.blogger.at, done: false } : null; // 어젯밤 섭외한 파워블로거
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
+  emit('track', 'day_open', { menus: todayMenus().length, fatigue: (G.town && G.town.fatigue) || 0 }); // 플레이 기록 (ui/analytics.js)
   setPhase('day');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);
   // 보온 통이 있으면 새벽 6시: 재료가 도착하고, 문 열기 전에 미리 끓여 둘 수 있어요 (그동안 가게 시계는 멈춰요)
@@ -130,6 +131,7 @@ defineCmd('rushBuy', ({ menu }) => {
   r.rushExtra += cost - costOf(menu) * RUSH_QTY;
   r.rush.push({ menu, n: RUSH_QTY, t: rushSec() });
   emit('toast', `${MENUS[menu].ing} ${RUSH_QTY}인분을 급하게 주문했습니다. 곧 도착합니다`, 'info');
+  emit('track', 'rush_buy', { menu });
   emit('fridge');
 });
 // 일찍 마감: 새 손님은 받지 않고, 안에 있는 손님만 마저 받아요
@@ -274,6 +276,7 @@ export function endDay() {
   storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
+  emit('track', 'day_close', { revenue: rec.revenue + rec.tips, net: rec.net, served: rec.served, missed: rec.missedTotal, rating: G.rating == null ? 0 : Math.round(G.rating * 10) / 10, reviews: G.ratingN || 0 });
   G.run = null;
   setPhase('receipt');
 }
@@ -309,6 +312,7 @@ defineCmd('afterWeekly', () => {
     emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
     storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
+    emit('track', 'weekly', { bills: B.total, after: Math.round(G.cash / 1000) });
   }
   nextDay();
 });

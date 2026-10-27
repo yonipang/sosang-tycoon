@@ -53,6 +53,7 @@ function complete(id) {
   S.active = S.active.filter(x => x !== id);
   S.done.push(id); S.today.push(id);
   emit('toast', `퀘스트 완료 · ${q.title}`, 'quest');
+  emit('track', 'quest', { id });
   emit('sfx', 'perfect');
   const g = q.give || {};
   if (g.menuNext) openMenu(g.menuNext, false);
@@ -127,6 +128,8 @@ defineCmd('sceneDone', ({ name }) => {
   if (sc.opens === 'tools') S.toolsOpen = true;
   // 가게를 넘겨받을 때: 오 사장님 가게 돈은 사장님이 정리해 가고, 내 돈과 창업 대출로 새로 시작
   tutSceneDone(id);
+  emit('track', 'scene', { id }); // 어디까지 봤나 (그만둔 지점)
+  if (sc.ch !== undefined) emit('track', 'chapter', { to: sc.ch });
   if (sc.money === 'start') { G.cash = START_CASH; G.loan = START_LOAN; G.weekSales = 0; emit('toast', `가게 통장 · ${START_CASH.toLocaleString('ko-KR')}원으로 시작합니다`, 'good'); }
   emit('quest');
   if (G.phase === 'prep') emit('prep');

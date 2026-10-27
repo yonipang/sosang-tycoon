@@ -95,6 +95,7 @@ defineCmd('furnBuyCart', ({ cart }) => {
   for (const [c, k] of L) G.furn.have[c] = k;
   emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
   storyNote('mood', { mood: mood() }); // 2장 미소 사장님 부탁
+  emit('track', 'furn_buy', { n: L.length, price, mood: mood() });
   emit('sfx', 'coin');
   trade();
   emit('prep');

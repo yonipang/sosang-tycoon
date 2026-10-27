@@ -47,6 +47,7 @@ defineCmd('menuUp', ({ menu }) => {
   emit('sfx', 'perfect');
   emit('prep');
   emit('menuUp', menu);
+  emit('track', 'menu_up', { menu, lv });
   return true;
 });
 
@@ -73,6 +74,7 @@ defineCmd('menuDev', ({ menu }) => {
   }
   G.cash -= M.dev;
   storyOpenMenu(menu);
+  emit('track', 'menu_dev', { menu });
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);

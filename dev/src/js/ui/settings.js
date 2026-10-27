@@ -1,8 +1,8 @@
 // 설정 (이 기기에만 기억해요 — 브라우저 저장소. 막혀 있으면 기본값으로)
-//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%) · vibe: 진동 1/0 · talk: 대화 글 0 한 번에 / 1 한 글자씩
+//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%) · vibe: 진동 1/0 · talk: 대화 글 0 한 번에 / 1 한 글자씩 · stats: 플레이 기록 1/0
 const KEY = 'sosang-settings';
 export const LEVELS = [0, 0.25, 0.5, 0.75, 1];
-const S = { music: 4, sfx: 4, vibe: 1, talk: 0 };
+const S = { music: 4, sfx: 4, vibe: 1, talk: 0, stats: 1 }; // stats: 익명 플레이 기록 보내기 (ui/analytics.js)
 try {
   Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}'));
   if (localStorage.getItem('sosang-music') === 'off') S.music = 0; // 옛 「음악 끄기」 버튼 설정

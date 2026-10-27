@@ -1544,7 +1544,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.49';
+const GAME_VERSION = '0.50';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3137,6 +3137,7 @@ function complete(id) {
   S.active = S.active.filter(x => x !== id);
   S.done.push(id); S.today.push(id);
   emit('toast', `퀘스트 완료 · ${q.title}`, 'quest');
+  emit('track', 'quest', { id });
   emit('sfx', 'perfect');
   const g = q.give || {};
   if (g.menuNext) openMenu(g.menuNext, false);
@@ -3211,6 +3212,8 @@ defineCmd('sceneDone', ({ name }) => {
   if (sc.opens === 'tools') S.toolsOpen = true;
   // 가게를 넘겨받을 때: 오 사장님 가게 돈은 사장님이 정리해 가고, 내 돈과 창업 대출로 새로 시작
   tutSceneDone(id);
+  emit('track', 'scene', { id }); // 어디까지 봤나 (그만둔 지점)
+  if (sc.ch !== undefined) emit('track', 'chapter', { to: sc.ch });
   if (sc.money === 'start') { G.cash = START_CASH; G.loan = START_LOAN; G.weekSales = 0; emit('toast', `가게 통장 · ${START_CASH.toLocaleString('ko-KR')}원으로 시작합니다`, 'good'); }
   emit('quest');
   if (G.phase === 'prep') emit('prep');
@@ -3274,6 +3277,7 @@ defineCmd('slotBuy', () => {
   G.cash -= n.price;
   G.menuSlots = n.k + 1;
   emit('toast', `오늘의 메뉴 칸을 늘렸습니다 · ${G.menuSlots}칸`, 'good');
+  emit('track', 'slot_buy', { slots: G.menuSlots });
   emit('sfx', 'coin');
   emit('prep');
   return true;
@@ -3363,6 +3367,7 @@ defineCmd('menuUp', ({ menu }) => {
   emit('sfx', 'perfect');
   emit('prep');
   emit('menuUp', menu);
+  emit('track', 'menu_up', { menu, lv });
   return true;
 });
 
@@ -3389,6 +3394,7 @@ defineCmd('menuDev', ({ menu }) => {
   }
   G.cash -= M.dev;
   storyOpenMenu(menu);
+  emit('track', 'menu_dev', { menu });
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
@@ -3805,6 +3811,7 @@ defineCmd('furnBuyCart', ({ cart }) => {
   for (const [c, k] of L) G.furn.have[c] = k;
   emit('toast', `가게를 꾸몄습니다 · 분위기 ${mood()}`, 'good');
   storyNote('mood', { mood: mood() }); // 2장 미소 사장님 부탁
+  emit('track', 'furn_buy', { n: L.length, price, mood: mood() });
   emit('sfx', 'coin');
   trade();
   emit('prep');
@@ -3889,6 +3896,7 @@ defineCmd('equipUp', ({ id }) => {
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
   G.guild.eq[id] = lv + 1;
+  emit('track', 'equip_up', { id, lv: lv + 1 });
   emit('toast', `${josa(E.name, '을/를')} 손봤습니다 · Lv${lv + 1} ${L.text}`, 'good');
   emit('sfx', 'coin');
   moonTrade();
@@ -3904,6 +3912,7 @@ defineCmd('toolUp', ({ id }) => {
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
   G.guild.tools2.push(id);
+  emit('track', 'tool_up', { id });
   emit('toast', `${josa(T.name, '으로/로')} 바꿨습니다 · ${T.text}`, 'good');
   emit('sfx', 'coin');
   moonTrade();
@@ -3962,6 +3971,7 @@ function useSlots(n) {
 defineCmd('townAct', ({ place, act }) => {
   const T = G.town, A = ACTS[act];
   if (!townMode() || G.phase !== 'prep' || !PLACES[place] || !A) return false;
+  emit('track', 'town_act', { act, part: T.part });
   if (!actNow(place, act)) { emit('toast', placeOpen(place) ? '지금은 할 수 없습니다' : `${PLACES[place].name}은 지금 닫혀 있습니다`, 'info'); return false; }
   if (A.money && G.cash < A.money) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (A.cost && !(act === 'market' && (G.town.marketIn || !marketCost())) && G.town.used + A.cost > slotsHardMax()) { emit('toast', '너무 지쳐서 더는 할 수 없습니다. 가게 문을 열 시간입니다', 'warn'); return false; }
@@ -4067,6 +4077,7 @@ defineCmd('marketBuyCart', ({ cart }) => {
     T.bought[i] = (T.bought[i] || 0) + n;
   }
   if (T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래
+  emit('track', 'market_buy', { total });
   emit('toast', `재료를 샀습니다 · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
   emit('prep');
@@ -4085,6 +4096,7 @@ defineCmd('townUse', ({ use }) => {
   const T = G.town;
   if (!townMode() || G.phase !== 'prep' || !USES[use]) return false;
   if (!useOk(use)) { emit('toast', T.fatigue <= 0 ? '지금은 피곤하지 않습니다' : use === 'drink' && T.drink === G.day ? '오늘은 이미 마셨습니다' : use === 'drink' ? '잔고가 모자랍니다' : '더는 쉴 틈이 없습니다', 'info'); return false; }
+  emit('track', 'town_use', { use });
   if (use === 'rest') { useSlots(REST_COST); T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `벤치에 앉아 한숨 돌렸습니다 (피로 ${T.fatigue})`, 'good'); }
   else if (use === 'drink') { G.cash -= DRINK_PRICE; T.drink = G.day; T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `캔커피 한 모금에 정신이 듭니다 (피로 ${T.fatigue})`, 'good'); emit('sfx', 'coin'); }
   if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
@@ -4097,6 +4109,7 @@ defineCmd('townMeet', ({ char }) => {
   const T = G.town;
   if (!townMode() || G.phase !== 'prep' || metToday(char)) return false;
   (T.met = T.met || []).push(char);
+  emit('track', 'town_meet', { who: char });
   return true;
 });
 // 영업 시작 때: 어젯밤·새벽에 이야기한 손님이 올 시각 (그날 씨앗 rand)
@@ -4680,6 +4693,7 @@ function endIncident(x, ok) {
   const r = G.run, D = INCIDENTS[x.id];
   if (x.state !== 'on') return;
   x.state = ok ? 'win' : 'lose';
+  emit('track', 'incident', { id: x.id, ok: ok ? 1 : 0 });
   if (ok) {
     const bonus = D.kind === 'group' ? 0 : (D.reward || D.tip || 0); // 단체는 아래에서 (낸 아이 수만큼)
     if (bonus) { G.cash += bonus; r.log.tips += bonus; }
@@ -4820,6 +4834,7 @@ defineCmd('openShop', () => {
   G.run.blog = bloggerToday() ? { at: PROMO.blogger.at, done: false } : null; // 어젯밤 섭외한 파워블로거
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
+  emit('track', 'day_open', { menus: todayMenus().length, fatigue: (G.town && G.town.fatigue) || 0 }); // 플레이 기록 (ui/analytics.js)
   setPhase('day');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);
   // 보온 통이 있으면 새벽 6시: 재료가 도착하고, 문 열기 전에 미리 끓여 둘 수 있어요 (그동안 가게 시계는 멈춰요)
@@ -4861,6 +4876,7 @@ defineCmd('rushBuy', ({ menu }) => {
   r.rushExtra += cost - costOf(menu) * RUSH_QTY;
   r.rush.push({ menu, n: RUSH_QTY, t: rushSec() });
   emit('toast', `${MENUS[menu].ing} ${RUSH_QTY}인분을 급하게 주문했습니다. 곧 도착합니다`, 'info');
+  emit('track', 'rush_buy', { menu });
   emit('fridge');
 });
 // 일찍 마감: 새 손님은 받지 않고, 안에 있는 손님만 마저 받아요
@@ -5005,6 +5021,7 @@ function endDay() {
   storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
+  emit('track', 'day_close', { revenue: rec.revenue + rec.tips, net: rec.net, served: rec.served, missed: rec.missedTotal, rating: G.rating == null ? 0 : Math.round(G.rating * 10) / 10, reviews: G.ratingN || 0 });
   G.run = null;
   setPhase('receipt');
 }
@@ -5040,6 +5057,7 @@ defineCmd('afterWeekly', () => {
     emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
     storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
+    emit('track', 'weekly', { bills: B.total, after: Math.round(G.cash / 1000) });
   }
   nextDay();
 });
@@ -6034,10 +6052,10 @@ function drawTown(canvas, S) {
 }
 // ── js/ui/settings.js ──
 // 설정 (이 기기에만 기억해요 — 브라우저 저장소. 막혀 있으면 기본값으로)
-//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%) · vibe: 진동 1/0 · talk: 대화 글 0 한 번에 / 1 한 글자씩
+//  music·sfx: 크기 단계 0~4 (0 = 끔, 4 = 100%) · vibe: 진동 1/0 · talk: 대화 글 0 한 번에 / 1 한 글자씩 · stats: 플레이 기록 1/0
 const KEY = 'sosang-settings';
 const LEVELS = [0, 0.25, 0.5, 0.75, 1];
-const S = { music: 4, sfx: 4, vibe: 1, talk: 0 };
+const S = { music: 4, sfx: 4, vibe: 1, talk: 0, stats: 1 }; // stats: 익명 플레이 기록 보내기 (ui/analytics.js)
 try {
   Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}'));
   if (localStorage.getItem('sosang-music') === 'off') S.music = 0; // 옛 「음악 끄기」 버튼 설정
@@ -6095,6 +6113,49 @@ async function promptInstall() {
   try { await installEvent.userChoice; } catch (e) { /* 무시 */ }
   installEvent = null;
   return true;
+}
+// ── js/ui/analytics.js ──
+// 플레이 기록 (Google Analytics 4 · Firebase 프로젝트 sosang-tycoon) — 만든 사람이 보는 익명 통계예요. 플레이어 화면엔 아무것도 안 보여요.
+//  규칙 코드가 emit('track', 이름, 값)으로 알려 주면 여기서 GA로 보내요 (sim/day.js · sim/story.js · sim/upgrade.js …)
+//  웹앱 주소(github.io)에서만 켜져요 — Claude 미리보기·내 컴퓨터에서 연 파일은 보내지 않아요. 설정 「플레이 기록」에서 끌 수 있어요
+//  이름·이메일은 보내지 않아요 (GA가 기기마다 만드는 임의 번호만)
+
+const GA_ID = 'G-L04Y1ZQLTN';
+const gaLive = () => typeof location !== 'undefined' && /github\.io$/.test(location.hostname);
+let gaReady = false;
+
+function gaTag() { window.dataLayer.push(arguments); }
+function gaLoad() {
+  if (gaReady || !gaLive() || !setting('stats')) return;
+  gaReady = true;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = gaTag;
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+  document.head.appendChild(s);
+  gaTag('js', new Date());
+  gaTag('config', GA_ID, { send_page_view: true });
+}
+// 지금 게임 상태 (이벤트마다 같이 보내요)
+const gaBase = () => ({ day: G.day || 0, ch: (G.story && G.story.ch) || 0, cash: Math.round((G.cash || 0) / 1000) }); // 잔고는 천 원 단위
+function track(name, params = {}) {
+  if (!gaReady || !setting('stats')) return;
+  try { gaTag('event', name, { ...gaBase(), ...params }); } catch (e) { /* 보내기 실패는 무시 */ }
+}
+// 설정에서 끄면 바로 멈춰요 (켜면 다시)
+function statsChanged() {
+  window['ga-disable-' + GA_ID] = !setting('stats');
+  if (setting('stats')) gaLoad();
+}
+
+function initAnalytics() {
+  window['ga-disable-' + GA_ID] = !setting('stats');
+  gaLoad();
+  onEvent('track', (name, params) => track(name, params));
+  onEvent('phase', p => track('phase', { phase: p }));
+  // 앱을 닫거나 다른 앱으로 갈 때: 어디까지 했는지 (그만둔 지점)
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') track('leave', { phase: G.phase, part: (G.town && G.town.on && G.town.part) || '' }); });
 }
 // ── js/ui/sfx.js ──
 // 효과음: 파일 없이 짧은 소리를 만들어요. 첫 터치 뒤에만 소리가 나요(브라우저 규칙).
@@ -8153,6 +8214,11 @@ function renderSettings(from) {
         <div class="row"><span>글 나오는 방식</span>${seg('talk', [[0, '한 번에'], [1, '한 글자씩']])}</div>
       </div>
       <div class="set-card">
+        <small class="set-h">플레이 기록</small>
+        <div class="row"><span>익명으로 보내기</span>${seg('stats', [[1, '켬'], [0, '끔']])}</div>
+        <p class="set-note">게임을 고치는 데 쓰는 익명 통계입니다. 이름·이메일은 보내지 않습니다</p>
+      </div>
+      <div class="set-card">
         <small class="set-h">홈 화면에 추가</small>
         ${installRow()}
       </div>
@@ -8259,7 +8325,7 @@ function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
-    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'stats') statsChanged(); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
@@ -8491,6 +8557,7 @@ async function boot() {
   initView($('cv'));
   await loadIcons();
   initFeedback();
+  initAnalytics(); // 익명 플레이 기록 (웹앱 주소에서만)
   initInput();
   initStory();
   initIncidentUI();

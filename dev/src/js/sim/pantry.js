@@ -42,6 +42,7 @@ defineCmd('slotBuy', () => {
   G.cash -= n.price;
   G.menuSlots = n.k + 1;
   emit('toast', `오늘의 메뉴 칸을 늘렸습니다 · ${G.menuSlots}칸`, 'good');
+  emit('track', 'slot_buy', { slots: G.menuSlots });
   emit('sfx', 'coin');
   emit('prep');
   return true;

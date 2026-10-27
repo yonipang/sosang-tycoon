@@ -60,6 +60,7 @@ defineCmd('equipUp', ({ id }) => {
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
   G.guild.eq[id] = lv + 1;
+  emit('track', 'equip_up', { id, lv: lv + 1 });
   emit('toast', `${josa(E.name, '을/를')} 손봤습니다 · Lv${lv + 1} ${L.text}`, 'good');
   emit('sfx', 'coin');
   moonTrade();
@@ -75,6 +76,7 @@ defineCmd('toolUp', ({ id }) => {
   if (price > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   G.cash -= price;
   G.guild.tools2.push(id);
+  emit('track', 'tool_up', { id });
   emit('toast', `${josa(T.name, '으로/로')} 바꿨습니다 · ${T.text}`, 'good');
   emit('sfx', 'coin');
   moonTrade();

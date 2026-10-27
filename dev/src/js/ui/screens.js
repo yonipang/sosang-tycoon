@@ -28,6 +28,7 @@ import { QUESTS, CHAPTERS } from '../data/story.js';
 import { TOOLS, TOOL_IDS } from '../data/tools.js';
 import { INCIDENTS } from '../data/incidents.js';
 import { DEV_JUMPS } from '../sim/dev.js';
+import { statsChanged } from './analytics.js';
 import { FOOT_REPORT } from '../data/district.js';
 
 const scr = () => $('screen');
@@ -469,6 +470,11 @@ export function renderSettings(from) {
         <div class="row"><span>글 나오는 방식</span>${seg('talk', [[0, '한 번에'], [1, '한 글자씩']])}</div>
       </div>
       <div class="set-card">
+        <small class="set-h">플레이 기록</small>
+        <div class="row"><span>익명으로 보내기</span>${seg('stats', [[1, '켬'], [0, '끔']])}</div>
+        <p class="set-note">게임을 고치는 데 쓰는 익명 통계입니다. 이름·이메일은 보내지 않습니다</p>
+      </div>
+      <div class="set-card">
         <small class="set-h">홈 화면에 추가</small>
         ${installRow()}
       </div>
@@ -575,7 +581,7 @@ export function initScreens(onStart) {
       if (b.dataset.k === 'music') { previewing = true; setMusic(setting('music') ? 'oh' : musicBefore); } // 크기를 바꾸면 테마곡을 미리 들려줘요
       playSfx('tap'); renderSettings();
     }
-    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
+    else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'stats') statsChanged(); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }

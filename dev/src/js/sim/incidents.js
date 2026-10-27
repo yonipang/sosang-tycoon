@@ -114,6 +114,7 @@ function endIncident(x, ok) {
   const r = G.run, D = INCIDENTS[x.id];
   if (x.state !== 'on') return;
   x.state = ok ? 'win' : 'lose';
+  emit('track', 'incident', { id: x.id, ok: ok ? 1 : 0 });
   if (ok) {
     const bonus = D.kind === 'group' ? 0 : (D.reward || D.tip || 0); // 단체는 아래에서 (낸 아이 수만큼)
     if (bonus) { G.cash += bonus; r.log.tips += bonus; }
