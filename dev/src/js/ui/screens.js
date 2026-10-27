@@ -435,19 +435,14 @@ function installRow() {
 }
 // 클라우드 저장 (save/cloud.js): 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브를 저절로 써요
 const escName = () => String(CLOUD.user ? CLOUD.user.name : '').replace(/[&<>"']/g, '');
-// 클라우드 백업 (v0.55): 다른 게임에 덮여 밀려난 세이브 — 누르면 지금 세이브와 자리를 바꿔요
-function backupRow() {
-  const b = cloudBackup();
-  if (!b) return '';
-  return `<div class="row cl-backup"><span>백업<br><small>${summaryLine(b.data)}</small></span><button type="button" class="btn small" data-act="cloudRestore">불러오기</button></div>`
-    + '<p class="set-note">다른 게임에 덮인 예전 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p>';
-}
-// 이 기기 백업 (v0.56): 「처음부터 다시 하기」나 클라우드 세이브로 바꾸기 직전의 세이브 하나 — 처음 화면·준비 화면에서만 불러와요
-function localBackupCard() {
-  const t = localBackupText();
-  if (!t || !saveSummary(t) || (G.phase !== 'title' && G.phase !== 'prep')) return '';
-  return `<div class="set-card"><small class="set-h">이 기기 백업</small><div class="row cl-backup"><span>${summaryLine(t)}</span><button type="button" class="btn small" data-act="localRestore">불러오기</button></div>
-    <p class="set-note">처음부터 다시 하거나 다른 세이브로 바꾸기 전의 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p></div>`;
+// 기기 저장 · 기기 데이터 불러오기 (v0.57 사용자 요청): 설정 맨 아래 작은 글자 버튼 둘. 이 기기에 따로 한 칸(BACKUP_KEY)
+//  「처음부터 다시 하기」·클라우드 세이브로 바꾸기 직전 세이브도 이 칸에 들어가요. 불러오면 지금 진행과 자리를 바꿔요
+const localBackup = () => { const t = localBackupText(); return t && saveSummary(t) ? t : ''; };
+function deviceLinks() {
+  if (G.phase !== 'title' && G.phase !== 'prep') return ''; // 영업 중엔 저장하지 않아요
+  const save = hasSave() ? '<button type="button" class="set-mini" data-act="devSave">기기 저장</button>' : '';
+  const load = localBackup() ? '<button type="button" class="set-mini" data-act="devLoad">기기 데이터 불러오기</button>' : '';
+  return save || load ? `<div class="set-minis">${save}${load}</div>` : '';
 }
 // 마지막으로 올린 때 · 실패 이유 (v0.56 — 안 올라가면 바로 알 수 있게)
 const hhmm = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -460,7 +455,7 @@ function accountRows() {
   const st = CLOUD.st;
   if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
     + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`
-    + upLine() + backupRow();
+    + upLine();
   if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
     + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
       : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
@@ -505,10 +500,10 @@ export function renderSettings(from) {
         <small class="set-h">계정 · 클라우드 저장</small>
         ${accountRows()}
       </div>
-      ${localBackupCard()}
       ${G.phase !== 'title' ? `<button class="btn" data-act="toTitle">처음 화면으로${G.run ? ' <small>(오늘 영업은 저장되지 않습니다)</small>' : ''}</button>` : ''}
       <button class="btn" data-act="credits">크레딧</button>
       <p class="set-ver" data-act="ver">소상공인 키우기 · 프로토타입 v${GAME_VERSION}</p>
+      ${deviceLinks()}
       ${hasSave() || G.phase !== 'title' ? '<button type="button" class="set-restart" data-act="restart">처음부터 다시 하기</button>' : ''}
     </div>`, 'scr-settings');
 }
@@ -608,17 +603,19 @@ export function initScreens(onStart) {
     else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'stats') statsChanged(); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
-    else if (a === 'cloudRestore') { playSfx('tap'); cloudRestore(); }
-    else if (a === 'localRestore') { // 이 기기 백업과 자리 바꾸기 (v0.56)
+    else if (a === 'devSave') { backupLocal(); playSfx('coin'); toast(`이 기기에 따로 저장했습니다 · ${summaryLine(localBackupText())}`, 'good'); renderSettings(); }
+    else if (a === 'devLoad') {
       playSfx('tap');
-      if (!swapLocalBackup()) { toast('백업을 불러오지 못했습니다', 'warn'); return; }
-      if (G.phase === 'title') renderTitle(); else if (loadGame()) { setMusic(null); onStart(); }
-      toast('이 기기 백업을 불러왔습니다', 'good'); cloudSaved();
+      askConfirm(`기기에 저장한 데이터를 불러올까요?<br><small>${summaryLine(localBackup())}<br>지금 진행은 대신 기기 저장 칸에 들어갑니다.</small>`, '불러오기', () => {
+        if (!swapLocalBackup()) { toast('기기 데이터를 불러오지 못했습니다', 'warn'); return; }
+        if (G.phase === 'title') renderTitle(); else if (loadGame()) { setMusic(null); onStart(); }
+        toast('기기 데이터를 불러왔습니다', 'good'); cloudSaved();
+      });
     }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       playSfx('tap');
-      askConfirm('정말 처음부터 다시 할까요?<br><small>지금 가게는 이 기기 백업으로 남아서, 설정 「이 기기 백업」에서 다시 불러올 수 있습니다.</small>', '다시 시작', () => {
+      askConfirm('정말 처음부터 다시 할까요?<br><small>지금 가게는 예전 세이브로 남아서, 설정 맨 아래 「예전 세이브 불러오기」에서 다시 불러올 수 있습니다.</small>', '다시 시작', () => {
         backupLocal(); clearSave(); setMusic(null); G.run = null; G.phase = 'title'; renderTitle(); playSfx('page');
       });
     }

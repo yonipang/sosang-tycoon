@@ -1066,3 +1066,6 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .pick-save small { color: var(--ink-soft); font-size: 16px; }
 .pick-save b { font-weight: normal; font-size: 20px; }
 .pick-save span { color: var(--ink-soft); font-size: 16px; }
+.cl-backup small { color: var(--ink-soft); font-size: 16px; }
+.set-minis { display: flex; justify-content: center; gap: 16px; margin-top: 14px; } /* 기기 저장 · 기기 데이터 불러오기 (v0.57): 작은 글자 버튼 */
+.set-mini { background: none; border: 0; padding: 6px 4px; color: var(--paper); opacity: .8; font: inherit; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
