@@ -36,6 +36,7 @@
 - 기록 이름: `phase` · `leave`(앱을 닫은 지점) · `day_open` · `day_close`(revenue·net·served·missed·rating·reviews) · `weekly` · `quest` · `scene` · `chapter` · `menu_dev` · `menu_up` · `furn_buy` · `slot_buy` · `town_act` · `town_use` · `town_meet` · `market_buy` · `rush_buy` · `equip_up` · `tool_up` · `incident`(id·ok). 새 기능을 만들면 여기와 같이 더해요.
 - BigQuery: Google Cloud 프로젝트 `sosang-tycoon`, 위치 서울(`asia-northeast3`), 매일 내보내기(하루 늦게 들어옴 · 무료 샌드박스라 60일 지나면 지워짐). 표는 `events_YYYYMMDD`, 값은 `event_params`(key / value.int_value·string_value…).
 - 읽기 키(서비스 계정 JSON, BigQuery 데이터 뷰어 + 작업 사용자)는 **저장소에 절대 올리지 않아요** (공개 저장소). claude.ai 프로젝트 문서 `claude/bigquery-key.json`에 있어요 → `Projects project_read`로 꺼내 작업 공간에만 두고 써요. 서비스 계정 `claude-reader@sosang-tycoon.iam.gserviceaccount.com`(BigQuery 데이터 뷰어 + BigQuery 사용자).
+- 조회: `python3 dev/qa/bq.py --ls` / `python3 dev/qa/bq.py "SELECT …"` (키는 `/root/.sosang/bq-key.json` 또는 환경 변수 `BQ_KEY`, `pip install --break-system-packages google-auth requests`). `bq` 명령줄 도구는 프록시에서 인증이 안 돼요.
 - 작업 공간에서 닿으려면 claude.ai 설정 → 기능(Capabilities)의 허용 도메인에 `oauth2.googleapis.com`·`bigquery.googleapis.com`이 있어야 해요 (없으면 프록시가 403).
 
 ## 나중에 (프로토타입 확인 뒤)
