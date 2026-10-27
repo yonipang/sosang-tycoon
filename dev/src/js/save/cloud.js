@@ -124,6 +124,27 @@ export async function cloudUpload(force) {
   finally { CLOUD.busy = false; }
 }
 
+// 클라우드 백업 (v0.55 사용자 요청): 다른 게임에 덮여 백업(prev)으로 밀려난 세이브를 다시 꺼내요.
+//  지금 세이브와 서로 자리를 바꿔요(지금 것이 백업으로) — 그래서 잘못 눌러도 다시 바꿀 수 있어요.
+export const cloudBackup = () => (CLOUD.st === 'in' && CLOUD.doc && CLOUD.doc.prev && CLOUD.doc.prev.data ? CLOUD.doc.prev : null);
+export async function cloudRestore() {
+  const b = cloudBackup();
+  if (!b || CLOUD.busy) return false;
+  // 꺼낸 세이브는 「지금 저장한 것」으로 (저장 시각이 옛날이면 다음 확인 때 또 바꿔 넣으려 해요)
+  let data;
+  try { const o = JSON.parse(b.data); o.meta = o.meta || {}; o.meta.at = Date.now(); data = JSON.stringify(o); } catch (e) { changed('백업을 읽을 수 없습니다', 'warn'); return false; }
+  const sv = saveSummary(data), cur = CLOUD.doc;
+  const doc = { data, at: sv.at, id: sv.id, day: sv.day, shop: sv.shop, ch: sv.ch, v: 1 };
+  if (cur && cur.data && cur.id !== sv.id) doc.prev = { data: cur.data, at: cur.at || 0, id: cur.id || '', day: cur.day || 1, shop: cur.shop || '' };
+  if (doc.prev && doc.prev.data.length + data.length > 900000) delete doc.prev; // 문서 한 개 한도(1MB) 안으로
+  CLOUD.busy = true;
+  try { await CLOUD.api.put(CLOUD.user.uid, doc); } catch (e) { changed(cloudErr(e), 'warn'); return false; } finally { CLOUD.busy = false; }
+  CLOUD.doc = doc; CLOUD.lastUp = doc.at; CLOUD.pending = doc;
+  if (!tryApply()) changed('백업을 불러왔습니다. 다음 준비 화면에서 이어집니다', 'info'); // 영업 중이면 기다렸다가 (applier.can)
+  else changed();
+  return true;
+}
+
 // 한 줄 요약: 「3일차 · 오가네 분식 · 10월 25일 14:02」
 export function summaryLine(text) {
   const s = saveSummary(text);

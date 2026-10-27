@@ -11,7 +11,7 @@ import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/up
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus, nextSlot } from '../sim/pantry.js';
 import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave } from '../save/storage.js';
-import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine } from '../save/cloud.js';
+import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine, cloudBackup, cloudRestore } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
 import { townMode } from '../sim/town.js';
 import { showTown, hideTown } from './town.js';
@@ -435,10 +435,18 @@ function installRow() {
 }
 // 클라우드 저장 (save/cloud.js): 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브를 저절로 써요
 const escName = () => String(CLOUD.user ? CLOUD.user.name : '').replace(/[&<>"']/g, '');
+// 클라우드 백업 (v0.55): 다른 게임에 덮여 밀려난 세이브 — 누르면 지금 세이브와 자리를 바꿔요
+function backupRow() {
+  const b = cloudBackup();
+  if (!b) return '';
+  return `<div class="row cl-backup"><span>백업<br><small>${summaryLine(b.data)}</small></span><button type="button" class="btn small" data-act="cloudRestore">불러오기</button></div>`
+    + '<p class="set-note">다른 게임에 덮인 예전 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p>';
+}
 function accountRows() {
   const st = CLOUD.st;
   if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
-    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`;
+    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`
+    + backupRow();
   if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
     + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
       : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
@@ -584,6 +592,7 @@ export function initScreens(onStart) {
     else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'stats') statsChanged(); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
+    else if (a === 'cloudRestore') { playSfx('tap'); cloudRestore(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       playSfx('tap');

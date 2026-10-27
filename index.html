@@ -1059,6 +1059,11 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .ph-cw small { color: var(--ink-soft); font-size: 16px; }
 .ph-lines { padding: 6px 10px; background: #fffaf0; border: 2px solid var(--ink); border-top: 0; font-size: 16px; line-height: 1.5; }
 .ph-lines p { margin: 4px 0; word-break: keep-all; }
+
+/* 클라우드 백업 줄 (v0.55) */
+.cl-backup span { line-height: 1.3; }
+.cl-backup small { color: var(--ink-soft); font-size: 16px; }
+.cl-backup .btn { flex: none; white-space: nowrap; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1599,7 +1604,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.54';
+const GAME_VERSION = '0.55';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3154,6 +3159,27 @@ async function cloudUpload(force) {
   try { await CLOUD.api.put(CLOUD.user.uid, doc); CLOUD.doc = doc; CLOUD.lastUp = doc.at; changed(); return true; }
   catch (e) { changed(cloudErr(e), 'warn'); return false; }
   finally { CLOUD.busy = false; }
+}
+
+// 클라우드 백업 (v0.55 사용자 요청): 다른 게임에 덮여 백업(prev)으로 밀려난 세이브를 다시 꺼내요.
+//  지금 세이브와 서로 자리를 바꿔요(지금 것이 백업으로) — 그래서 잘못 눌러도 다시 바꿀 수 있어요.
+const cloudBackup = () => (CLOUD.st === 'in' && CLOUD.doc && CLOUD.doc.prev && CLOUD.doc.prev.data ? CLOUD.doc.prev : null);
+async function cloudRestore() {
+  const b = cloudBackup();
+  if (!b || CLOUD.busy) return false;
+  // 꺼낸 세이브는 「지금 저장한 것」으로 (저장 시각이 옛날이면 다음 확인 때 또 바꿔 넣으려 해요)
+  let data;
+  try { const o = JSON.parse(b.data); o.meta = o.meta || {}; o.meta.at = Date.now(); data = JSON.stringify(o); } catch (e) { changed('백업을 읽을 수 없습니다', 'warn'); return false; }
+  const sv = saveSummary(data), cur = CLOUD.doc;
+  const doc = { data, at: sv.at, id: sv.id, day: sv.day, shop: sv.shop, ch: sv.ch, v: 1 };
+  if (cur && cur.data && cur.id !== sv.id) doc.prev = { data: cur.data, at: cur.at || 0, id: cur.id || '', day: cur.day || 1, shop: cur.shop || '' };
+  if (doc.prev && doc.prev.data.length + data.length > 900000) delete doc.prev; // 문서 한 개 한도(1MB) 안으로
+  CLOUD.busy = true;
+  try { await CLOUD.api.put(CLOUD.user.uid, doc); } catch (e) { changed(cloudErr(e), 'warn'); return false; } finally { CLOUD.busy = false; }
+  CLOUD.doc = doc; CLOUD.lastUp = doc.at; CLOUD.pending = doc;
+  if (!tryApply()) changed('백업을 불러왔습니다. 다음 준비 화면에서 이어집니다', 'info'); // 영업 중이면 기다렸다가 (applier.can)
+  else changed();
+  return true;
 }
 
 // 한 줄 요약: 「3일차 · 오가네 분식 · 10월 25일 14:02」
@@ -8400,10 +8426,18 @@ function installRow() {
 }
 // 클라우드 저장 (save/cloud.js): 구글 로그인 버튼 하나. 같은 계정이면 어느 기기에서든 더 최근 세이브를 저절로 써요
 const escName = () => String(CLOUD.user ? CLOUD.user.name : '').replace(/[&<>"']/g, '');
+// 클라우드 백업 (v0.55): 다른 게임에 덮여 밀려난 세이브 — 누르면 지금 세이브와 자리를 바꿔요
+function backupRow() {
+  const b = cloudBackup();
+  if (!b) return '';
+  return `<div class="row cl-backup"><span>백업<br><small>${summaryLine(b.data)}</small></span><button type="button" class="btn small" data-act="cloudRestore">불러오기</button></div>`
+    + '<p class="set-note">다른 게임에 덮인 예전 세이브입니다. 불러오면 지금 세이브가 대신 백업이 됩니다.</p>';
+}
 function accountRows() {
   const st = CLOUD.st;
   if (st === 'in') return `<div class="row"><span class="cl-name">${escName()}</span><button type="button" class="btn ghost small" data-act="cloudLogout">로그아웃</button></div>`
-    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`;
+    + `<p class="set-note">${CLOUD.doc ? `클라우드 · ${summaryLine(CLOUD.doc.data)} 저장` : '아직 클라우드에 올린 세이브가 없습니다.'}<br>같은 계정으로 로그인하면 어느 기기에서든 이어서 할 수 있습니다.</p>`
+    + backupRow();
   if (st === 'out' || st === 'na') return '<div class="row"><span>구글 로그인</span><button type="button" class="btn small" data-act="cloudLogin">로그인</button></div>'
     + (st === 'na' && CLOUD.err !== 'load' ? `<p class="set-note">Claude 안에서는 로그인할 수 없습니다. 웹앱 주소에서 로그인해 보세요.<br><a href="${WEBAPP_URL}" target="_blank" rel="noopener">${WEBAPP_URL.replace('https://', '')}</a></p>`
       : '<p class="set-note">로그인하면 새벽 준비 때마다 클라우드에 저장되고, 어느 기기에서든 이어서 할 수 있습니다.</p>');
@@ -8549,6 +8583,7 @@ function initScreens(onStart) {
     else if (a === 'setOpt') { setOption(b.dataset.k, +b.dataset.v); playSfx('tap'); if (b.dataset.k === 'stats') statsChanged(); if (b.dataset.k === 'vibe' && +b.dataset.v) vibrate([12, 40, 12]); renderSettings(); } // 진동을 켜면 한 번 울려 봐요
     else if (a === 'cloudLogin') { playSfx('tap'); cloudLogin(); }
     else if (a === 'cloudLogout') { playSfx('tap'); cloudLogout(); }
+    else if (a === 'cloudRestore') { playSfx('tap'); cloudRestore(); }
     else if (a === 'install') { promptInstall().then(() => renderSettings()); }
     else if (a === 'restart') {
       playSfx('tap');

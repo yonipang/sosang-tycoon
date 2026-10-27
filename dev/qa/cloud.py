@@ -106,6 +106,17 @@ with sync_playwright() as p:
     c = cloud(pg)
     check(c['day'] == 1 and c.get('prev', {}).get('day') == 9, '새 가게 1일차 올림 · 9일차는 클라우드 백업')
 
+    print('7b. 설정 「백업 불러오기」 → 9일차로 돌아가고, 1일차가 대신 백업 (v0.55 사용자 요청)')
+    pg.click('#bSet'); pg.wait_for_timeout(300)
+    check(pg.locator('[data-act=cloudRestore]').count() == 1, '설정에 백업 불러오기 버튼')
+    pg.locator('[data-act=cloudRestore]').scroll_into_view_if_needed(); shot(pg, '7b-settings-backup')
+    pg.click('[data-act=cloudRestore]'); pg.wait_for_timeout(800); skip_cut(pg)
+    c = cloud(pg)
+    check(c['day'] == 9 and c.get('prev', {}).get('day') == 1, '클라우드 9일차 · 1일차는 백업')
+    check(local_day() == 9 and pg.evaluate('__T.G.day') == 9, '게임이 9일차로 돌아감')
+    pg.wait_for_timeout(3600)
+    check(cloud(pg)['day'] == 9, '불러온 뒤 다시 덮이지 않음')
+
     print('8. 로그아웃')
     pg.click('#bSet'); pg.wait_for_timeout(300)
     pg.click('[data-act=cloudLogout]'); pg.wait_for_timeout(300)
