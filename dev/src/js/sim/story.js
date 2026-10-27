@@ -137,6 +137,15 @@ defineCmd('sceneDone', ({ name }) => {
   if (G.phase === 'prep') emit('prep');
 });
 
+// 휴대폰을 처음 열 때 안내 카드 한 번 (v0.61 · G.story.phoneSeen)
+defineCmd('phoneHelp', () => {
+  const S = G.story;
+  if (!S || S.phoneSeen) return false;
+  S.phoneSeen = true; S.queue.unshift('phone1');
+  emit('story');
+  return true;
+});
+
 // 준비 화면에서 돈 내는 퀘스트 (예: 튀김기 수리비)
 defineCmd('questPay', ({ id }) => {
   const q = QUESTS[id];

@@ -86,7 +86,10 @@ def town_night_dawn(pg):
     if 'order' not in seen:  # 휴대폰 「식자재 주문」(v0.59): 정가 · 시간 안 씀 · 친밀도 없음
         seen.append('order')
         used, bond, cash = pg.evaluate('__T.G.town.used'), pg.evaluate('JSON.stringify(__T.G.bond.pts)'), pg.evaluate('__T.G.cash')
-        pg.click('[data-tb=phone]'); pg.wait_for_timeout(80); pg.click('[data-ts=app][data-p=order]'); pg.wait_for_timeout(80)
+        pg.click('[data-tb=phone]'); pg.wait_for_timeout(120)
+        if pg.evaluate("!document.getElementById('talk').hidden"): shot(pg, '9g-phone-help'); talk(pg)  # 처음 열면 휴대폰 안내 카드 (v0.61)
+        else: errs.append('휴대폰을 처음 열었는데 안내 카드가 안 나와요')
+        pg.click('[data-ts=app][data-p=order]'); pg.wait_for_timeout(80)
         pg.click('[data-ts=fill]'); pg.wait_for_timeout(50); pg.locator('.mk-tile[data-i=ddeok]').click(); pg.wait_for_timeout(50)
         shot(pg, '9f-phone-order')
         pg.click('[data-ts=buyCart]'); pg.wait_for_timeout(80)

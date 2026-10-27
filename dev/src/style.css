@@ -377,6 +377,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 @keyframes guidePulse { 50% { outline-color: #fff6d6; } }
 #screen.guiding { padding-top: 190px; padding-bottom: 40px; } /* 길잡이 대화가 위에 있어서 짚은 곳이 가려지지 않게 */
 .talk.guide { background: none; }
+.talk.low { justify-content: flex-end; padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 24px); } /* 가리키는 곳이 위쪽일 때 대화 상자는 아래에 */
 .toast.who { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-left: 0; }
 .toast.who .q-face { width: 32px; height: 24px; border: 0; border-right: 2px solid var(--ink); }
 .toast.who .q-face img { margin-top: -14px; }
@@ -754,6 +755,7 @@ button.slot:active { transform: translateY(2px); }
 .tip-tag { display: inline-block; color: #f2d33a; letter-spacing: 1px; margin-bottom: 6px; }
 .tip-pics { display: flex; justify-content: center; gap: 12px; padding: 12px; margin-bottom: 8px; background: var(--paper-2); border: 2px solid #f2d33a; }
 .tip-pic img { display: block; width: 48px; height: auto; image-rendering: pixelated; }
+.tip-pic .ph-ic { color: var(--ink); } /* 휴대폰 앱 아이콘 (v0.61) */
 .tip-card p { margin: 0 0 12px; font-size: 16px; word-break: keep-all; }
 .tip-card .btn { display: inline-block; min-width: 120px; background: #ff3d8b; text-shadow: 0 2px 0 #a3134f; }
 body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 위에 (아래 창을 가리지 않게) */

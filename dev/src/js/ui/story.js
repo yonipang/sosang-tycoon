@@ -93,10 +93,11 @@ function drawScene() {
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
     const [who, text, at, pic] = sc.lines[open.i];
-    if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
+    if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic, sc.tipTag); playSfx('page'); return; }
     if (callStarts(sc.lines, open.i) && open.rung !== open.i && !(open.i === 0 && open.cont === who)) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
-    box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
+    const g = guide(at), low = g && guideEl.getBoundingClientRect().top < innerHeight * 0.35; // 가리키는 곳이 위쪽이면 대화 상자를 아래로 (v0.61 — 위 막대 휴대폰)
+    box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (g ? ' guide' : '') + (low ? ' low' : '');
     box.innerHTML = lineHTML(who, text);
     typeIn(box);
     return;
@@ -107,9 +108,10 @@ function drawScene() {
 }
 
 // 장사 요령 카드 (오 사장님 가게 길잡이 — 데이브 더 다이버의 요령 카드처럼): 그림 · 한두 문장 · 확인
-function tipHTML(text, pic) {
-  const pics = [].concat(pic || []).map(n => `<span class="tip-pic">${icon(n)}</span>`).join('');
-  return `<div class="tip-card"><small class="tip-tag">장사 요령</small>${pics ? `<div class="tip-pics">${pics}</div>` : ''}<p>${fill(text)}</p><span class="btn primary">확인</span></div>`;
+//  tag: 위 작은 글자 (없으면 「장사 요령」) · 그림 'ph:이름'은 휴대폰 앱 아이콘 (style.css .ph-ic)
+function tipHTML(text, pic, tag) {
+  const pics = [].concat(pic || []).map(n => `<span class="tip-pic">${n.startsWith('ph:') ? `<i class="ph-ic ${n.slice(3)}"></i>` : icon(n)}</span>`).join('');
+  return `<div class="tip-card"><small class="tip-tag">${tag || '장사 요령'}</small>${pics ? `<div class="tip-pics">${pics}</div>` : ''}<p>${fill(text)}</p><span class="btn primary">확인</span></div>`;
 }
 
 // 오 사장님이 시키는 일: 가게 그림 아래쪽 띠 (화살표는 render/view.js). 매 프레임 불러요 (main.js)

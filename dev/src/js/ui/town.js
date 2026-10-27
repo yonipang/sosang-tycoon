@@ -305,7 +305,7 @@ function renderBar() {
     <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
     <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>
-    <button type="button" class="tb-phone" data-tb="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
+    <button type="button" class="tb-phone" data-tb="phone" data-guide="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
 }
 
 // 할 일이 있는 곳 「!」: 시장(오늘 아직 재료를 안 샀으면) · 장을 봤으면 우리 가게(열기)
@@ -719,7 +719,7 @@ export function initTown() {
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
-  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); } }); // 휴대폰 (v0.54)
+  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); runCmd('phoneHelp'); } }); // 휴대폰 (v0.54) · 처음 열면 안내 카드 (v0.61)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
     const inB = e.target.closest('[data-in]');

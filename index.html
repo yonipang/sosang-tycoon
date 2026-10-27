@@ -382,6 +382,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 @keyframes guidePulse { 50% { outline-color: #fff6d6; } }
 #screen.guiding { padding-top: 190px; padding-bottom: 40px; } /* 길잡이 대화가 위에 있어서 짚은 곳이 가려지지 않게 */
 .talk.guide { background: none; }
+.talk.low { justify-content: flex-end; padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 24px); } /* 가리키는 곳이 위쪽일 때 대화 상자는 아래에 */
 .toast.who { display: flex; align-items: center; gap: 6px; text-align: left; background: var(--paper); color: var(--ink); border-color: var(--ink); padding-left: 0; }
 .toast.who .q-face { width: 32px; height: 24px; border: 0; border-right: 2px solid var(--ink); }
 .toast.who .q-face img { margin-top: -14px; }
@@ -759,6 +760,7 @@ button.slot:active { transform: translateY(2px); }
 .tip-tag { display: inline-block; color: #f2d33a; letter-spacing: 1px; margin-bottom: 6px; }
 .tip-pics { display: flex; justify-content: center; gap: 12px; padding: 12px; margin-bottom: 8px; background: var(--paper-2); border: 2px solid #f2d33a; }
 .tip-pic img { display: block; width: 48px; height: auto; image-rendering: pixelated; }
+.tip-pic .ph-ic { color: var(--ink); } /* 휴대폰 앱 아이콘 (v0.61) */
 .tip-card p { margin: 0 0 12px; font-size: 16px; word-break: keep-all; }
 .tip-card .btn { display: inline-block; min-width: 120px; background: #ff3d8b; text-shadow: 0 2px 0 #a3134f; }
 body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 위에 (아래 창을 가리지 않게) */
@@ -1630,7 +1632,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.60';
+const GAME_VERSION = '0.61';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2286,12 +2288,22 @@ const SCENES = {
       ['ohPhone', '가게 안 칠판도 봐라. 많이 판 메뉴는 손에 익고, 손에 익으면 거기서 레시피를 손볼 수 있다.'],
     ],
   },
+  // 휴대폰을 처음 열 때 안내 카드 (v0.61 사용자 요청 — 오 사장님 말이 아니라 시스템 안내) · 그림 'ph:이름'은 휴대폰 앱 아이콘 (ui/story.js tipHTML)
+  phone1: {
+    tipTag: '휴대폰',
+    lines: [
+      ['tip', '인스타·블로그로 가게를 홍보합니다. 인스타는 학생 손님을, 파워블로거는 직장인·어르신 손님을 다음 영업에 더 데려옵니다. 홍보마다 1시간이 듭니다.', null, ['ph:insta', 'ph:blog']],
+      ['tip', '식자재 주문은 시간을 쓰지 않고 재료를 바로 받습니다. 값은 정가입니다. 정 사장 식자재에 직접 가면 특가와 단골가가 있습니다.', null, ['ph:order']],
+      ['tip', '전화에서는 지난 통화를 다시 볼 수 있습니다. 상권 지도는 아직 잠겨 있습니다.', null, ['ph:call', 'ph:map']],
+    ],
+  },
   // 마을 첫 밤 안내 (오 사장님 전화들이 다 끝난 뒤 — sim/town.js townEnterNight, v0.60)
   town1h: {
     lines: [
       [null, '장사를 마치면 밤 9시부터 일곱 시간 동안 일할 수 있습니다. 장보기·청소·오픈 준비는 어떤 차례로 해도 되고, 가게는 아무 때나 열 수 있습니다.'],
       [null, '일곱 시간을 넘겨 일하면 피로가 쌓여 걸음이 느려지고, 시간을 남기고 가게를 열면 피로가 풀립니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
+      [null, '위 막대 오른쪽은 휴대폰입니다. 홍보와 식자재 주문을 여기서 합니다.', 'phone'],
     ],
   },
   // 마을 이전 세이브를 새벽부터 이어 갈 때 (save/migrations.js)
@@ -3418,6 +3430,15 @@ defineCmd('sceneDone', ({ name }) => {
   if (sc.money === 'start') { G.cash = START_CASH; G.loan = START_LOAN; G.weekSales = 0; emit('toast', `가게 통장 · ${START_CASH.toLocaleString('ko-KR')}원으로 시작합니다`, 'good'); }
   emit('quest');
   if (G.phase === 'prep') emit('prep');
+});
+
+// 휴대폰을 처음 열 때 안내 카드 한 번 (v0.61 · G.story.phoneSeen)
+defineCmd('phoneHelp', () => {
+  const S = G.story;
+  if (!S || S.phoneSeen) return false;
+  S.phoneSeen = true; S.queue.unshift('phone1');
+  emit('story');
+  return true;
 });
 
 // 준비 화면에서 돈 내는 퀘스트 (예: 튀김기 수리비)
@@ -6708,10 +6729,11 @@ function drawScene() {
   if (sc.paper) { box.className = 'talk paper-mode'; box.innerHTML = paperHTML(sc); return; }
   if (open.i < sc.lines.length) {
     const [who, text, at, pic] = sc.lines[open.i];
-    if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic); playSfx('page'); return; }
+    if (who === 'tip') { box.className = 'talk tip-mode'; box.innerHTML = tipHTML(text, pic, sc.tipTag); playSfx('page'); return; }
     if (callStarts(sc.lines, open.i) && open.rung !== open.i && !(open.i === 0 && open.cont === who)) { open.ringing = true; box.className = 'talk ring-mode'; box.innerHTML = ringHTML(who); startRing(); return; } // 전화: 「받기」를 눌러야 대화 (ui/phone.js)
     if (who === 'oh' || who === 'ohPhone') setMusic('oh'); // 오 사장님이 말하면 테마곡
-    box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (guide(at) ? ' guide' : '');
+    const g = guide(at), low = g && guideEl.getBoundingClientRect().top < innerHeight * 0.35; // 가리키는 곳이 위쪽이면 대화 상자를 아래로 (v0.61 — 위 막대 휴대폰)
+    box.className = 'talk' + (who ? (CAST[who].think ? ' think' : '') : ' narr') + (g ? ' guide' : '') + (low ? ' low' : '');
     box.innerHTML = lineHTML(who, text);
     typeIn(box);
     return;
@@ -6722,9 +6744,10 @@ function drawScene() {
 }
 
 // 장사 요령 카드 (오 사장님 가게 길잡이 — 데이브 더 다이버의 요령 카드처럼): 그림 · 한두 문장 · 확인
-function tipHTML(text, pic) {
-  const pics = [].concat(pic || []).map(n => `<span class="tip-pic">${icon(n)}</span>`).join('');
-  return `<div class="tip-card"><small class="tip-tag">장사 요령</small>${pics ? `<div class="tip-pics">${pics}</div>` : ''}<p>${fill(text)}</p><span class="btn primary">확인</span></div>`;
+//  tag: 위 작은 글자 (없으면 「장사 요령」) · 그림 'ph:이름'은 휴대폰 앱 아이콘 (style.css .ph-ic)
+function tipHTML(text, pic, tag) {
+  const pics = [].concat(pic || []).map(n => `<span class="tip-pic">${n.startsWith('ph:') ? `<i class="ph-ic ${n.slice(3)}"></i>` : icon(n)}</span>`).join('');
+  return `<div class="tip-card"><small class="tip-tag">${tag || '장사 요령'}</small>${pics ? `<div class="tip-pics">${pics}</div>` : ''}<p>${fill(text)}</p><span class="btn primary">확인</span></div>`;
 }
 
 // 오 사장님이 시키는 일: 가게 그림 아래쪽 띠 (화살표는 render/view.js). 매 프레임 불러요 (main.js)
@@ -7497,7 +7520,7 @@ function renderBar() {
     <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
     <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>
-    <button type="button" class="tb-phone" data-tb="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
+    <button type="button" class="tb-phone" data-tb="phone" data-guide="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
 }
 
 // 할 일이 있는 곳 「!」: 시장(오늘 아직 재료를 안 샀으면) · 장을 봤으면 우리 가게(열기)
@@ -7911,7 +7934,7 @@ function initTown() {
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
-  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); } }); // 휴대폰 (v0.54)
+  $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); runCmd('phoneHelp'); } }); // 휴대폰 (v0.54) · 처음 열면 안내 카드 (v0.61)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
     const inB = e.target.closest('[data-in]');
