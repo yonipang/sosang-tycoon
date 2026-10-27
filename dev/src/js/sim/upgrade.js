@@ -78,7 +78,7 @@ defineCmd('menuDev', ({ menu }) => {
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
-  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 새벽 시장에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
+  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
   emit('prep');
   emit('menuUp', menu);

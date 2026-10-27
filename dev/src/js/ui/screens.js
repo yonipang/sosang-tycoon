@@ -82,7 +82,7 @@ export function renderPrep() {
   const cost = prepCost();
   const after = G.cash - cost;
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
-  const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 재료는 새벽 시장에서 사고, 가게는 새벽에 열어요
+  const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 가게는 준비 시간 아무 때나 열어요 (v0.59) · dawn은 글자만
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
   // 프롤로그 · 4일차(마을 전): 「오늘의 메뉴」 한 칸 — 메뉴마다 한 줄(가격 · 재료 주문), 원가율·장부는 그 아래 작게 (v0.43 화면 정리)
   const rows = todayMenus().map(m => {
@@ -132,13 +132,13 @@ function renderLedger(last, after, dawn) {
   showScreen(`
     <div class="prep book">
       <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
-      <h2>${dawn ? '가게 열기' : '오늘의 메뉴'}</h2>
+      <h2>가게 열기</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
       ${qline}
       ${todayCard()}
       ${tools}
       ${bills}
-      ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
+      <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn" data-act="toTown">돌아가기</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : pickOpen != null ? pickSheet(pickOpen) : ''}
     </div>`, 'scr-prep');

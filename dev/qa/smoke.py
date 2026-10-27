@@ -65,7 +65,7 @@ def town_chat(pg):
         if pg.evaluate("document.getElementById('townSheet').hidden || !document.getElementById('townSheet').classList.contains('chat')"): return
         pg.click('#townSheet'); pg.wait_for_timeout(30)
 def town_night_dawn(pg):
-    """마을: 밤에 청소·이웃 이야기 → 자기 → 새벽 시장에서 (어제 판 만큼 + 넉넉히) 사기 → 가게 장부 열기"""
+    """마을(준비 시간 한 턴, v0.59부터 밤·새벽 구분 없음): 청소·이웃 이야기 → 휴대폰 식자재 주문(한 번) → 시장에서 (어제 판 만큼 + 넉넉히) 사기 → 오픈 준비 → 가게 열기(또는 집에서 자기)"""
     R = lambda c, a: pg.evaluate("__T.runCmd('%s', %s)" % (c, a))
     if 'town' not in seen:
         seen.append('town'); pg.click('[data-act=toTown]') if pg.locator('[data-act=toTown]').count() else None
@@ -83,7 +83,17 @@ def town_night_dawn(pg):
             pg.click('[data-ts=fcart]'); pg.wait_for_timeout(100)
             if pg.evaluate('__T.G.furn.have.wall') != 'wood': errs.append('미소 가구에서 벽지를 못 샀어요')
             shot(pg, '9e-furn')
-    R('townAct', "{place:'home',act:'sleep'}"); talk(pg)
+    if 'order' not in seen:  # 휴대폰 「식자재 주문」(v0.59): 정가 · 시간 안 씀 · 친밀도 없음
+        seen.append('order')
+        used, bond, cash = pg.evaluate('__T.G.town.used'), pg.evaluate('JSON.stringify(__T.G.bond.pts)'), pg.evaluate('__T.G.cash')
+        pg.click('[data-tb=phone]'); pg.wait_for_timeout(80); pg.click('[data-ts=app][data-p=order]'); pg.wait_for_timeout(80)
+        pg.click('[data-ts=fill]'); pg.wait_for_timeout(50); pg.locator('.mk-tile[data-i=ddeok]').click(); pg.wait_for_timeout(50)
+        shot(pg, '9f-phone-order')
+        pg.click('[data-ts=buyCart]'); pg.wait_for_timeout(80)
+        if pg.evaluate('__T.G.cash') >= cash: errs.append('휴대폰 식자재 주문이 돈을 쓰지 않았어요')
+        if pg.evaluate('__T.G.town.used') != used: errs.append('휴대폰 식자재 주문에 시간이 들었어요')
+        if pg.evaluate('JSON.stringify(__T.G.bond.pts)') != bond: errs.append('휴대폰 주문에 친밀도가 올랐어요')
+        pg.evaluate("document.querySelector('#townSheet [data-ts=close]') && document.querySelector('#townSheet [data-ts=close]').click()")
     R('townAct', "{place:'market',act:'market'}"); town_chat(pg)
     if 'market' not in seen: seen.append('market'); pg.wait_for_timeout(200); shot(pg, '9b-market')
     # 화면 그대로: 「모자란 만큼 담기」 → 떡 한 묶음 더(진열대 타일) → 「구매하기」
@@ -95,7 +105,8 @@ def town_night_dawn(pg):
         pg.click('[data-ts=buyCart]'); pg.wait_for_timeout(50)
         if pg.evaluate('__T.G.cash') >= before: errs.append('시장 구매하기 버튼이 돈을 쓰지 않았어요')
     R('townAct', "{place:'shop',act:'setup'}")
-    R('townAct', "{place:'shop',act:'open'}"); talk(pg)
+    if pg.evaluate('__T.G.day') % 2: R('townAct', "{place:'home',act:'sleep'}"); talk(pg)  # 집에서 자면 가게 열기 화면으로 (v0.59)
+    else: R('townAct', "{place:'shop',act:'open'}"); talk(pg)
 def open_shop(pg):
     """가게 열기 → 보온 통이 있으면 새벽에 미리 끓이기(봇이 미니게임) → 문 열기"""
     pg.click('[data-act=open]')

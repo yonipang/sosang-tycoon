@@ -84,7 +84,7 @@ export const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8]; // (옛 세이브 보정용 �
 //  SLOT_CH[k] = k번째 칸(0부터)을 늘릴 수 있는 장 · SLOT_PRICE[k] = 그 칸 값
 export const SLOT_START = 4;
 export const SLOT_CH = [0, 0, 0, 0, 2, 3, 4, 5];
-export const SLOT_PRICE = [0, 0, 0, 0, 100000, 200000, 300000, 400000];
+export const SLOT_PRICE = [0, 0, 0, 0, 80000, 160000, 240000, 320000]; // v0.59: 손님이 줄어 20% 내림 (사용자 요청)
 export const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
 export const MENU_IDS = Object.keys(MENUS); // 기본 3가지 + 새 메뉴 15가지 (열린 것만 써요 — sim/story.js menuOpen)
 export const DEV_OPEN_CH = 2; // 새 메뉴 개발이 열리는 장

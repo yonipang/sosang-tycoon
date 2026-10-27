@@ -1040,6 +1040,9 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .ph-ic.blog::after { content: ''; position: absolute; left: 12px; top: 12px; width: 14px; height: 2px; background: #f0a030; box-shadow: 0 5px 0 #f0a030, 0 10px 0 #f0a030; }
 .ph-ic.call { background: var(--green); }
 .ph-ic.call::before { content: ''; position: absolute; left: 10px; top: 9px; width: 4px; height: 4px; background: #fff; box-shadow: 7px 0 #fff, 14px 0 #fff, 0 7px #fff, 7px 7px #fff, 14px 7px #fff, 0 14px #fff, 7px 14px #fff, 14px 14px #fff; }
+.ph-ic.order { background: #8a5a2b; } /* 식자재 주문: 상자 (v0.59) */
+.ph-ic.order::before { content: ''; position: absolute; left: 8px; top: 12px; width: 22px; height: 16px; background: #f3d9a4; box-shadow: inset 0 4px 0 #d9b070; }
+.ph-ic.order::after { content: ''; position: absolute; left: 17px; top: 12px; width: 4px; height: 8px; background: #8a5a2b; }
 .ph-ic.map { background: #3d6fd6; }
 .ph-ic.map::before { content: ''; position: absolute; left: 11px; top: 6px; width: 16px; height: 16px; background: #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
 .ph-ic.map::after { content: ''; position: absolute; left: 16px; top: 11px; width: 6px; height: 6px; background: #3d6fd6; border-radius: 50%; }
@@ -1309,7 +1312,7 @@ const SLOTS_BY_GRADE = [0, 4, 5, 6, 7, 8]; // (옛 세이브 보정용 — v0.45
 //  SLOT_CH[k] = k번째 칸(0부터)을 늘릴 수 있는 장 · SLOT_PRICE[k] = 그 칸 값
 const SLOT_START = 4;
 const SLOT_CH = [0, 0, 0, 0, 2, 3, 4, 5];
-const SLOT_PRICE = [0, 0, 0, 0, 100000, 200000, 300000, 400000];
+const SLOT_PRICE = [0, 0, 0, 0, 80000, 160000, 240000, 320000]; // v0.59: 손님이 줄어 20% 내림 (사용자 요청)
 const GRADE_NAMES = ['', '골목 작은 가게', '동네 가게', '동네 맛집', '상권 명소', '프랜차이즈 본점'];
 const MENU_IDS = Object.keys(MENUS); // 기본 3가지 + 새 메뉴 15가지 (열린 것만 써요 — sim/story.js menuOpen)
 const DEV_OPEN_CH = 2; // 새 메뉴 개발이 열리는 장
@@ -1627,7 +1630,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.58';
+const GAME_VERSION = '0.59';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1678,7 +1681,8 @@ const MARKET_NEWS = {
 };
 // ── js/data/town.js ──
 // 마을: 밤·새벽에 걸어 다니는 골목 지도 (1장부터). 그리기는 render/town.js · 움직임 ui/town.js, 규칙은 sim/town.js
-// 하루: 영업 → 영수증 → 밤(21시~, 행동 칸 NIGHT_SLOTS) → 집에서 자기 → 새벽(5시~, DAWN_SLOTS) → 가게에서 「가게 열기」 (밤·새벽 합쳐 한 턴 TURN_SLOTS칸)
+// 하루: 영업 → 영수증 → 준비 시간 한 턴 TURN_SLOTS시간(21시부터, 4시간을 쓰면 새벽 5시로 — 시계·하늘빛만 바뀌어요) → 아무 때나 「가게 열기」
+//  v0.59 사용자 요청: 밤·새벽을 나누지 않아요. 모든 곳이 늘 열려 있고 장보기·청소·오픈 준비를 아무 차례로 해요. 남긴 시간은 쉬는 시간
 // 행동 칸: 걷는 건 공짜, 일을 하면 칸을 써요. 칸이 없는데 더 하면 피로가 쌓여요(다음 날 사장 걸음이 느려져요)
 
 // 마을 지도: 위에서 비스듬히 내려다본 골목 (16px 칸 = data/layout.js TILE, 가로 MAP_W × 세로 MAP_H). 어느 방향으로든 걸어 다녀요
@@ -1735,17 +1739,17 @@ const MAP_PROPS = [
 const LIGHTS = [[248, 75, 22, 0.42], [216, 88, 16, 0.3], [105, 72, 10, 0.55], [361, 72, 10, 0.55], [72, 250, 20, 0.3],
   [452, 75, 22, 0.4], [617, 72, 10, 0.55], [440, 250, 18, 0.28], [318, 300, 14, 0.35]]; // 카페 창 · 동쪽 가로등 · 학원 창 · 포장마차
 
-// 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · open: 'night'|'dawn'|없으면 늘 · who 앞에 서 있는 사람
+// 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · who 앞에 서 있는 사람 (v0.59부터 늘 열려 있어요)
 const PLACES = {
   home: { name: '우리 집', short: '집', door: [3, 6], rect: [16, 11, 96, 85] },
-  flower: { name: '미소 꽃집', short: '꽃집', door: [8, 6], rect: [112, 8, 80, 88], who: 'miso', open: 'night' },
+  flower: { name: '미소 꽃집', short: '꽃집', door: [8, 6], rect: [112, 8, 80, 88], who: 'miso' },
   shop: { name: '우리 가게', short: '우리 가게', door: [13, 6], rect: [192, 8, 80, 88] },
-  laundry: { name: '최 사장 세탁소', short: '세탁소', door: [18, 6], rect: [272, 8, 80, 88], who: 'choi', open: 'night' },
-  board: { name: '골목 게시판', short: '게시판', door: [10, 13], rect: [146, 170, 28, 34], open: 'night' },
-  market: { name: '정 사장 식자재', short: '식자재', door: [4, 18], rect: [16, 191, 112, 97], who: 'jung', open: 'dawn' },
+  laundry: { name: '최 사장 세탁소', short: '세탁소', door: [18, 6], rect: [272, 8, 80, 88], who: 'choi' },
+  board: { name: '골목 게시판', short: '게시판', door: [10, 13], rect: [146, 170, 28, 34] },
+  market: { name: '정 사장 식자재', short: '식자재', door: [4, 18], rect: [16, 191, 112, 97], who: 'jung' },
 };
 // 사람이 서 있는 칸 (data/story.js CAST)
-const TOWN_NPC = { miso: { at: [9, 7], open: 'night' }, choi: { at: [19, 7], open: 'night' }, jung: { at: [5, 18], open: 'dawn' } };
+const TOWN_NPC = { miso: { at: [9, 7] }, choi: { at: [19, 7] }, jung: { at: [5, 18] } };
 // 빈 가게: 우리 가게 건널목 바로 건너편. 1~2장은 「임대 문의」만, 3장에 프랜차이즈 「떡볶이 공장」이 들어와요 (기획서 3장)
 // 둘러보기만 하는 곳 (누르면 한 줄) — 동쪽 블록 가게들
 const LOOKS = [
@@ -1779,12 +1783,12 @@ const VACANT_NOTE = '「임대 문의」 종이가 붙어 있습니다. 우리 �
 // 행동 칸
 const NIGHT_SLOTS = 4;
 const DAWN_SLOTS = 3;
-// 밤과 새벽은 한 턴: 칸 7개를 이어서 써요. 밤 칸 4개를 다 쓰면(또는 집에서 자면) 새벽 5시가 되고 식자재가 문을 열어요.
-//  7칸을 넘기면 넘긴 만큼 피로 · 가게를 열 때 칸이 남았으면(일찍 자서 건너뛴 밤 칸 포함) 피로 하나가 풀려요
+// 한 턴 7시간을 이어서 써요. 4시간을 쓰면 시계가 새벽 5시로 넘어가요(보이기만 — 할 수 있는 일은 같아요).
+//  7시간을 넘기면 넘긴 만큼 피로 · 가게를 열 때 시간이 남았으면 피로 하나가 풀려요
 const TURN_SLOTS = NIGHT_SLOTS + DAWN_SLOTS;
 const NIGHT_START = 21 * 60; // 밤 21:00부터 한 칸에 한 시간
 const DAWN_START = 5 * 60;   // 새벽 05:00부터
-// 피로: 칸을 넘겨 쓴 만큼 +1 (최대 3). 밤에 칸을 남기고 자면 −1. 피로 하나에 사장 걸음 8% 느려져요
+// 피로: 시간을 넘겨 쓴 만큼 +1 (최대 3). 시간을 남기고 가게를 열면 −1. 피로 하나에 사장 걸음 8% 느려져요
 const FATIGUE_MAX = 3;
 const FATIGUE_SLOW = 0.08;
 
@@ -1793,11 +1797,11 @@ const FATIGUE_SLOW = 0.08;
 //  talk 이웃과 이야기: 다음 날 그 이웃 소개로 손님 한 팀이 와요
 //  counter 계산대 · 홍보: 우리 가게 계산대에서 인스타 올리기 · 파워블로거 섭외 (아래 PROMO, 칸·돈은 그 일마다)
 //  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
-//  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
+//  market 장보기: 정 사장 가게 (그날 처음 들어갈 때 한 시간 · 특가·단골가·친밀도) — 휴대폰 「식자재 주문」은 정가로 시간 없이 (PHONE_ORDER) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 //  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
 //  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
-//   · 계산대 = 판매 장부·손님 수첩·홍보 · 퇴식대 = 청소 · 화구 = 오픈 준비(새벽) · 문 = 골목으로 (SHOP_SPOTS)
+//   · 계산대 = 판매 장부·손님 수첩 · 퇴식대 = 청소 · 화구 = 오픈 준비 · 문 = 골목으로 (SHOP_SPOTS)
 //  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 const ACTS = {
@@ -1805,18 +1809,18 @@ const ACTS = {
   pantry: { name: '냉장고', cost: 0, when: 'any' },          // 창고 재료 보기 (v0.46: 오늘의 메뉴는 「가게 열기」에서)
   sales: { name: '판매 장부', cost: 0, when: 'any' },
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
-  clean: { name: '청소하기', cost: 1, when: 'night' },
-  talk: { name: '이야기하기', cost: 1, when: 'night' },
+  clean: { name: '청소하기', cost: 1, when: 'any' },
+  talk: { name: '이야기하기', cost: 1, when: 'any' },
   counter: { name: '계산대', cost: 0, when: 'any' }, // 판매 장부 · 손님 수첩 (홍보는 v0.54부터 휴대폰에서)
   book: { name: '손님 수첩', cost: 0, when: 'any' },
-  insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 홍보는 밤·새벽 언제든 (v0.45 사용자 요청) — 효과는 다가오는 영업일
+  insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
-  furn: { name: '가구 둘러보기', cost: 1, when: 'night' },
-  guild: { name: '철물점 · 상인회', cost: 1, when: 'night' },
-  sleep: { name: '자러 가기', cost: 0, when: 'night' },
-  market: { name: '장보기', cost: 1, when: 'dawn' },
-  setup: { name: '오픈 준비 (진열)', cost: 1, when: 'dawn' },
-  open: { name: '가게 열기', cost: 0, when: 'dawn' },
+  furn: { name: '가구 둘러보기', cost: 1, when: 'any' },
+  guild: { name: '철물점 · 상인회', cost: 1, when: 'any' },
+  sleep: { name: '자고 가게 열기', cost: 0, when: 'any' }, // 집: 남은 시간은 쉬고 「가게 열기」 화면으로 (v0.59)
+  market: { name: '장보기', cost: 1, when: 'any' },
+  setup: { name: '오픈 준비 (진열)', cost: 1, when: 'any' },
+  open: { name: '가게 열기', cost: 0, when: 'any' },
 };
 // 장소마다 할 수 있는 일
 const PLACE_ACTS = {
@@ -1866,6 +1870,8 @@ const CHATS = {
     [['choi', '요새 앞 건물 월세가 또 올랐다더라. 건물주들은 참….'], ['choi', '그래도 사장은 열심히 하니까 괜찮을 거야. 손님 하나 또 보낼게.']],
   ],
 };
+// 휴대폰 「식자재 주문」(v0.59): 정가(특가·단골가 없음) · 시간 안 씀 · 친밀도 없음 — 바로 가게 냉장고로
+const PHONE_ORDER = { mul: 1 };
 // 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀 · 차례대로)
 const JUNG_CHATS = [
   [['jung', '떡은 아침에 뽑은 거라 말랑해. 손으로 눌러 봐.'], ['jung', '오 사장 그 양반도 처음엔 떡을 너무 많이 사서 다 버렸어. 허허.']],
@@ -1873,7 +1879,7 @@ const JUNG_CHATS = [
   [['jung', '자네 가게 떡볶이 맛있다고 우리 집사람이 그러더라.'], ['jung', '좋은 물건 들어오면 자네 몫 따로 빼 둘게.']],
   [['jung', '새벽 시장은 부지런한 사람 거야. 자네는 부지런하네.'], ['jung', '나중엔 내가 가게 앞까지 갖다줄 수도 있고. 단골이면.']],
 ];
-// 시장 정 사장 인사 (새벽 첫 방문)
+// 시장 정 사장 인사 (첫 방문)
 const JUNG_HELLO = [
   [['jung', '어이, 오 사장 후배라며? 그 양반한테 얘기 들었어.'], ['jung', '재료는 새벽에 와야 제일 싱싱해. 오늘 특가도 한번 봐.']],
   [['jung', '왔어? 오늘도 일찍 나왔네.'], ['jung', '특가는 먼저 오는 사람이 임자야.']],
@@ -1892,7 +1898,7 @@ const BOND_DAY_MAX = 3;
 // 단계마다 열리는 것 (보여 주는 글 — 규칙은 sim/bond.js · sim/furniture.js · sim/town.js)
 const BOND_PERKS = {
   miso: ['일반 가구', '가구 5% 할인', '고급 가구', '친밀도 전용 소품', '「미소 컬렉션」'],
-  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 · 따로 빼 둔 재료', '단골가 10% 할인', '새벽 배달 (장보기에 시간이 들지 않음)'],
+  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 · 따로 빼 둔 재료', '단골가 10% 할인', '배달 (가게 값으로 사도 시간이 들지 않음)'],
   moon: ['설비 Lv2', '설비 5% 할인', '설비 Lv3', '장사 도구 등급 업', '「골목 대표 가게」 명패 (준비 중)'],
 };
 // 할인 (단계 → 비율)
@@ -1963,7 +1969,7 @@ const MISO_NAMES = { wall: '꽃잎 벽지', floor: '따뜻한 무늬 바닥', wi
 // 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘어요 (data/layout.js applyShopLv). 오늘의 메뉴 칸은 따로 — 장마다 늘려요 (v0.46)
 //  rent: 넓어진 만큼 주간 임대료가 더 나가요
 const SHOP_BUILD = {
-  2: { name: '동네 가게', price: 1500000, heart: 2, rent: 70000, tables: 8 },
+  2: { name: '동네 가게', price: 1200000, heart: 2, rent: 70000, tables: 8 }, // v0.59: 손님이 줄어 150만 → 120만 (사용자 요청)
 };
 const FURN_THEME_NEED = 4;     // 같은 테마 몇 개부터 보너스
 const FURN_SET_RATE = 0.85;    // 세트(모자란 것 한 번에)는 낱개 합의 85%
@@ -2258,7 +2264,7 @@ const SCENES = {
     ],
   },
   paper1: {
-    at: 'dawn', // 마을에서는 아침 신문 (새벽에)
+    at: 'dawn', // 마을에서는 아침 신문 (v0.59부터 준비 시간에 바로)
     alt: { cond: 'rating35', else: 'paper1b' },
     paper: {
       no: 2, head: '{shop}, 주인 바뀌었다… 맛은 그대로!', sub: '알바생 출신 새 사장의 첫 주',
@@ -2277,24 +2283,25 @@ const SCENES = {
   // 마을 첫 밤 (sim/town.js townEnterNight)
   town1: {
     lines: [
-      ['ohPhone', '장사 끝났냐? 이제부터 밤이랑 새벽도 니 시간이다.'],
+      ['ohPhone', '장사 끝났냐? 이제부터 장사 끝나고 다음 장사 전까지도 니 시간이다.'],
       ['ohPhone', '밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 주고 그런다.'],
-      ['ohPhone', '재료는 이제 니가 직접 사. 새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
+      ['ohPhone', '재료는 이제 니가 직접 사. 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
       ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
-      [null, '밤 9시부터 새벽까지 일곱 시간 동안 일할 수 있습니다. 밤 네 시간을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
+      [null, '장사를 마치면 밤 9시부터 일곱 시간 동안 일할 수 있습니다. 장보기·청소·오픈 준비는 어떤 차례로 해도 되고, 가게는 아무 때나 열 수 있습니다.'],
       [null, '일곱 시간을 넘겨 일하면 피로가 쌓여 걸음이 느려지고, 시간을 남기고 가게를 열면 피로가 풀립니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
-      ['ohPhone', '할 일 없으면 일찍 들어가서 자고. 새벽에 장 보고, 가게 가서 문 열고.'],
+      ['ohPhone', '바쁘면 전화로 주문해도 된다. 대신 가서 사야 싸게 주고, 정도 쌓이지.'],
+      ['ohPhone', '할 일 다 했으면 일찍 들어가서 자고. 쉬는 것도 장사다.'],
     ],
   },
   // 마을 이전 세이브를 새벽부터 이어 갈 때 (save/migrations.js)
   town1d: {
     lines: [
       ['ohPhone', '일어났냐? 오늘부터 거래처 주문은 끊었다. 재료는 니가 직접 사.'],
-      ['ohPhone', '새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
+      ['ohPhone', '골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
       ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
       ['ohPhone', '장사 끝나면 밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 준다.'],
-      [null, '밤 9시부터 새벽까지 일곱 시간 동안 일할 수 있습니다. 밤 네 시간을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
+      [null, '장사를 마치면 밤 9시부터 일곱 시간 동안 일할 수 있습니다. 장보기·청소·오픈 준비는 어떤 차례로 해도 되고, 가게는 아무 때나 열 수 있습니다.'],
       [null, '일곱 시간을 넘겨 일하면 피로가 쌓여 걸음이 느려지고, 시간을 남기고 가게를 열면 피로가 풀립니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
     ],
@@ -2345,7 +2352,7 @@ const SCENES = {
   },
   // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
   ch2soon: {
-    at: 'dawn', // 아침 골목 장면이라 새벽에 (밤에 이웃과 이야기하다 갑자기 뜨지 않게)
+    at: 'dawn', // 아침 골목 장면 (v0.59부터 준비 시간에 바로)
     cut: 'ch2open', // 2장 여는 장면: 아침 골목 → 「2장 · 골목 사람들」 (data/cutscenes.js)
     lines: [
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
@@ -3592,7 +3599,7 @@ defineCmd('menuDev', ({ menu }) => {
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
-  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 새벽 시장에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
+  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
   emit('prep');
   emit('menuUp', menu);
@@ -4114,13 +4121,14 @@ defineCmd('toolUp', ({ id }) => {
   return true;
 });
 // ── js/sim/town.js ──
-// 마을 규칙 (data/town.js): 밤·새벽 한 턴 행동 칸 · 피로 · 청소/위생 · 이웃 이야기(소개 손님) · 홍보(계산대: 인스타·블로거 — 효과는 sim/traffic.js) · 새벽 장보기 · 오픈 준비
+// 마을 규칙 (data/town.js): 준비 시간 한 턴(7시간) · 피로 · 청소/위생 · 이웃 이야기(소개 손님) · 홍보(휴대폰: 인스타·블로거 — 효과는 sim/traffic.js) · 장보기(가게 · 휴대폰 주문) · 오픈 준비
+//  v0.59: 밤·새벽을 나누지 않아요 — part는 시계·하늘빛만 (4시간을 쓰면 'dawn')
 // 화면은 만지지 않고 사건만: emit('town', 무엇, …) → ui/town.js · 저장은 emit('prep')(ui/feedback.js가 저장해요)
 
 const newTown = () => ({ turn: 1, rest: 0, on: false, part: 'night', used: 0, fatigue: 0, hygiene: 100, flyer: 0, setup: 0, referral: [], talked: [], chat: {}, marketIn: false, bought: {}, deal: null, deal2: null, kept: null, seen: false, visits: 0, jungChat: 0, met: [], drink: 0 });
 // 마을이 켜져 있나 (1장부터, 영업을 한 번 마친 밤부터)
 const townMode = () => !!(G.town && G.town.on);
-// 칸: 밤·새벽 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 칸, 일찍 자서 건너뛴 밤 칸도 들어가요)
+// 시간(코드 이름은 칸): 한 턴에 TURN_SLOTS개 (used = 이번 턴에 쓴 시간)
 const slotsMax = () => TURN_SLOTS;
 const slotsLeft = () => TURN_SLOTS - G.town.used;
 // 지금 시각 (분): 밤 21:00부터 한 칸에 한 시간 · 새벽은 05:00부터
@@ -4128,14 +4136,14 @@ const slotsLeft = () => TURN_SLOTS - G.town.used;
 const townClock = () => (G.town.part === 'dawn' ? DAWN_START + Math.min(DAWN_SLOTS, Math.max(0, G.town.used - NIGHT_SLOTS)) * 60 : NIGHT_START + Math.min(NIGHT_SLOTS - 1, G.town.used) * 60);
 // 칸을 넘겨 쓸 수 있는 한도 (피로 최대만큼) — 더는 할 수 없어요
 const slotsHardMax = () => TURN_SLOTS + FATIGUE_MAX;
-// 장소가 지금 열려 있나 · 지금 할 수 있는 일
-const placeOpen = id => !PLACES[id].open || PLACES[id].open === G.town.part;
+// 장소가 지금 열려 있나 (v0.59부터 늘) · 지금 할 수 있는 일
+const placeOpen = id => !!PLACES[id];
 // 2장부터 바뀐 곳 (미소 꽃집 → 미소 가구)
 const ch2 = id => ((id === 'flower' ? furnOpen() : id === 'laundry' ? guildOpen() : false) && PLACE_CH2[id]) || null;
 const placeName = id => (ch2(id) || PLACES[id]).name;
 const placeShort = id => (ch2(id) || PLACES[id]).short;
 const placeActs = id => (ch2(id) || PLACE_ACTS)[ch2(id) ? 'acts' : id];
-const actNow = (place, act) => placeOpen(place) && placeActs(place).includes(act) && (ACTS[act].when === 'any' || ACTS[act].when === G.town.part)
+const actNow = (place, act) => placeOpen(place) && placeActs(place).includes(act)
   && !(act === 'talk' && G.town.talked.includes(PLACES[place].who))
   && !(act === 'clean' && G.town.hygiene >= 100) && !(act === 'setup' && G.town.setup === G.day) // 할 필요가 없는 일은 막아요
   && !(act === 'insta' && G.town.insta === G.day) && !(act === 'blogger' && G.town.blogDay === G.day);
@@ -4146,7 +4154,8 @@ function townEnterNight() {
   if (!T.on && !(G.story && G.story.ch >= 1)) return false;
   const first = !T.on;
   T.on = true; T.part = 'night'; T.used = 0; T.rest = 0; T.talked = []; T.marketIn = false; T.furnIn = false; T.guildIn = false; T.bought = {}; T.deal = null; T.deal2 = null; T.kept = null; T.referral = []; T.met = [];
-  for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 이제 새벽 시장에서 (밤 주문 없음)
+  for (const m of MENU_IDS) G.prep[m] = 0; // 재료는 시장에서 (원재료 낱개)
+  dealsToday();
   if (first && !T.seen) { T.seen = true; G.story.queue.push('town1'); }
   if (furnOpen() && G.furn && !G.furn.seen) { G.furn.seen = true; G.story.queue.push('furn1'); if (G.guild && !G.guild.due) G.guild.due = G.day + 1; } // 2장 첫 밤: 미소 가구 개업 · 다음 밤엔 문 철물
   else if (furnOpen() && G.guild && !G.guild.due) G.guild.due = G.day; // 미소 가구 이후 세이브
@@ -4154,12 +4163,13 @@ function townEnterNight() {
   return true;
 }
 
-// 칸 쓰기: 모자라면 그만큼 피로
+// 시간 쓰기: 모자라면 그만큼 피로 · 4시간을 넘기면 시계가 새벽으로 (보이기만)
 function useSlots(n) {
   const T = G.town, before = slotsLeft();
   T.used += n;
   const over = Math.max(0, n - Math.max(0, before));
   if (over) { T.fatigue = Math.min(FATIGUE_MAX, T.fatigue + over); emit('toast', `무리했습니다. 피로가 쌓였습니다 (피로 ${T.fatigue})`, 'warn'); }
+  if (T.part !== 'dawn' && T.used >= NIGHT_SLOTS) { T.part = 'dawn'; emit('toast', '잠깐 눈을 붙였더니 새벽 5시입니다', 'info'); emit('town', 'dawn'); }
 }
 
 defineCmd('townAct', ({ place, act }) => {
@@ -4176,7 +4186,7 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'pantry') { emit('town', 'pantry'); return true; }
   if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
-  if (act === 'sleep') { goDawn('sleep'); return true; }
+  if (act === 'sleep') { emit('town', 'open'); return true; } // 집에서 자면 남은 시간은 쉬고 아침에 가게 열기 (v0.59)
   if (act === 'furn') { // 미소 가구: 그날 처음 들어갈 때 한 칸 + 이야기(친밀도·소개 손님) — 밤 칸을 다 써도 창은 그대로 (새벽이 돼도 그 창에서는 살 수 있어요)
     if (!T.furnIn) {
       useSlots(A.cost); T.furnIn = true; G.furn.visits++; T.talked.push('miso'); T.referral.push('miso');
@@ -4185,7 +4195,6 @@ defineCmd('townAct', ({ place, act }) => {
       if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
     }
     emit('town', 'furn');
-    if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
     emit('prep'); return true;
   }
   if (act === 'guild') { // 문 철물: 그날 처음 들어갈 때 한 칸 + 문 회장님 이야기(친밀도·소개 손님)
@@ -4195,7 +4204,6 @@ defineCmd('townAct', ({ place, act }) => {
       addBond('moon', BOND_TALK, '이야기');
     }
     emit('town', 'guild');
-    if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
     emit('prep'); return true;
   }
   if (act === 'market') {
@@ -4214,17 +4222,13 @@ defineCmd('townAct', ({ place, act }) => {
   else if (act === 'insta') { T.insta = G.day; emit('toast', `음식 사진을 인스타에 올렸습니다. ${T.part === 'dawn' ? '오늘' : '내일'} 학생 손님이 더 들어옵니다`, 'good'); emit('sfx', 'page'); }
   else if (act === 'blogger') { T.blogDay = G.day; emit('toast', `파워블로거에게 연락했습니다. ${T.part === 'dawn' ? '오늘' : '내일'} 점심 무렵 찾아옵니다. 맛있게 만들어 보세요`, 'good'); emit('sfx', 'coin'); }
   else if (act === 'setup') { T.setup = G.day; emit('toast', '메뉴판을 닦고 그릇을 가지런히 놓았습니다. 오늘 오전엔 손이 빠릅니다', 'good'); }
-  if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto'); // 밤 칸을 다 쓰면 새벽
   emit('prep');
   return true;
 });
 
-// 새벽 5시: how = 'sleep'(집에서 일찍 잠 — 남은 밤 칸만큼 쉬어요) · 'auto'(밤 칸을 다 씀) · 오늘 특가
-function goDawn(how) {
+// 오늘 특가 (턴을 시작할 때 — v0.59 전에는 새벽 5시에)
+function dealsToday() {
   const T = G.town;
-  if (how === 'sleep') { T.rest = (T.rest || 0) + Math.max(0, NIGHT_SLOTS - T.used); T.used = Math.max(T.used, NIGHT_SLOTS); }
-  else emit('toast', '새벽 5시가 되었습니다. 정 사장 식자재가 문을 엽니다', 'info');
-  T.part = 'dawn'; T.marketIn = false;
   seedRand(G.baseSeed + G.day * 7919 + 211); // 그날 씨앗 (영업 시작 때 다시 정해요)
   const fresh = openIngs().filter(i => !INGREDIENTS[i].keep); // 특가는 신선 재료 하나
   T.deal = fresh.length ? fresh[Math.floor(rand() * fresh.length)] : null;
@@ -4232,19 +4236,18 @@ function goDawn(how) {
   const rest = fresh.filter(i => i !== T.deal);
   T.deal2 = bondLv('jung') >= JUNG_DEAL2_LV && rest.length ? rest.splice(Math.floor(rand() * rest.length), 1)[0] : null;
   T.kept = bondLv('jung') >= JUNG_KEEP_LV && rest.length ? rest[Math.floor(rand() * rest.length)] : null;
-  emit('town', 'dawn', how);
-  emit('prep');
-  emit('story'); // 새벽에 볼 장면 (골목 신문 등)
 }
 
 // 시장: 오늘 재료 1인분 값 (특가면 15% 싸게, 10원 단위) — 원재료 낱개로 팔아요 (data/menu.js INGREDIENTS)
 //  정 사장님 친밀도 ♥♥ 5% · ♥♥♥♥ 10% 단골가 (sim/bond.js)
 const isDeal = i => G.town.deal === i || G.town.deal2 === i;
 const marketUnit = i => Math.round(ingCost(i) * (isDeal(i) ? MARKET_DEAL : 1) * (1 - jungDisc()) / 10) * 10;
-// 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 칸을 쓰지 않아요
+// 휴대폰 주문 값: 정가 (특가·단골가 없음)
+const phoneUnit = i => Math.round(ingCost(i) * PHONE_ORDER.mul / 10) * 10;
+// 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 시간을 쓰지 않아요
 const marketCost = () => (bondLv('jung') >= JUNG_DELIVERY_LV ? 0 : ACTS.market.cost);
 // 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀): 친밀도 +2
-const jungTalkOk = () => townMode() && G.town.part === 'dawn' && G.town.marketIn && !G.town.talked.includes('jung');
+const jungTalkOk = () => townMode() && G.town.marketIn && !G.town.talked.includes('jung');
 defineCmd('jungTalk', () => {
   const T = G.town;
   if (G.phase !== 'prep' || !jungTalkOk()) return false;
@@ -4255,24 +4258,25 @@ defineCmd('jungTalk', () => {
   emit('prep');
   return true;
 });
-// 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 }
-defineCmd('marketBuyCart', ({ cart }) => {
+// 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 } · phone: 휴대폰 주문(정가 · 친밀도 없음 · 빼 둔 재료 없음)
+defineCmd('marketBuyCart', ({ cart, phone }) => {
   const T = G.town;
-  if (!townMode() || T.part !== 'dawn' || !T.marketIn) return false;
+  if (!townMode() || G.phase !== 'prep' || !(phone || T.marketIn)) return false;
+  const unit = phone ? phoneUnit : marketUnit;
   const open = openIngs();
   const list = Object.entries(cart || {}).filter(([i, k]) => k > 0 && open.includes(i));
   if (!list.length) return false;
-  const total = list.reduce((s, [i, k]) => s + marketUnit(i) * k * INGREDIENTS[i].pack, 0);
+  const total = list.reduce((s, [i, k]) => s + unit(i) * k * INGREDIENTS[i].pack, 0);
   if (total > G.cash) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   for (const [i, k] of list) {
     const n = k * INGREDIENTS[i].pack;
-    G.cash -= marketUnit(i) * n;
-    stockIn(i, n, T.kept === i ? JUNG_KEEP_PLUS : 0);
+    G.cash -= unit(i) * n;
+    stockIn(i, n, !phone && T.kept === i ? JUNG_KEEP_PLUS : 0);
     T.bought[i] = (T.bought[i] || 0) + n;
   }
-  if (T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래
-  emit('track', 'market_buy', { total });
-  emit('toast', `재료를 샀습니다 · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
+  if (!phone && T.jungTrade !== G.day) { T.jungTrade = G.day; addBond('jung', BOND_TRADE, '거래'); } // 그날 처음 거래 (가게에 가서 살 때만)
+  emit('track', 'market_buy', { total, phone: phone ? 1 : 0 });
+  emit('toast', `${phone ? '주문한 재료가 왔습니다' : '재료를 샀습니다'} · ${list.map(([i, k]) => `${INGREDIENTS[i].name} ${k * INGREDIENTS[i].pack}`).join(' · ')}`, 'good');
   emit('sfx', 'coin');
   emit('prep');
   return true;
@@ -4293,7 +4297,6 @@ defineCmd('townUse', ({ use }) => {
   emit('track', 'town_use', { use });
   if (use === 'rest') { useSlots(REST_COST); T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `벤치에 앉아 한숨 돌렸습니다 (피로 ${T.fatigue})`, 'good'); }
   else if (use === 'drink') { G.cash -= DRINK_PRICE; T.drink = G.day; T.fatigue = Math.max(0, T.fatigue - 1); emit('toast', `캔커피 한 모금에 정신이 듭니다 (피로 ${T.fatigue})`, 'good'); emit('sfx', 'coin'); }
-  if (T.part === 'night' && T.used >= NIGHT_SLOTS) goDawn('auto');
   emit('prep');
   return true;
 });
@@ -4314,7 +4317,7 @@ const townSpeedMul = () => (townMode() ? 1 - FATIGUE_SLOW * G.town.fatigue : 1) 
 const setupUntil = () => (townMode() && G.town.setup === G.day ? SETUP_UNTIL : -1);
 const dirty = () => townMode() && G.town.hygiene < HYGIENE_LOW;
 const referralPlan = () => (townMode() ? G.town.referral.map((who, i) => ({ who, at: REFERRAL_AT[i % REFERRAL_AT.length] + i * 15, done: false })) : []);
-// 가게를 열 때 (sim/day.js openShop): 이번 턴에 칸을 남겼으면(일찍 잔 밤 칸 포함) 피로 하나가 풀려요
+// 가게를 열 때 (sim/day.js openShop): 이번 턴에 시간을 남겼으면 피로 하나가 풀려요
 function townOpenRest() {
   if (!townMode()) return;
   const T = G.town, rest = (T.rest || 0) + Math.max(0, TURN_SLOTS - T.used);
@@ -5270,7 +5273,7 @@ function nextDay() {
     if (last && menuOpen(m)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invServings(m)) / 5) * 5));
   }
   storyNextDay(); // 예약한 메뉴는 처음 주문량으로 열려요
-  townEnterNight(); // 1장부터는 밤 골목으로 (재료는 새벽 시장에서)
+  townEnterNight(); // 1장부터는 밤 골목으로 (재료는 정 사장 식자재에서)
   const mk = marketNextDay(); // 재료 시세: 새 소식은 골목 신문으로, 끝난 소식은 알림으로
   if (mk && mk.scene) G.story.queue.push(mk.scene);
   setPhase('prep');
@@ -5574,17 +5577,17 @@ const DEV_JUMPS = [
   { id: 'c1', name: '1장 4일차 · 개업 첫날', day: 4, ch: 1, title: '사장 지망생', shop: '골목분식', done: PRO, queue: ['ch1'] },
   { id: 'c1k', name: '1장 5일차 · 김밥·장사 도구', day: 5, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note'], active: ['c1_stock', 'c1_kimbap'], queue: ['tools'], menus: ['tteok', 'kimbap'], fresh: ['kimbap'], decor: [] },
   { id: 'c1f', name: '1장 6일차 · 튀김 (도구 다 있음)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
-  { id: 'c1t', name: '1장 6일차 전날 밤 · 마을 첫 밤 (밤·새벽·시장)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true },
+  { id: 'c1t', name: '1장 6일차 전날 밤 · 마을 첫 밤 (준비 시간·시장)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true },
   { id: 'c1w', name: '1장 7일차 · 고정비 내는 날', day: 7, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], active: ['c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
   { id: 'c2u', name: '9일차 전날 밤 · 메뉴 연구 칠판 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
   { id: 'c2f', name: '9일차 전날 밤 · 미소 가구 개업 (돈 60만 원, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 600000 },
   { id: 'c2f5', name: '9일차 전날 밤 · 미소 가구 ♥♥♥♥♥ (고급·특별·확장공사, 돈 400만 원)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 4000000, bond: { miso: 80, jung: 30 } },
   { id: 'c2m', name: '10일차 전날 밤 · 문 철물 개업 (상인회 부탁부터)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { due: 10 }, cash: 1500000 },
   { id: 'c2g', name: '10일차 전날 밤 · 상인회원 (문 회장 ♥♥♥♥ · 돈 300만 원)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 30 }, cash: 3000000 },
-  { id: 'c2j', name: '10일차 전날 밤 · 정 사장 ♥♥♥♥♥ (특가 2개·빼 둔 재료·새벽 배달)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 80 }, cash: 3000000 },
+  { id: 'c2j', name: '10일차 전날 밤 · 정 사장 ♥♥♥♥♥ (특가 2개·빼 둔 재료·배달)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 50, miso: 15, jung: 80 }, cash: 3000000 },
   { id: 'c2k', name: '12일차 전날 밤 · 2장 김 대리 부탁 (점심에 기다리다 간 손님 없는 날)', day: 12, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join'], active: ['c2_kim', 'c2_miso'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 20, miso: 10, jung: 20 }, cash: 1500000 },
   { id: 'c2e', name: '14일차 전날 밤 · 2장 끝 직전 (주간 정산 때 별점 3.5 이상이면 「동네 사장」)', day: 14, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join', 'c2_kim', 'c2_doyun', 'c2_miso'], active: ['c2_end'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 30, miso: 20, jung: 30 }, cash: 2000000 },
-  { id: 'c2o', name: '8일차 전날 밤 · 2장 여는 장면 (집에서 자면 새벽에: 아침 골목 → 「2장 · 골목 사람들」 · 오 사장님 전화)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, queue: ['ch2soon'] },
+  { id: 'c2o', name: '8일차 전날 밤 · 2장 여는 장면 (바로: 아침 골목 → 「2장 · 골목 사람들」 · 오 사장님 전화)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, queue: ['ch2soon'] },
   { id: 'c2', name: '8일차 · 2장 첫날 (박 할머니 부탁)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
 ];
 
@@ -6633,7 +6636,7 @@ function showNextScene() {
   const id = G.story.queue[0];
   const sc = id && SCENES[id];
   if (!sc || (sc.when !== 'now' && G.phase !== 'prep')) return;
-  if (sc.at === 'dawn' && G.town && G.town.on && G.town.part !== 'dawn') return; // 아침 신문은 새벽에 (sim/town.js goDawn이 다시 불러요)
+  // (v0.59: 밤·새벽을 나누지 않아 at: 'dawn' 장면도 준비 시간에 바로 봐요)
   if (G.phase === 'day' && G.run && G.run.cook) { setTimeout(showNextScene, 150); return; } // 영업 중 장면은 조리 미니게임이 끝난 뒤에
   if (G.phase === 'day') runCmd('hold', { on: true });
   open = { id, i: 0 };
@@ -7205,7 +7208,7 @@ function guildHTML() {
     <p class="gd-foot">잔고 ${wonShort(G.cash)} · 상인회 회비 주 ${wonShort(GUILD_DUES)}</p>`;
 }
 // ── js/ui/town.js ──
-// 마을 화면: 밤·새벽 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
+// 마을 화면: 준비 시간(밤~새벽) 골목 지도를 어느 방향으로든 걸어 다녀요. 바닥을 누르면 그곳까지, 가게·사람을 누르면 문 앞까지 걸어가서 할 일 창을 띄워요.
 // 지도는 data/town.js (16px 칸), 그리기는 render/town.js, 규칙은 sim/town.js. 길 찾기는 칸 단위 너비 우선 탐색(상하좌우)
 let bookSel = 0; // 손님 수첩에서 고른 사람
 
@@ -7234,7 +7237,7 @@ function walls() {
     for (const p of MAP_PROPS) for (const [tx, ty] of p.block || []) wallMap[ty * MAP_W + tx] = 1;
   }
   const m = wallMap.slice();
-  for (const id in TOWN_NPC) if (TOWN_NPC[id].open === G.town.part) { const [tx, ty] = TOWN_NPC[id].at; m[ty * MAP_W + tx] = 1; }
+  for (const id in TOWN_NPC) { const [tx, ty] = TOWN_NPC[id].at; m[ty * MAP_W + tx] = 1; }
   return m;
 }
 // 너비 우선 탐색: from 칸에서 to 칸까지 [[x,y], …] (from 빼고). 못 가면 null
@@ -7331,7 +7334,7 @@ function goPlace(id) {
   if (!ok) go();
 }
 
-// ── 가게 안 (밤·새벽): 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
+// ── 가게 안: 문으로 들어가 사장이 걸어 다녀요. 물건을 누르거나 아래 버튼으로 할 일 (data/town.js SHOP_SPOTS) ──
 const IN_WALK = 6; // 걷는 빠르기 (칸/초)
 // 문을 지날 때: 화면이 까맣게 닫혔다가 열려요 (들어가기 · 나오기 연출, v0.43)
 const FADE_MS = 220;
@@ -7366,7 +7369,7 @@ function spotTiles(S) {
   if (S.door) return { tiles: [[DOOR.x, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1]] };
   return { tiles: S.tiles, stand: S.stand };
 }
-const spotsNow = () => SHOP_SPOTS.filter(S => S.act === 'exit' || S.act === 'counter' || S.act === 'ledger' || S.act === 'recipe' || ACTS[S.act].when === 'any' || ACTS[S.act].when === G.town.part);
+const spotsNow = () => SHOP_SPOTS; // v0.59부터 늘 다 (밤·새벽 구분 없음)
 function inWalk(goals, then) {
   const I = T.inside, me = I.me;
   const path = findPath(me, goals, 'player');
@@ -7436,8 +7439,8 @@ function placeMe(id) {
 function showTown() {
   if (!townMode()) return;
   const part = G.town.part;
-  if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.part = part; }
-  if (T.part !== part) { placeMe(part === 'dawn' ? 'home' : 'shop'); T.part = part; } // 밤은 가게 앞, 새벽은 집 앞에서
+  if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.day = G.day; }
+  if (T.day !== G.day) { placeMe('shop'); T.day = G.day; } // 영업을 마치면 가게 앞에서
   if (T.walkKey !== part + G.day) spawnWalkers(); // 골목을 걷는 손님 (밤·새벽마다 새로)
   $('town').hidden = false;
   document.body.classList.add('in-town'); // 위 막대(#bar)는 숨겨요 (마을 막대가 대신)
@@ -7448,8 +7451,7 @@ function showTown() {
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
   if (T && T.inside) { // 가게 안: 할 일 버튼
-    const dawn = G.town.part === 'dawn';
-    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], dawn ? ['setup', '오픈 준비'] : ['clean', '청소'], ...(dawn ? [['open', '가게 열기']] : []), ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -7486,11 +7488,12 @@ function renderBar() {
     <button type="button" class="tb-phone" data-tb="phone" aria-label="휴대폰"><i></i></button>`; // 휴대폰 (v0.54)
 }
 
-// 할 일이 있는 곳 「!」: 새벽 시장(아직 안 감) · 새벽 가게(열기) · 밤 할 일을 다 했으면 집
+// 할 일이 있는 곳 「!」: 시장(오늘 아직 재료를 안 샀으면) · 장을 봤으면 우리 가게(열기)
 function townMarks() {
   const Tn = G.town, out = [];
   const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
-  if (Tn.part === 'dawn') { if (!Tn.marketIn) out.push(top('market')); out.push(top('shop')); }
+  const bought = Object.keys(Tn.bought || {}).length > 0;
+  out.push(top(bought ? 'shop' : 'market'));
   return out;
 }
 
@@ -7566,7 +7569,7 @@ function updateTown(dt) {
   me.sit = T.sitUntil > T.time; // 벤치에서 쉬는 동안 앉아 있어요
   const dawn = G.town.part === 'dawn';
   const actors = [me, ...(T.walkers || [])];
-  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part) actors.push({ char: id === 'choi' && guildOpen() ? CAST.moon.char : CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); } // 2장: 세탁소 자리엔 문 회장님
+  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; actors.push({ char: id === 'choi' && guildOpen() ? CAST.moon.char : CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); } // 2장: 세탁소 자리엔 문 회장님
   drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}) }, only: onlyNow() });
 }
 
@@ -7640,7 +7643,7 @@ const TALK_NEAR = { x: 22, y: 18 };
 function talkTarget() {
   if (T.sheet || talking() || T.fading || T.inside || chatQ) return null;
   const me = T.me, near = (x, y) => Math.abs(x - me.x) < TALK_NEAR.x && Math.abs(y - me.y) < TALK_NEAR.y;
-  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (n.open === G.town.part && near(tileX(n.at[0]), tileY(n.at[1]))) return { npc: id, x: tileX(n.at[0]), y: tileY(n.at[1]) }; }
+  for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; if (near(tileX(n.at[0]), tileY(n.at[1]))) return { npc: id, x: tileX(n.at[0]), y: tileY(n.at[1]) }; }
   const w = (T.walkers || []).find(q => !q.talk && near(q.x, q.y));
   return w ? { w, x: w.x, y: w.y } : null;
 }
@@ -7676,7 +7679,7 @@ function tapTown(e) {
   closeSheet();
   playSfx('tap');
   // 사람을 누르면 그 옆 가장 가까운 칸까지 걸어가요 (v0.51) — 이야기는 머리 위 「대화하기」 버튼으로 (v0.49 사용자 요청)
-  const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return n.open === G.town.part && inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
+  const npc = Object.keys(TOWN_NPC).find(id => { const n = TOWN_NPC[id]; return inRect(wx, wy, [tileX(n.at[0]) - 8, tileY(n.at[1]) - 30, 16, 32]); });
   if (npc) { const [nx, ny] = TOWN_NPC[npc].at, at = besideTile(nx, ny); if (at) walkTo(at, () => faceTo(nx * TILE + TILE / 2, ny * TILE + 13)); return; }
   const w = walkerAt(wx, wy);
   if (w) { const at = besideTile(Math.floor(w.x / TILE), Math.floor(w.y / TILE)); if (at) { w.wait = Math.max(w.wait, 2); w.path = []; walkTo(at, () => faceTo(w.x, w.y)); } return; }
@@ -7719,7 +7722,7 @@ function openPlace(id) {
     sheet(`<div class="ts-head"><b>${placeName(id)}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${P.open === 'dawn' ? '새벽에 문을 엽니다' : '지금은 문을 닫았습니다'}</p>`);
     return;
   }
-  const acts = placeActs(id).filter(a => (ACTS[a].when === 'any' || ACTS[a].when === Tn.part) && !COUNTER_ACTS.includes(a)); // 홍보는 계산대 창에서
+  const acts = placeActs(id).filter(a => !COUNTER_ACTS.includes(a)); // 홍보는 휴대폰에서
   const rows = acts.map(a => actRow(id, a)).join('');
   const bw = id === 'laundry' && guildOpen() ? 'moon' : P.who;
   const who = bw && ['miso', 'jung', 'moon'].includes(bw) ? heartsHTML(bw) : ''; // 친밀도 하트 (sim/bond.js)
@@ -7739,6 +7742,7 @@ let phoneApp = null, callOpen = -1;
 const APPS = [
   { id: 'insta', name: '인스타' },
   { id: 'blog', name: '블로그' },
+  { id: 'order', name: '식자재 주문' }, // v0.59: 정가 · 시간 안 씀 (가게에 가면 특가·단골가·친밀도)
   { id: 'call', name: '전화' },
   { id: 'map', name: '상권 지도', lock: true }, // 3장 「길 건너 대결」에서 깔려요 (기획서 3장 탭)
 ];
@@ -7779,11 +7783,11 @@ function actRow(id, a) {
     const A = ACTS[a], ok = actNow(id, a), day = Tn.part === 'dawn' ? '오늘' : '내일'; // 홍보 효과는 다가오는 영업일
     const cost = a === 'market' ? (marketCost() ? `${marketCost()}시간` : '') : A.cost ? `${A.cost}시간` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 1시간' : '새벽 배달 · 시간이 들지 않습니다')
+      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '특가 · 단골가 · 처음 들어갈 때 1시간' : '배달 · 시간이 들지 않습니다')
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -7795,7 +7799,7 @@ function pantryHTML() {
   const menus = todayMenus().map(m => `<span>${icon(m, 'dish')}${invServings(m)}그릇</span>`).join('');
   return `<div class="ts-head"><b>냉장고</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     <div class="pt-menus">${menus}</div>
-    ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 새벽 시장에서 재료를 사 보세요</p>'}`;
+    ${rows ? `<div class="pt-list">${rows}</div>` : '<p class="ts-note">비어 있습니다. 정 사장 식자재에서 사거나 휴대폰으로 주문해 보세요</p>'}`;
 }
 // 미소 가구 창 (미리보기 캔버스는 창을 그린 뒤에)
 function showFurn() { sheet(furnHTML(), 'furn'); drawFurnPreview(); }
@@ -7812,7 +7816,8 @@ function drawChat() {
 
 // 시장: 원재료를 묶음으로 장바구니에 담고, 아래 「구매하기」로 한 번에 사요 (장바구니는 화면에만 — 사기 전엔 돈이 안 나가요)
 //  「모자란 만큼 담기」: 오늘 팔 양(어제 판 만큼 + 넉넉히, planDefault)에서 창고 재고를 빼고 모자란 재료만 담아요 (sim/pantry.js cartFor)
-let cart = {}, plan = {};
+let cart = {}, plan = {}, mkPhone = false; // mkPhone: 휴대폰 주문 (정가 · 정 사장님 이야기·특가 없음)
+const unitOf = i => (mkPhone ? phoneUnit(i) : marketUnit(i));
 const PLAN_STEP = 5;
 function planDefault() {
   const last = G.history[G.history.length - 1];
@@ -7821,9 +7826,9 @@ function planDefault() {
 }
 // 진열대 타일 (화면 정리): 누를 때마다 한 묶음 담기 · 담은 타일에 +수량과 − · 내일 모자랄 재료는 빨간 점 · 특가·시세는 구석에
 function ingTile(i, lack) {
-  const I = INGREDIENTS[i], unit = marketUnit(i), k = cart[i] || 0, news = ingNews(i);
+  const I = INGREDIENTS[i], unit = unitOf(i), k = cart[i] || 0, news = ingNews(i);
   const inv = invOf(i), today = invToday(i), short = (lack[i] || 0) > k;
-  const tag = isDeal(i) ? '<i class="mk-tag deal">특가</i>' : G.town.kept === i ? '<i class="mk-tag keep">+1일</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
+  const tag = !mkPhone && isDeal(i) ? '<i class="mk-tag deal">특가</i>' : !mkPhone && G.town.kept === i ? '<i class="mk-tag keep">+1일</i>' : news ? `<i class="mk-tag ${news.mul > 1 ? 'up' : 'down'}">${news.mul > 1 ? '▲' : '▼'}</i>` : '';
   return `<div class="mk-tile${k ? ' in' : ''}" data-ts="cart" data-i="${i}" data-d="1" role="button" aria-label="${I.name} 한 묶음 담기">
     ${short ? '<i class="mk-dot"></i>' : ''}${tag}${icon('ing_' + i, 'mk-ic')}
     <b>${I.name}</b><small>${won(unit * I.pack)}</small>
@@ -7839,17 +7844,17 @@ function marketJung() {
 }
 function marketHTML() {
   const ings = openIngs(), lack = cartFor(plan);
-  const total = ings.reduce((s, i) => s + marketUnit(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
+  const total = ings.reduce((s, i) => s + unitOf(i) * (cart[i] || 0) * INGREDIENTS[i].pack, 0);
   const short = total > G.cash;
-  return `<div class="ts-head"><b>정 사장 식자재</b>${heartsHTML('jung')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
-    ${marketJung()}
+  return `<div class="ts-head"><b>${mkPhone ? '식자재 주문 · 정가' : '정 사장 식자재'}</b>${mkPhone ? '' : heartsHTML('jung')}<button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+    ${mkPhone ? '' : marketJung()}
     <small class="mk-h">오늘 팔 양</small>
     <div class="mk-plan">${todayMenus().map(m => `<div class="mk-prow">${icon(m, 'dish')}<span>${MENUS[m].name}<small>재고로 ${invServings(m)}그릇</small></span><div class="step"><button type="button" data-ts="plan" data-m="${m}" data-d="-1" aria-label="${MENUS[m].name} 덜 팔기">−</button><b>${plan[m] || 0}그릇</b><button type="button" data-ts="plan" data-m="${m}" data-d="1" aria-label="${MENUS[m].name} 더 팔기">+</button></div></div>`).join('')}</div>
     <button type="button" class="btn small mk-fill" data-ts="fill">모자란 재료 담기 <small>빨간 점이 모자란 재료</small></button>
     <small class="mk-h">진열대 <i>누르면 한 묶음</i></small>
     <div class="mk-shelf">${ings.map(i => ingTile(i, lack)).join('')}</div>
     <div class="mk-foot"><div class="mk-sum"><span>합계 <b>${won(total)}</b></span><span class="${short ? 'neg' : ''}">잔고 ${won(G.cash)}</span></div>
-    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `구매하기 · ${won(total)}` : '재료를 눌러 담아 보세요'}</button></div>`;
+    <button type="button" class="btn primary big mk-buy" data-ts="buyCart" ${total && !short ? '' : 'disabled'}>${short ? '잔고가 모자랍니다' : total ? `${mkPhone ? '주문하기' : '구매하기'} · ${won(total)}` : '재료를 눌러 담아 보세요'}</button></div>`;
 }
 
 function initTown() {
@@ -7911,7 +7916,7 @@ function initTown() {
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'use') { const u = b.dataset.u; if (runCmd('townUse', { use: u })) { closeSheet(); if (u === 'rest') { T.sitUntil = T.time + 2.5; T.me.path = []; } } }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
-    else if (k === 'app') { const p = b.dataset.p; if (p && APPS.find(a => a.id === p).lock) { toast('아직 깔리지 않은 앱입니다', 'info'); playSfx('tap'); return; } openPhone(p || null); playSfx('tap'); }
+    else if (k === 'app') { const p = b.dataset.p; if (p && APPS.find(a => a.id === p).lock) { toast('아직 깔리지 않은 앱입니다', 'info'); playSfx('tap'); return; } if (p === 'order') { mkPhone = true; T.sheetPlace = 'shop'; cart = {}; planDefault(); playSfx('page'); sheet(marketHTML(), 'market'); return; } /* 식자재 주문: 바로 주문 창 */ openPhone(p || null); playSfx('tap'); }
     else if (k === 'callOpen') { const i = +b.dataset.i; callOpen = callOpen === i ? -1 : i; openPhone(); playSfx('tap'); }
     else if (k === 'cart') { const i = b.dataset.i; cart[i] = Math.max(0, (cart[i] || 0) + +b.dataset.d); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
@@ -7931,12 +7936,12 @@ function initTown() {
     else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
     else if (k === 'plan') { const m = b.dataset.m; plan[m] = Math.max(0, (plan[m] || 0) + +b.dataset.d * PLAN_STEP); playSfx('tap'); sheet(marketHTML(), 'market'); }
     else if (k === 'jungTalk') { if (runCmd('jungTalk') && chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); }
-    else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart })) cart = {}; refreshTown(); }
+    else if (k === 'buyCart') { if (runCmd('marketBuyCart', { cart, phone: mkPhone })) cart = {}; refreshTown(); }
   });
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
-    if (what === 'market') { T.sheetPlace = 'market'; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
+    if (what === 'market') { T.sheetPlace = 'market'; mkPhone = false; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
     if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'guild') { T.sheetPlace = 'laundry'; if (chatQ) chatQ.after = () => sheet(guildHTML(), 'guild'); else sheet(guildHTML(), 'guild'); return; } // 문 회장님 이야기 뒤에 상인회 창
     if (what === 'sales') { T.sheetPlace = 'shop'; sheet(salesHTML(), 'sales'); playSfx('page'); return; }
@@ -7944,7 +7949,7 @@ function initTown() {
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter(); playSfx('page'); return; }
     if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
-    if (what === 'dawn') { T.part = 'dawn'; playSfx('page'); if (arg === 'sleep') { closeSheet(); placeMe('home'); } } // 밤 칸을 다 쓰면 그 자리에서 새벽
+    if (what === 'dawn') { playSfx('page'); renderBar(); return; } // 4시간을 쓰면 시계가 새벽으로 (할 수 있는 일은 같아요)
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
 }
@@ -8142,7 +8147,7 @@ function renderPrep() {
   const cost = prepCost();
   const after = G.cash - cost;
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
-  const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 재료는 새벽 시장에서 사고, 가게는 새벽에 열어요
+  const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 가게는 준비 시간 아무 때나 열어요 (v0.59) · dawn은 글자만
   const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
   // 프롤로그 · 4일차(마을 전): 「오늘의 메뉴」 한 칸 — 메뉴마다 한 줄(가격 · 재료 주문), 원가율·장부는 그 아래 작게 (v0.43 화면 정리)
   const rows = todayMenus().map(m => {
@@ -8192,13 +8197,13 @@ function renderLedger(last, after, dawn) {
   showScreen(`
     <div class="prep book">
       <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
-      <h2>${dawn ? '가게 열기' : '오늘의 메뉴'}</h2>
+      <h2>가게 열기</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
       ${qline}
       ${todayCard()}
       ${tools}
       ${bills}
-      ${dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다</p>'}
+      <button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>
       <button class="btn" data-act="toTown">돌아가기</button>
       ${mmOpen && menuOpen(mmOpen) ? menuSheet(mmOpen, last) : pickOpen != null ? pickSheet(pickOpen) : ''}
     </div>`, 'scr-prep');

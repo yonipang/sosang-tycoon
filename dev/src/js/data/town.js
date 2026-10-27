@@ -1,5 +1,6 @@
 // 마을: 밤·새벽에 걸어 다니는 골목 지도 (1장부터). 그리기는 render/town.js · 움직임 ui/town.js, 규칙은 sim/town.js
-// 하루: 영업 → 영수증 → 밤(21시~, 행동 칸 NIGHT_SLOTS) → 집에서 자기 → 새벽(5시~, DAWN_SLOTS) → 가게에서 「가게 열기」 (밤·새벽 합쳐 한 턴 TURN_SLOTS칸)
+// 하루: 영업 → 영수증 → 준비 시간 한 턴 TURN_SLOTS시간(21시부터, 4시간을 쓰면 새벽 5시로 — 시계·하늘빛만 바뀌어요) → 아무 때나 「가게 열기」
+//  v0.59 사용자 요청: 밤·새벽을 나누지 않아요. 모든 곳이 늘 열려 있고 장보기·청소·오픈 준비를 아무 차례로 해요. 남긴 시간은 쉬는 시간
 // 행동 칸: 걷는 건 공짜, 일을 하면 칸을 써요. 칸이 없는데 더 하면 피로가 쌓여요(다음 날 사장 걸음이 느려져요)
 
 // 마을 지도: 위에서 비스듬히 내려다본 골목 (16px 칸 = data/layout.js TILE, 가로 MAP_W × 세로 MAP_H). 어느 방향으로든 걸어 다녀요
@@ -56,17 +57,17 @@ export const MAP_PROPS = [
 export const LIGHTS = [[248, 75, 22, 0.42], [216, 88, 16, 0.3], [105, 72, 10, 0.55], [361, 72, 10, 0.55], [72, 250, 20, 0.3],
   [452, 75, 22, 0.4], [617, 72, 10, 0.55], [440, 250, 18, 0.28], [318, 300, 14, 0.35]]; // 카페 창 · 동쪽 가로등 · 학원 창 · 포장마차
 
-// 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · open: 'night'|'dawn'|없으면 늘 · who 앞에 서 있는 사람
+// 장소: door 문 앞 칸(걸어가 서는 곳) · rect 누르는 곳 [x, y, w, h] · who 앞에 서 있는 사람 (v0.59부터 늘 열려 있어요)
 export const PLACES = {
   home: { name: '우리 집', short: '집', door: [3, 6], rect: [16, 11, 96, 85] },
-  flower: { name: '미소 꽃집', short: '꽃집', door: [8, 6], rect: [112, 8, 80, 88], who: 'miso', open: 'night' },
+  flower: { name: '미소 꽃집', short: '꽃집', door: [8, 6], rect: [112, 8, 80, 88], who: 'miso' },
   shop: { name: '우리 가게', short: '우리 가게', door: [13, 6], rect: [192, 8, 80, 88] },
-  laundry: { name: '최 사장 세탁소', short: '세탁소', door: [18, 6], rect: [272, 8, 80, 88], who: 'choi', open: 'night' },
-  board: { name: '골목 게시판', short: '게시판', door: [10, 13], rect: [146, 170, 28, 34], open: 'night' },
-  market: { name: '정 사장 식자재', short: '식자재', door: [4, 18], rect: [16, 191, 112, 97], who: 'jung', open: 'dawn' },
+  laundry: { name: '최 사장 세탁소', short: '세탁소', door: [18, 6], rect: [272, 8, 80, 88], who: 'choi' },
+  board: { name: '골목 게시판', short: '게시판', door: [10, 13], rect: [146, 170, 28, 34] },
+  market: { name: '정 사장 식자재', short: '식자재', door: [4, 18], rect: [16, 191, 112, 97], who: 'jung' },
 };
 // 사람이 서 있는 칸 (data/story.js CAST)
-export const TOWN_NPC = { miso: { at: [9, 7], open: 'night' }, choi: { at: [19, 7], open: 'night' }, jung: { at: [5, 18], open: 'dawn' } };
+export const TOWN_NPC = { miso: { at: [9, 7] }, choi: { at: [19, 7] }, jung: { at: [5, 18] } };
 // 빈 가게: 우리 가게 건널목 바로 건너편. 1~2장은 「임대 문의」만, 3장에 프랜차이즈 「떡볶이 공장」이 들어와요 (기획서 3장)
 // 둘러보기만 하는 곳 (누르면 한 줄) — 동쪽 블록 가게들
 export const LOOKS = [
@@ -100,12 +101,12 @@ export const VACANT_NOTE = '「임대 문의」 종이가 붙어 있습니다. �
 // 행동 칸
 export const NIGHT_SLOTS = 4;
 export const DAWN_SLOTS = 3;
-// 밤과 새벽은 한 턴: 칸 7개를 이어서 써요. 밤 칸 4개를 다 쓰면(또는 집에서 자면) 새벽 5시가 되고 식자재가 문을 열어요.
-//  7칸을 넘기면 넘긴 만큼 피로 · 가게를 열 때 칸이 남았으면(일찍 자서 건너뛴 밤 칸 포함) 피로 하나가 풀려요
+// 한 턴 7시간을 이어서 써요. 4시간을 쓰면 시계가 새벽 5시로 넘어가요(보이기만 — 할 수 있는 일은 같아요).
+//  7시간을 넘기면 넘긴 만큼 피로 · 가게를 열 때 시간이 남았으면 피로 하나가 풀려요
 export const TURN_SLOTS = NIGHT_SLOTS + DAWN_SLOTS;
 export const NIGHT_START = 21 * 60; // 밤 21:00부터 한 칸에 한 시간
 export const DAWN_START = 5 * 60;   // 새벽 05:00부터
-// 피로: 칸을 넘겨 쓴 만큼 +1 (최대 3). 밤에 칸을 남기고 자면 −1. 피로 하나에 사장 걸음 8% 느려져요
+// 피로: 시간을 넘겨 쓴 만큼 +1 (최대 3). 시간을 남기고 가게를 열면 −1. 피로 하나에 사장 걸음 8% 느려져요
 export const FATIGUE_MAX = 3;
 export const FATIGUE_SLOW = 0.08;
 
@@ -114,11 +115,11 @@ export const FATIGUE_SLOW = 0.08;
 //  talk 이웃과 이야기: 다음 날 그 이웃 소개로 손님 한 팀이 와요
 //  counter 계산대 · 홍보: 우리 가게 계산대에서 인스타 올리기 · 파워블로거 섭외 (아래 PROMO, 칸·돈은 그 일마다)
 //  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
-//  market 장보기: 새벽에 정 사장 가게 (그날 처음 들어갈 때 한 칸) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
+//  market 장보기: 정 사장 가게 (그날 처음 들어갈 때 한 시간 · 특가·단골가·친밀도) — 휴대폰 「식자재 주문」은 정가로 시간 없이 (PHONE_ORDER) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
 //  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
 //  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
-//   · 계산대 = 판매 장부·손님 수첩·홍보 · 퇴식대 = 청소 · 화구 = 오픈 준비(새벽) · 문 = 골목으로 (SHOP_SPOTS)
+//   · 계산대 = 판매 장부·손님 수첩 · 퇴식대 = 청소 · 화구 = 오픈 준비 · 문 = 골목으로 (SHOP_SPOTS)
 //  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
 //  recipe 메뉴 연구 칠판: 숙련도 + 돈으로 메뉴 레벨 올리기 (sim/upgrade.js, 칸 안 씀)
 export const ACTS = {
@@ -126,18 +127,18 @@ export const ACTS = {
   pantry: { name: '냉장고', cost: 0, when: 'any' },          // 창고 재료 보기 (v0.46: 오늘의 메뉴는 「가게 열기」에서)
   sales: { name: '판매 장부', cost: 0, when: 'any' },
   recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
-  clean: { name: '청소하기', cost: 1, when: 'night' },
-  talk: { name: '이야기하기', cost: 1, when: 'night' },
+  clean: { name: '청소하기', cost: 1, when: 'any' },
+  talk: { name: '이야기하기', cost: 1, when: 'any' },
   counter: { name: '계산대', cost: 0, when: 'any' }, // 판매 장부 · 손님 수첩 (홍보는 v0.54부터 휴대폰에서)
   book: { name: '손님 수첩', cost: 0, when: 'any' },
-  insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 홍보는 밤·새벽 언제든 (v0.45 사용자 요청) — 효과는 다가오는 영업일
+  insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
-  furn: { name: '가구 둘러보기', cost: 1, when: 'night' },
-  guild: { name: '철물점 · 상인회', cost: 1, when: 'night' },
-  sleep: { name: '자러 가기', cost: 0, when: 'night' },
-  market: { name: '장보기', cost: 1, when: 'dawn' },
-  setup: { name: '오픈 준비 (진열)', cost: 1, when: 'dawn' },
-  open: { name: '가게 열기', cost: 0, when: 'dawn' },
+  furn: { name: '가구 둘러보기', cost: 1, when: 'any' },
+  guild: { name: '철물점 · 상인회', cost: 1, when: 'any' },
+  sleep: { name: '자고 가게 열기', cost: 0, when: 'any' }, // 집: 남은 시간은 쉬고 「가게 열기」 화면으로 (v0.59)
+  market: { name: '장보기', cost: 1, when: 'any' },
+  setup: { name: '오픈 준비 (진열)', cost: 1, when: 'any' },
+  open: { name: '가게 열기', cost: 0, when: 'any' },
 };
 // 장소마다 할 수 있는 일
 export const PLACE_ACTS = {
@@ -187,6 +188,8 @@ export const CHATS = {
     [['choi', '요새 앞 건물 월세가 또 올랐다더라. 건물주들은 참….'], ['choi', '그래도 사장은 열심히 하니까 괜찮을 거야. 손님 하나 또 보낼게.']],
   ],
 };
+// 휴대폰 「식자재 주문」(v0.59): 정가(특가·단골가 없음) · 시간 안 씀 · 친밀도 없음 — 바로 가게 냉장고로
+export const PHONE_ORDER = { mul: 1 };
 // 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀 · 차례대로)
 export const JUNG_CHATS = [
   [['jung', '떡은 아침에 뽑은 거라 말랑해. 손으로 눌러 봐.'], ['jung', '오 사장 그 양반도 처음엔 떡을 너무 많이 사서 다 버렸어. 허허.']],
@@ -194,7 +197,7 @@ export const JUNG_CHATS = [
   [['jung', '자네 가게 떡볶이 맛있다고 우리 집사람이 그러더라.'], ['jung', '좋은 물건 들어오면 자네 몫 따로 빼 둘게.']],
   [['jung', '새벽 시장은 부지런한 사람 거야. 자네는 부지런하네.'], ['jung', '나중엔 내가 가게 앞까지 갖다줄 수도 있고. 단골이면.']],
 ];
-// 시장 정 사장 인사 (새벽 첫 방문)
+// 시장 정 사장 인사 (첫 방문)
 export const JUNG_HELLO = [
   [['jung', '어이, 오 사장 후배라며? 그 양반한테 얘기 들었어.'], ['jung', '재료는 새벽에 와야 제일 싱싱해. 오늘 특가도 한번 봐.']],
   [['jung', '왔어? 오늘도 일찍 나왔네.'], ['jung', '특가는 먼저 오는 사람이 임자야.']],

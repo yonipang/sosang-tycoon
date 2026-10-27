@@ -57,7 +57,7 @@ export const MISO_NAMES = { wall: '꽃잎 벽지', floor: '따뜻한 무늬 바�
 // 확장공사 (미소 가구 · 가게 등급): 홀이 두 줄 길어져 탁자가 늘어요 (data/layout.js applyShopLv). 오늘의 메뉴 칸은 따로 — 장마다 늘려요 (v0.46)
 //  rent: 넓어진 만큼 주간 임대료가 더 나가요
 export const SHOP_BUILD = {
-  2: { name: '동네 가게', price: 1500000, heart: 2, rent: 70000, tables: 8 },
+  2: { name: '동네 가게', price: 1200000, heart: 2, rent: 70000, tables: 8 }, // v0.59: 손님이 줄어 150만 → 120만 (사용자 요청)
 };
 export const FURN_THEME_NEED = 4;     // 같은 테마 몇 개부터 보너스
 export const FURN_SET_RATE = 0.85;    // 세트(모자란 것 한 번에)는 낱개 합의 85%

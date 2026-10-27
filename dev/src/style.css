@@ -1035,6 +1035,9 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .ph-ic.blog::after { content: ''; position: absolute; left: 12px; top: 12px; width: 14px; height: 2px; background: #f0a030; box-shadow: 0 5px 0 #f0a030, 0 10px 0 #f0a030; }
 .ph-ic.call { background: var(--green); }
 .ph-ic.call::before { content: ''; position: absolute; left: 10px; top: 9px; width: 4px; height: 4px; background: #fff; box-shadow: 7px 0 #fff, 14px 0 #fff, 0 7px #fff, 7px 7px #fff, 14px 7px #fff, 0 14px #fff, 7px 14px #fff, 14px 14px #fff; }
+.ph-ic.order { background: #8a5a2b; } /* 식자재 주문: 상자 (v0.59) */
+.ph-ic.order::before { content: ''; position: absolute; left: 8px; top: 12px; width: 22px; height: 16px; background: #f3d9a4; box-shadow: inset 0 4px 0 #d9b070; }
+.ph-ic.order::after { content: ''; position: absolute; left: 17px; top: 12px; width: 4px; height: 8px; background: #8a5a2b; }
 .ph-ic.map { background: #3d6fd6; }
 .ph-ic.map::before { content: ''; position: absolute; left: 11px; top: 6px; width: 16px; height: 16px; background: #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
 .ph-ic.map::after { content: ''; position: absolute; left: 16px; top: 11px; width: 6px; height: 6px; background: #3d6fd6; border-radius: 50%; }

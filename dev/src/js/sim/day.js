@@ -327,7 +327,7 @@ function nextDay() {
     if (last && menuOpen(m)) G.prep[m] = Math.min(PREP_MAX, Math.max(0, Math.ceil((last.sold[m] + 5 - invServings(m)) / 5) * 5));
   }
   storyNextDay(); // 예약한 메뉴는 처음 주문량으로 열려요
-  townEnterNight(); // 1장부터는 밤 골목으로 (재료는 새벽 시장에서)
+  townEnterNight(); // 1장부터는 밤 골목으로 (재료는 정 사장 식자재에서)
   const mk = marketNextDay(); // 재료 시세: 새 소식은 골목 신문으로, 끝난 소식은 알림으로
   if (mk && mk.scene) G.story.queue.push(mk.scene);
   setPhase('prep');
