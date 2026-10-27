@@ -1074,6 +1074,13 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .cl-backup small { color: var(--ink-soft); font-size: 16px; }
 .set-minis { display: flex; justify-content: center; gap: 16px; margin-top: 14px; } /* 기기 저장 · 기기 데이터 불러오기 (v0.57): 작은 글자 버튼 */
 .set-mini { background: none; border: 0; padding: 6px 4px; color: var(--paper); opacity: .8; font: inherit; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* 손님 수첩: 아직 골목에 없는 얼굴은 자물쇠 · 나타났지만 안 온 얼굴은 NEW (v0.58) */
+.bk-cell.locked { background: #d9ccb0; cursor: default; }
+.bk-lock { position: absolute; left: 50%; top: 50%; width: 14px; height: 11px; margin: -2px 0 0 -7px; background: #b49b6c; border: 2px solid #7a6440; }
+.bk-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid #7a6440; border-bottom: 0; border-radius: 4px 4px 0 0; }
+.bk-new { position: absolute; left: 1px; top: 1px; padding: 0 2px; background: var(--red); color: #fff; font-style: normal; font-size: 12px; line-height: 1.2; }
+.hero-new { margin: 6px 0 0; color: var(--mustard); font-size: 16px; }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1356,6 +1363,10 @@ const PEOPLE = {
   1: 'worker', 2: 'student', 3: 'student', 4: 'worker', 5: 'student', 6: 'student', 7: 'elder', 8: 'worker', 9: 'student',
   10: 'worker', 11: 'student', 12: 'worker', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 19: 'elder',
 };
+// 골목 손님 얼굴 (v0.58 사용자 요청 — 손님 수첩을 볼 이유): 처음엔 다섯 명(+ 단골 박 할머니)만 지나가고, 리뷰가 쌓일수록 한 명씩 늘어요
+//  FACES_NEXT [그림 번호, 그 얼굴이 나타나는 리뷰 수] · 프롤로그(오가네 분식 알바)는 처음 다섯 명만. 이웃 소개·골목에서 만난 손님은 아직 안 나타난 얼굴이어도 와요
+const FACES_START = [2, 6, 1, 4, 19];
+const FACES_NEXT = [[3, 3], [10, 8], [15, 14], [8, 22], [5, 32], [12, 43], [7, 56], [11, 70], [14, 86], [16, 104], [9, 123], [17, 144]];
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 // 가게 앞 유동인구: 시각마다 가게 앞 보도를 지나가는 일행 수 (게임 1시간 기준)
@@ -1475,7 +1486,7 @@ const RUSH_SEC = 20;      // 도착까지 실제 초
 // 별점 = 리뷰 평균 (실제 지도 앱처럼). 계산한 손님 중 REVIEW_RATE만큼이 그날 만족(반올림)을 별로 남기고, 최근 REVIEW_KEEP개의 평균이 가게 별점 (sim/rating.js)
 //  리뷰가 하나도 없으면 별점은 「—」, 손님 수·가격에는 RATING_NONE(보통)으로 셈
 //  프롤로그(오가네 분식)는 오 사장님이 쌓아 둔 리뷰로 시작하고, 1장에 새 이름으로 바꾸면 리뷰 0개부터 (OH_REVIEWS: 별 5·4·3·2·1 개수)
-const REVIEW_RATE = 0.35;
+const REVIEW_RATE = 0.2;      // v0.58 사용자 요청 「리뷰 다는 손님이 너무 많아」 0.35 → 0.2 (리뷰 수에 걸린 기준도 같이 줄였어요)
 const REVIEW_KEEP = 100;
 const RATING_NONE = 3;
 const OH_REVIEWS = [22, 24, 10, 3, 1];
@@ -1483,8 +1494,8 @@ const OH_REVIEW_TOTAL = 400;   // 오가네 분식이 30년 동안 받은 리뷰
 // 리뷰가 적은 새 가게는 별점이 보통(RATING_NONE) 쪽으로 끌려요 (v0.44 사용자 지적: 5일차 ★4.8은 말이 안 됨)
 //  별점 = (리뷰 별 합 + 보통 × 무게) ÷ (리뷰 수 + 무게) · 무게 = RATING_PRIOR_W × HALF ÷ (HALF + 지금까지 리뷰 수)
 //  예: 리뷰 15개 평균 4.8 → ★3.7 · 100개 평균 4.5 → ★4.3 · 300개 → ★4.4
-const RATING_PRIOR_W = 30;
-const RATING_PRIOR_HALF = 80;
+const RATING_PRIOR_W = 10;   // v0.58: 리뷰가 하루에 약 1/3로 줄어서 30 → 10 · 80 → 26 (같은 날짜에 비슷한 별점)
+const RATING_PRIOR_HALF = 26;
 // 평판(별점)이 손님 수와 기준 가격에 주는 영향
 const ratingSpawnMul = r => 0.55 + 0.15 * r;
 const ratingPriceMul = r => 1 + 0.08 * (r - 3); // 별 하나에 8%: ★4면 8% 비싸도, ★5면 16% 비싸도 「적당하다」
@@ -1495,7 +1506,9 @@ const openingMul = day => OPENING[Math.min(OPENING.length, Math.max(1, day)) - 1
 // 인지도 (1장부터): 손님 수는 날짜가 아니라 리뷰 수(G.ratingN)로 늘어요 — 잘할수록 리뷰가 쌓여 손님이 늘어요 (v0.37 사용자 결정)
 //  [리뷰 수, 배율] 사이는 곧게 이어요. ★4 기준 하루 손님: 0개 약 16명 · 50개 약 27명 · 150개 약 43명 · 400개 약 65명
 //  프롤로그(오가네 분식 알바 사흘)는 위 OPENING 그대로
-const FAME = [[0, 0.3], [50, 0.5], [150, 0.8], [400, 1.2], [800, 1.4]];
+//  v0.58 사용자 요청 「여전히 너무 많이 와요 · 더 줄여도」: 약 45% 줄임 → ★4 기준 리뷰 0개 약 9명 · 16개 15명 · 48개 24명 · 128개 36명
+//   (리뷰 다는 손님도 35% → 20%로 줄어서 리뷰 수 기준을 약 1/3로 — 같은 날짜쯤에 같은 손님 수)
+const FAME = [[0, 0.17], [16, 0.28], [48, 0.45], [128, 0.68], [256, 0.85]];
 function fameMul(n) {
   for (let i = 1; i < FAME.length; i++) if (n <= FAME[i][0]) { const [a, x] = FAME[i - 1], [b, y] = FAME[i]; return x + (y - x) * (n - a) / (b - a); }
   return FAME[FAME.length - 1][1];
@@ -1614,7 +1627,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.57';
+const GAME_VERSION = '0.58';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2074,7 +2087,8 @@ const QUESTS = {
   p_book: { who: 'oh', title: '오늘 장부', goal: '마감 영수증 보기', kind: 'receipt', need: 1 },
   p_ahead: { who: 'oh', title: '손이 놀 때', goal: '미리 만든 음식 내주기', kind: 'ahead', need: 2 }, // 사흘 안에 못 해도 인수는 돼요 (1장에서도 셀 수 있어요)
   p_keys: { who: 'oh', title: '사흘만 맡아 봐', goal: '영업 사흘 마치기', kind: 'dayEnd', need: 3, after: ['p_stir', 'p_serve', 'p_book'], wait: '오 사장님의 다른 부탁을 마저 들어 보세요', give: { scenes: ['handover', 'paper0', 'ch1'] } },
-  c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 10명 받기', kind: 'dayServed', need: 10, give: { scenes: ['plant'] } },
+  c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 8명 받기', kind: 'dayServed', need: 8, // v0.58 손님 수를 줄여서 10 → 8
+    give: { scenes: ['plant'] } },
   c1_note: { who: 'park', title: '김밥도 있었잖아', goal: '냉장고 뒤 쪽지 찾기', kind: 'note', need: 1, give: { scenes: ['note', 'tools'], menuNext: 'kimbap' } },
   c1_kimbap: { who: 'park', title: '그 시절 그 김밥', goal: '김밥 내주기', kind: 'served', menu: 'kimbap', need: 3, give: { scenes: ['choi'] } },
   c1_tools: { who: 'oh', title: '도구를 들여라', goal: '장사 도구 하나 사기', kind: 'buyTool', need: 1 },
@@ -4404,15 +4418,19 @@ function freeChars(type) {
   for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
   return out;
 }
+// 지금 골목을 지나다니는 얼굴 (v0.58): 리뷰 수로 늘어요 (data/customers.js FACES_NEXT)
+const facesFor = n => FACES_START.concat(FACES_NEXT.filter(([, at]) => n >= at).map(([c]) => c));
+const facesNow = () => (G.story && G.story.ch > 0 ? facesFor(G.ratingN || 0) : FACES_START);
 function spawnPasser(hour) {
-  const free = freeChars();
+  const open = new Set(facesNow());
+  const free = freeChars().filter(n => open.has(n));
   if (!free.length) return false;
   const mix = typeMix(hour);
   const typeCount = {};
-  for (const n in PEOPLE) typeCount[PEOPLE[n]] = (typeCount[PEOPLE[n]] || 0) + 1;
+  for (const n of open) typeCount[PEOPLE[n]] = (typeCount[PEOPLE[n]] || 0) + 1;
   const w = {};
   for (const n of free) w[n] = (mix[PEOPLE[n]] || 0) / typeCount[PEOPLE[n]];
-  const lead = +weighted(w);
+  const lead = Object.values(w).some(v => v > 0) ? +weighted(w) : free[0]; // 그 시간 손님층 얼굴이 아직 없으면 아무나
   const type = PEOPLE[lead];
   const members = [lead];
   const mates = free.filter(n => n !== lead && PEOPLE[n] === type);
@@ -5176,13 +5194,15 @@ function endDay() {
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;
   const before = G.rating;
+  const facesBefore = facesNow().length;
   const newReviews = reviewsFromDay(L.sats); // 별점 = 최근 리뷰 평균 (sim/rating.js)
+  const newFaces = Math.max(0, facesNow().length - facesBefore); // 리뷰가 쌓여 골목에 새 얼굴 (v0.58)
   const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra;
   const rec = {
     day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
-    dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
+    dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, newFaces, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
@@ -7009,11 +7029,17 @@ function boardHTML() {
 
 const typeOf = ch => PEOPLE[ch] || (Object.values(REGULARS).find(r => r.char === ch) || {}).type || 'elder';
 const satFace = s => (s >= 4.5 ? 'love' : s >= 3.5 ? 'happy' : s >= 2.5 ? 'meh' : 'angry');
+// 아직 골목에 안 나타난 얼굴은 자물쇠 (v0.58 — 리뷰가 쌓일수록 열려요). 박 할머니(단골)와 이미 온 사람은 늘 열려 있어요
+const LOCK_HTML = '<span class="bk-lock" aria-hidden="true"></span>';
 function bookHTML(sel) {
+  const open = new Set([...facesNow(), 13]), shown = ch => open.has(ch) || bookSeen(ch);
   const seen = BOOK_ORDER.filter(bookSeen).length;
-  const cells = BOOK_ORDER.map(ch => `<button type="button" class="bk-cell${bookSeen(ch) ? '' : ' unseen'}${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="${bookSeen(ch) ? PEOPLE_INFO[ch].name : '아직 모르는 손님'}">${icon('char' + ch, 'bk-face')}${regularCandidate(ch) ? '<i class="bk-star">★</i>' : ''}</button>`).join('');
+  const cells = BOOK_ORDER.map(ch => !shown(ch)
+    ? `<button type="button" class="bk-cell locked${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="아직 골목에 없는 손님">${LOCK_HTML}</button>`
+    : `<button type="button" class="bk-cell${bookSeen(ch) ? '' : ' unseen'}${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="${bookSeen(ch) ? PEOPLE_INFO[ch].name : '아직 모르는 손님'}">${icon('char' + ch, 'bk-face')}${bookSeen(ch) ? '' : '<i class="bk-new">NEW</i>'}${regularCandidate(ch) ? '<i class="bk-star">★</i>' : ''}</button>`).join('');
   let info = '<p class="bk-hint">얼굴을 눌러 보세요</p>';
-  if (sel && !bookSeen(sel)) info = '<p class="bk-hint">아직 가게에 온 적이 없습니다</p>';
+  if (sel && !shown(sel)) info = '<p class="bk-hint">아직 골목에 없는 손님입니다. 리뷰가 쌓이면 나타납니다</p>';
+  else if (sel && !bookSeen(sel)) info = '<p class="bk-hint">골목을 지나다니는 손님입니다. 아직 가게에 온 적이 없습니다</p>';
   else if (sel) {
     const P = PEOPLE_INFO[sel], b = G.book[sel], f = G.fans && G.fans[sel];
     info = `<div class="bk-info"><div class="bk-name"><b>${P.name}</b><small>${CUSTOMER_TYPES[typeOf(sel)].name}</small>${regularCandidate(sel) ? '<span class="tag hot">단골 후보</span>' : ''}</div>
@@ -8319,6 +8345,7 @@ function renderReceipt() {
         <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
         <div class="hero-star">★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${deltaHtml}${R.ratingN != null ? `<small class="rv-n">리뷰 ${R.ratingN}개${R.newReviews ? ` (+${R.newReviews})` : ''}</small>` : ''}</div>
         <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
+        ${R.newFaces ? `<p class="hero-new">리뷰가 쌓여 골목에 새 얼굴이 보이기 시작했습니다${R.newFaces > 1 ? ` (${R.newFaces}명)` : ''} · 손님 수첩</p>` : ''}
       </div>`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
     FOOT_REPORT && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',

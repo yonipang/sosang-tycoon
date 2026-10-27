@@ -4,16 +4,23 @@ import { MENUS } from '../data/menu.js';
 import { CUSTOMER_TYPES, PEOPLE, REGULARS } from '../data/customers.js';
 import { PEOPLE_INFO, BOOK_ORDER, REGULAR_BACK } from '../data/people.js';
 import { bookSeen, regularCandidate } from '../sim/book.js';
+import { facesNow } from '../sim/customers.js';
 import { icon } from './icons.js';
 import { josa } from '../engine/util.js';
 
 const typeOf = ch => PEOPLE[ch] || (Object.values(REGULARS).find(r => r.char === ch) || {}).type || 'elder';
 const satFace = s => (s >= 4.5 ? 'love' : s >= 3.5 ? 'happy' : s >= 2.5 ? 'meh' : 'angry');
+// 아직 골목에 안 나타난 얼굴은 자물쇠 (v0.58 — 리뷰가 쌓일수록 열려요). 박 할머니(단골)와 이미 온 사람은 늘 열려 있어요
+const LOCK_HTML = '<span class="bk-lock" aria-hidden="true"></span>';
 export function bookHTML(sel) {
+  const open = new Set([...facesNow(), 13]), shown = ch => open.has(ch) || bookSeen(ch);
   const seen = BOOK_ORDER.filter(bookSeen).length;
-  const cells = BOOK_ORDER.map(ch => `<button type="button" class="bk-cell${bookSeen(ch) ? '' : ' unseen'}${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="${bookSeen(ch) ? PEOPLE_INFO[ch].name : '아직 모르는 손님'}">${icon('char' + ch, 'bk-face')}${regularCandidate(ch) ? '<i class="bk-star">★</i>' : ''}</button>`).join('');
+  const cells = BOOK_ORDER.map(ch => !shown(ch)
+    ? `<button type="button" class="bk-cell locked${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="아직 골목에 없는 손님">${LOCK_HTML}</button>`
+    : `<button type="button" class="bk-cell${bookSeen(ch) ? '' : ' unseen'}${ch === sel ? ' sel' : ''}" data-ts="who" data-c="${ch}" aria-label="${bookSeen(ch) ? PEOPLE_INFO[ch].name : '아직 모르는 손님'}">${icon('char' + ch, 'bk-face')}${bookSeen(ch) ? '' : '<i class="bk-new">NEW</i>'}${regularCandidate(ch) ? '<i class="bk-star">★</i>' : ''}</button>`).join('');
   let info = '<p class="bk-hint">얼굴을 눌러 보세요</p>';
-  if (sel && !bookSeen(sel)) info = '<p class="bk-hint">아직 가게에 온 적이 없습니다</p>';
+  if (sel && !shown(sel)) info = '<p class="bk-hint">아직 골목에 없는 손님입니다. 리뷰가 쌓이면 나타납니다</p>';
+  else if (sel && !bookSeen(sel)) info = '<p class="bk-hint">골목을 지나다니는 손님입니다. 아직 가게에 온 적이 없습니다</p>';
   else if (sel) {
     const P = PEOPLE_INFO[sel], b = G.book[sel], f = G.fans && G.fans[sel];
     info = `<div class="bk-info"><div class="bk-name"><b>${P.name}</b><small>${CUSTOMER_TYPES[typeOf(sel)].name}</small>${regularCandidate(sel) ? '<span class="tag hot">단골 후보</span>' : ''}</div>

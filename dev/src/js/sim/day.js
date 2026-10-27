@@ -9,7 +9,7 @@ import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
 import { josa } from '../engine/util.js';
 import { emit, defineCmd } from './events.js';
-import { spawnPasser, shopCustomers, planRegulars, tickRegulars, spawnParty, freeChars } from './customers.js';
+import { spawnPasser, shopCustomers, planRegulars, tickRegulars, spawnParty, freeChars, facesNow } from './customers.js';
 import { planIncidents, tickIncidents, closeIncidents } from './incidents.js';
 import { districtVisitMul } from '../data/district.js';
 import { startDawnCook } from './player.js';
@@ -251,13 +251,15 @@ export function endDay() {
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;
   const before = G.rating;
+  const facesBefore = facesNow().length;
   const newReviews = reviewsFromDay(L.sats); // 별점 = 최근 리뷰 평균 (sim/rating.js)
+  const newFaces = Math.max(0, facesNow().length - facesBefore); // 리뷰가 쌓여 골목에 새 얼굴 (v0.58)
   const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra;
   const rec = {
     day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
-    dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
+    dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, newFaces, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };

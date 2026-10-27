@@ -14,6 +14,10 @@ export const PEOPLE = {
   1: 'worker', 2: 'student', 3: 'student', 4: 'worker', 5: 'student', 6: 'student', 7: 'elder', 8: 'worker', 9: 'student',
   10: 'worker', 11: 'student', 12: 'worker', 14: 'worker', 15: 'student', 16: 'worker', 17: 'student', 19: 'elder',
 };
+// 골목 손님 얼굴 (v0.58 사용자 요청 — 손님 수첩을 볼 이유): 처음엔 다섯 명(+ 단골 박 할머니)만 지나가고, 리뷰가 쌓일수록 한 명씩 늘어요
+//  FACES_NEXT [그림 번호, 그 얼굴이 나타나는 리뷰 수] · 프롤로그(오가네 분식 알바)는 처음 다섯 명만. 이웃 소개·골목에서 만난 손님은 아직 안 나타난 얼굴이어도 와요
+export const FACES_START = [2, 6, 1, 4, 19];
+export const FACES_NEXT = [[3, 3], [10, 8], [15, 14], [8, 22], [5, 32], [12, 43], [7, 56], [11, 70], [14, 86], [16, 104], [9, 123], [17, 144]];
 // 둘이 같이 올 확률 (일행은 한 탁자에 앉고, 한 명이 같이 계산해요)
 export const PAIR_CHANCE = { student: 0.45, worker: 0.35, elder: 0.15 };
 // 가게 앞 유동인구: 시각마다 가게 앞 보도를 지나가는 일행 수 (게임 1시간 기준)

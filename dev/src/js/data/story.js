@@ -55,7 +55,8 @@ export const QUESTS = {
   p_book: { who: 'oh', title: '오늘 장부', goal: '마감 영수증 보기', kind: 'receipt', need: 1 },
   p_ahead: { who: 'oh', title: '손이 놀 때', goal: '미리 만든 음식 내주기', kind: 'ahead', need: 2 }, // 사흘 안에 못 해도 인수는 돼요 (1장에서도 셀 수 있어요)
   p_keys: { who: 'oh', title: '사흘만 맡아 봐', goal: '영업 사흘 마치기', kind: 'dayEnd', need: 3, after: ['p_stir', 'p_serve', 'p_book'], wait: '오 사장님의 다른 부탁을 마저 들어 보세요', give: { scenes: ['handover', 'paper0', 'ch1'] } },
-  c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 10명 받기', kind: 'dayServed', need: 10, give: { scenes: ['plant'] } },
+  c1_first: { who: 'oh', title: '첫 손님들', goal: '하루에 손님 8명 받기', kind: 'dayServed', need: 8, // v0.58 손님 수를 줄여서 10 → 8
+    give: { scenes: ['plant'] } },
   c1_note: { who: 'park', title: '김밥도 있었잖아', goal: '냉장고 뒤 쪽지 찾기', kind: 'note', need: 1, give: { scenes: ['note', 'tools'], menuNext: 'kimbap' } },
   c1_kimbap: { who: 'park', title: '그 시절 그 김밥', goal: '김밥 내주기', kind: 'served', menu: 'kimbap', need: 3, give: { scenes: ['choi'] } },
   c1_tools: { who: 'oh', title: '도구를 들여라', goal: '장사 도구 하나 사기', kind: 'buyTool', need: 1 },

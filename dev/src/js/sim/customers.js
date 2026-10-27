@@ -4,7 +4,7 @@
 // 손님 한 명 = 그림 한 장(data/customers.js PEOPLE). 같은 사람은 가게에 동시에 둘이 있을 수 없어요.
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, baseOf } from '../data/menu.js';
-import { REGULARS, CUSTOMER_TYPES, typeLike, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix } from '../data/customers.js';
+import { REGULARS, CUSTOMER_TYPES, typeLike, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix, FACES_START, FACES_NEXT } from '../data/customers.js';
 import { TIP, ratingPriceMul } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
@@ -51,15 +51,19 @@ export function freeChars(type) {
   for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
   return out;
 }
+// 지금 골목을 지나다니는 얼굴 (v0.58): 리뷰 수로 늘어요 (data/customers.js FACES_NEXT)
+export const facesFor = n => FACES_START.concat(FACES_NEXT.filter(([, at]) => n >= at).map(([c]) => c));
+export const facesNow = () => (G.story && G.story.ch > 0 ? facesFor(G.ratingN || 0) : FACES_START);
 export function spawnPasser(hour) {
-  const free = freeChars();
+  const open = new Set(facesNow());
+  const free = freeChars().filter(n => open.has(n));
   if (!free.length) return false;
   const mix = typeMix(hour);
   const typeCount = {};
-  for (const n in PEOPLE) typeCount[PEOPLE[n]] = (typeCount[PEOPLE[n]] || 0) + 1;
+  for (const n of open) typeCount[PEOPLE[n]] = (typeCount[PEOPLE[n]] || 0) + 1;
   const w = {};
   for (const n of free) w[n] = (mix[PEOPLE[n]] || 0) / typeCount[PEOPLE[n]];
-  const lead = +weighted(w);
+  const lead = Object.values(w).some(v => v > 0) ? +weighted(w) : free[0]; // 그 시간 손님층 얼굴이 아직 없으면 아무나
   const type = PEOPLE[lead];
   const members = [lead];
   const mates = free.filter(n => n !== lead && PEOPLE[n] === type);

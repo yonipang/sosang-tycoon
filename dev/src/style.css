@@ -1069,3 +1069,10 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .cl-backup small { color: var(--ink-soft); font-size: 16px; }
 .set-minis { display: flex; justify-content: center; gap: 16px; margin-top: 14px; } /* 기기 저장 · 기기 데이터 불러오기 (v0.57): 작은 글자 버튼 */
 .set-mini { background: none; border: 0; padding: 6px 4px; color: var(--paper); opacity: .8; font: inherit; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* 손님 수첩: 아직 골목에 없는 얼굴은 자물쇠 · 나타났지만 안 온 얼굴은 NEW (v0.58) */
+.bk-cell.locked { background: #d9ccb0; cursor: default; }
+.bk-lock { position: absolute; left: 50%; top: 50%; width: 14px; height: 11px; margin: -2px 0 0 -7px; background: #b49b6c; border: 2px solid #7a6440; }
+.bk-lock::before { content: ''; position: absolute; left: 1px; top: -9px; width: 6px; height: 7px; border: 2px solid #7a6440; border-bottom: 0; border-radius: 4px 4px 0 0; }
+.bk-new { position: absolute; left: 1px; top: 1px; padding: 0 2px; background: var(--red); color: #fff; font-style: normal; font-size: 12px; line-height: 1.2; }
+.hero-new { margin: 6px 0 0; color: var(--mustard); font-size: 16px; }

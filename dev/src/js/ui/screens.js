@@ -285,6 +285,7 @@ export function renderReceipt() {
         <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
         <div class="hero-star">★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${deltaHtml}${R.ratingN != null ? `<small class="rv-n">리뷰 ${R.ratingN}개${R.newReviews ? ` (+${R.newReviews})` : ''}</small>` : ''}</div>
         <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
+        ${R.newFaces ? `<p class="hero-new">리뷰가 쌓여 골목에 새 얼굴이 보이기 시작했습니다${R.newFaces > 1 ? ` (${R.newFaces}명)` : ''} · 손님 수첩</p>` : ''}
       </div>`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
     FOOT_REPORT && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '',
