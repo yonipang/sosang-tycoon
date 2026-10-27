@@ -551,9 +551,9 @@ function openPlace(id) {
 // 우리 가게 계산대 · 홍보: 인스타 올리기 · 파워블로거 섭외
 const COUNTER_ACTS = ['insta', 'blogger'];
 function openCounter() { // 계산대: 판매 장부 · 손님 수첩 · 홍보(밤)
-  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join('');
+  const promo = COUNTER_ACTS.filter(a => ACTS[a].when === 'any' || ACTS[a].when === G.town.part).map(a => actRow('shop', a)).join(''); // 홍보는 밤·새벽 언제든 (v0.45)
   sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>${actRow('shop', 'sales')}${actRow('shop', 'book')}
-    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">홍보는 밤에 할 수 있습니다</p>'}`, 'counter');
+    <small class="mk-h">홍보</small>${promo || '<p class="ts-note">지금은 홍보할 수 없습니다</p>'}`, 'counter');
   T.sheetPlace = 'shop';
 }
 function actRow(id, a) {
