@@ -1544,7 +1544,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.51';
+const GAME_VERSION = '0.52';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1595,7 +1595,7 @@ const MARKET_NEWS = {
 };
 // ── js/data/town.js ──
 // 마을: 밤·새벽에 걸어 다니는 골목 지도 (1장부터). 그리기는 render/town.js · 움직임 ui/town.js, 규칙은 sim/town.js
-// 하루: 영업 → 영수증 → 밤(21시~, 행동 칸 4) → 집에서 자기 → 새벽(5시~, 행동 칸 3) → 가게에서 「가게 열기」
+// 하루: 영업 → 영수증 → 밤(21시~, 행동 칸 NIGHT_SLOTS) → 집에서 자기 → 새벽(5시~, DAWN_SLOTS) → 가게에서 「가게 열기」 (밤·새벽 합쳐 한 턴 TURN_SLOTS칸)
 // 행동 칸: 걷는 건 공짜, 일을 하면 칸을 써요. 칸이 없는데 더 하면 피로가 쌓여요(다음 날 사장 걸음이 느려져요)
 
 // 마을 지도: 위에서 비스듬히 내려다본 골목 (16px 칸 = data/layout.js TILE, 가로 MAP_W × 세로 MAP_H). 어느 방향으로든 걸어 다녀요
@@ -1675,7 +1675,7 @@ const LOOKS = [
 const REST_COST = 1;
 const DRINK_PRICE = 1500;
 const USES = {
-  rest: { name: '벤치', act: '앉아서 쉬기', sub: `${REST_COST}칸 · 피로 −1` },
+  rest: { name: '벤치', act: '앉아서 쉬기', sub: `${REST_COST}시간 · 피로 −1` },
   drink: { name: '음료 자판기', act: '캔커피 뽑기', sub: `${DRINK_PRICE.toLocaleString('ko-KR')}원 · 피로 −1 (한 턴에 한 번)` },
   fountain: { name: '분수', note: '물소리가 시원합니다. 동전 하나를 던져 봅니다. …장사가 잘되게 해 주세요.' },
   slide: { name: '미끄럼틀', note: '아무도 없는 틈에 한 번 타 봅니다. 생각보다 빠릅니다.' },
@@ -1809,7 +1809,7 @@ const BOND_DAY_MAX = 3;
 // 단계마다 열리는 것 (보여 주는 글 — 규칙은 sim/bond.js · sim/furniture.js · sim/town.js)
 const BOND_PERKS = {
   miso: ['일반 가구', '가구 5% 할인', '고급 가구', '친밀도 전용 소품', '「미소 컬렉션」'],
-  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 · 따로 빼 둔 재료', '단골가 10% 할인', '새벽 배달 (장보기에 칸을 쓰지 않음)'],
+  jung: ['오늘의 특가', '단골가 5% 할인', '특가 2개 · 따로 빼 둔 재료', '단골가 10% 할인', '새벽 배달 (장보기에 시간이 들지 않음)'],
   moon: ['설비 Lv2', '설비 5% 할인', '설비 Lv3', '장사 도구 등급 업', '「골목 대표 가게」 명패 (준비 중)'],
 };
 // 할인 (단계 → 비율)
@@ -1948,7 +1948,7 @@ const MOON_CHATS = [
 ];
 const MOON_FIRST = [['moon', '오, 왔구먼. 자네가 오가네 이어받은 사장이지?'], ['moon', '들어와 봐. 안쪽이 상인회 사무실이야.']];
 // ── js/data/story.js ──
-// 메인 이야기 — 프로토타입에는 프롤로그와 1장만 넣어요 (기획서 「메인 퀘스트 라인」 탭).
+// 메인 이야기 — 프롤로그 · 1장 · 2장 「골목 사람들」 (기획서 「메인 퀘스트 라인」 탭). 2장 끝은 「3장 준비 중」 안내
 // 게임 안 글: 사실(설명)은 합니다체, 사람 말은 그 사람 말투 그대로. {shop}은 가게 이름으로 바뀌어요.
 
 // 등장인물: char = 아틀라스 캐릭터 그림 번호 (0은 주인공). 오 사장님(18)은 손님으로 오지 않아요 (data/customers.js PEOPLE에서 뺐어요)
@@ -2198,8 +2198,8 @@ const SCENES = {
       ['ohPhone', '밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 주고 그런다.'],
       ['ohPhone', '재료는 이제 니가 직접 사. 새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
       ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
-      [null, '밤부터 새벽까지 일곱 가지 일을 할 수 있습니다. 밤 네 칸을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
-      [null, '일곱 칸을 넘기면 피로가 쌓여 걸음이 느려지고, 칸을 남기고 가게를 열면 피로가 풀립니다.'],
+      [null, '밤 9시부터 새벽까지 일곱 시간 동안 일할 수 있습니다. 밤 네 시간을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
+      [null, '일곱 시간을 넘겨 일하면 피로가 쌓여 걸음이 느려지고, 시간을 남기고 가게를 열면 피로가 풀립니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
       ['ohPhone', '할 일 없으면 일찍 들어가서 자고. 새벽에 장 보고, 가게 가서 문 열고.'],
     ],
@@ -2211,8 +2211,8 @@ const SCENES = {
       ['ohPhone', '새벽에 골목 끝 정 사장네 식자재 가게 가 봐라. 내 이름 대면 잘해 줄 거다.'],
       ['ohPhone', '그리고 가게 안 칠판. 많이 판 메뉴는 손에 익는다. 손에 익으면 거기서 레시피를 손봐. 손님도 알아보고 값을 더 쳐 준다.'],
       ['ohPhone', '장사 끝나면 밤에는 가게 청소하고, 이웃들이랑 얘기도 좀 하고. 그래야 손님도 소개해 준다.'],
-      [null, '밤부터 새벽까지 일곱 가지 일을 할 수 있습니다. 밤 네 칸을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
-      [null, '일곱 칸을 넘기면 피로가 쌓여 걸음이 느려지고, 칸을 남기고 가게를 열면 피로가 풀립니다.'],
+      [null, '밤 9시부터 새벽까지 일곱 시간 동안 일할 수 있습니다. 밤 네 시간을 다 쓰면 새벽 5시가 되고 정 사장 식자재가 문을 엽니다.'],
+      [null, '일곱 시간을 넘겨 일하면 피로가 쌓여 걸음이 느려지고, 시간을 남기고 가게를 열면 피로가 풀립니다.'],
       [null, '화면을 누른 채로 끌면 조이스틱이 나와 그쪽으로 걸어갑니다. 가게 문 앞에서 위로 밀거나 사람에게 다가가면 할 수 있는 일이 나옵니다.'],
     ],
   },
@@ -4124,7 +4124,7 @@ const referralPlan = () => (townMode() ? G.town.referral.map((who, i) => ({ who,
 function townOpenRest() {
   if (!townMode()) return;
   const T = G.town, rest = (T.rest || 0) + Math.max(0, TURN_SLOTS - T.used);
-  if (rest > 0 && T.fatigue > 0) { T.fatigue--; emit('toast', `칸을 남기고 쉬어서 피로가 조금 풀렸습니다 (피로 ${T.fatigue})`, 'good'); }
+  if (rest > 0 && T.fatigue > 0) { T.fatigue--; emit('toast', `시간을 남기고 쉬어서 피로가 조금 풀렸습니다 (피로 ${T.fatigue})`, 'good'); }
   T.rest = 0;
 }
 // 마감: 위생이 떨어지고 소개 손님은 끝
@@ -7227,9 +7227,9 @@ function renderBar() {
   const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;
   // 칸: 밤 4칸(남색) + 새벽 3칸(노랑) 한 줄 · 쓴 칸은 비우고, 넘긴 칸은 빨강
   const over = Math.max(0, Tn.used - max);
-  const dots = Array.from({ length: max }, (_, i) => `<i class="${i < NIGHT_SLOTS ? 'n' : 'd'} ${i < Tn.used ? 'used' : ''}"></i>`).join('') + (over ? `<b class="tb-over">+${over}</b>` : ''); // 넘겨 쓴 칸은 숫자로
+  const dots = Array.from({ length: max }, (_, i) => `<i class="${i < NIGHT_SLOTS ? 'n' : 'd'} ${i < Tn.used ? 'used' : ''}"></i>`).join('') + (over ? `<b class="tb-over">+${over}시간</b>` : ''); // 넘겨 쓴 칸은 숫자로
   $('townBar').innerHTML = `<span class="tb-time ${dawn ? 'dawn' : 'night'}">${dawn ? '새벽' : '밤'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</span>
-    <span class="tb-slots" title="할 수 있는 일">${dots}</span>
+    <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
     <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>`;
 }
@@ -7486,13 +7486,13 @@ function actRow(id, a) {
   const Tn = G.town;
   {
     const A = ACTS[a], ok = actNow(id, a), day = Tn.part === 'dawn' ? '오늘' : '내일'; // 홍보 효과는 다가오는 영업일
-    const cost = a === 'market' ? (marketCost() ? `${marketCost()}칸` : '') : A.cost ? `${A.cost}칸` : '';
+    const cost = a === 'market' ? (marketCost() ? `${marketCost()}시간` : '') : A.cost ? `${A.cost}시간` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 한 칸' : '새벽 배달 · 칸을 쓰지 않습니다')
+      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 1시간' : '새벽 배달 · 시간이 들지 않습니다')
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }

@@ -79,7 +79,7 @@ export const LOOKS = [
 export const REST_COST = 1;
 export const DRINK_PRICE = 1500;
 export const USES = {
-  rest: { name: '벤치', act: '앉아서 쉬기', sub: `${REST_COST}칸 · 피로 −1` },
+  rest: { name: '벤치', act: '앉아서 쉬기', sub: `${REST_COST}시간 · 피로 −1` },
   drink: { name: '음료 자판기', act: '캔커피 뽑기', sub: `${DRINK_PRICE.toLocaleString('ko-KR')}원 · 피로 −1 (한 턴에 한 번)` },
   fountain: { name: '분수', note: '물소리가 시원합니다. 동전 하나를 던져 봅니다. …장사가 잘되게 해 주세요.' },
   slide: { name: '미끄럼틀', note: '아무도 없는 틈에 한 번 타 봅니다. 생각보다 빠릅니다.' },

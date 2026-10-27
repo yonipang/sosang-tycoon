@@ -301,9 +301,9 @@ function renderBar() {
   const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;
   // 칸: 밤 4칸(남색) + 새벽 3칸(노랑) 한 줄 · 쓴 칸은 비우고, 넘긴 칸은 빨강
   const over = Math.max(0, Tn.used - max);
-  const dots = Array.from({ length: max }, (_, i) => `<i class="${i < NIGHT_SLOTS ? 'n' : 'd'} ${i < Tn.used ? 'used' : ''}"></i>`).join('') + (over ? `<b class="tb-over">+${over}</b>` : ''); // 넘겨 쓴 칸은 숫자로
+  const dots = Array.from({ length: max }, (_, i) => `<i class="${i < NIGHT_SLOTS ? 'n' : 'd'} ${i < Tn.used ? 'used' : ''}"></i>`).join('') + (over ? `<b class="tb-over">+${over}시간</b>` : ''); // 넘겨 쓴 칸은 숫자로
   $('townBar').innerHTML = `<span class="tb-time ${dawn ? 'dawn' : 'night'}">${dawn ? '새벽' : '밤'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</span>
-    <span class="tb-slots" title="할 수 있는 일">${dots}</span>
+    <span class="tb-slots" title="남은 시간">${dots}</span>
     ${Tn.fatigue ? `<span class="tb-tag warn">피로 ${Tn.fatigue}</span>` : ''}
     <span class="tb-tag ${Tn.hygiene < HYGIENE_LOW ? 'warn' : ''}">위생 ${Tn.hygiene}</span>`;
 }
@@ -560,13 +560,13 @@ function actRow(id, a) {
   const Tn = G.town;
   {
     const A = ACTS[a], ok = actNow(id, a), day = Tn.part === 'dawn' ? '오늘' : '내일'; // 홍보 효과는 다가오는 영업일
-    const cost = a === 'market' ? (marketCost() ? `${marketCost()}칸` : '') : A.cost ? `${A.cost}칸` : '';
+    const cost = a === 'market' ? (marketCost() ? `${marketCost()}시간` : '') : A.cost ? `${A.cost}시간` : '';
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
-      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 한 칸' : '새벽 배달 · 칸을 쓰지 않습니다')
+      : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '처음 들어갈 때 1시간' : '새벽 배달 · 시간이 들지 않습니다')
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}칸만큼 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '인스타 올리기 · 파워블로거 섭외' : a === 'sleep' ? (Tn.used < NIGHT_SLOTS ? `남은 밤 ${NIGHT_SLOTS - Tn.used}시간 푹 쉬고 새벽 5시에 일어납니다` : '새벽 5시에 일어납니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }

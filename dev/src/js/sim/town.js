@@ -217,7 +217,7 @@ export const referralPlan = () => (townMode() ? G.town.referral.map((who, i) => 
 export function townOpenRest() {
   if (!townMode()) return;
   const T = G.town, rest = (T.rest || 0) + Math.max(0, TURN_SLOTS - T.used);
-  if (rest > 0 && T.fatigue > 0) { T.fatigue--; emit('toast', `칸을 남기고 쉬어서 피로가 조금 풀렸습니다 (피로 ${T.fatigue})`, 'good'); }
+  if (rest > 0 && T.fatigue > 0) { T.fatigue--; emit('toast', `시간을 남기고 쉬어서 피로가 조금 풀렸습니다 (피로 ${T.fatigue})`, 'good'); }
   T.rest = 0;
 }
 // 마감: 위생이 떨어지고 소개 손님은 끝
