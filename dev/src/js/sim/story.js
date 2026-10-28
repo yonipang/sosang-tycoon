@@ -88,6 +88,7 @@ export function storyNote(kind, d = {}) {
     else if (kind === 'paid') S.prog[id] = before + (d.n || 1);
     else if (kind === 'dayServed') S.prog[id] = Math.max(before, d.served || 0);
     else if (kind === 'cleanDay') S.prog[id] = before + (d.clean ? 1 : 0);
+    else if (kind === 'profitDay') S.prog[id] = before + (d.profit > 0 ? 1 : 0); // 순이익이 플러스인 날 (v0.77)
     else S.prog[id] = before + 1;
     S.prog[id] = Math.min(q.need, S.prog[id]);
     if (S.prog[id] !== before) emit('quest');

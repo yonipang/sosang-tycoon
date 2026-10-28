@@ -5,12 +5,11 @@ import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
-import { prepCost, weekBills } from '../sim/day.js';
+import { prepCost } from '../sim/day.js';
 import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
 import { boardOpen } from '../sim/traffic.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
 import { recipeOf, invOf, invToday, invServings, slotsOpen, menuOn, todayMenus, nextSlot } from '../sim/pantry.js';
-import { LOAN_RATE } from '../data/economy.js';
 import { hasSave, loadGame, clearSave, backupLocal, localBackupText, swapLocalBackup, saveSummary } from '../save/storage.js';
 import { CLOUD, cloudLogin, cloudLogout, setCloudApplier, summaryLine, cloudBackup, cloudRestore, cloudChoose, cloudSaved } from '../save/cloud.js';
 import { cutActive } from './cutscene.js';
@@ -124,7 +123,6 @@ export function renderPrep() {
       <div class="sum">
         <div><span>재료 주문${alba ? ' <small>· 오 사장님 가게 돈</small>' : ''}</span><b>−${won(cost)}</b></div>
         ${alba ? '' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
-        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       ${!town || dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다. 집에서 자고 일어나 보세요</p>'}
       ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
@@ -141,7 +139,7 @@ function renderLedger(last, after, dawn) {
   const payQ = S.active.some(id => QUESTS[id].kind === 'pay');
   const qline = payQ ? questCard() : (S.active.length ? `<button type="button" class="qline" data-act="quests" data-guide="quest"><small>${CHAPTERS[S.ch].name}</small><b>할 일${S.active.length ? ` ${S.active.length}` : ''}</b><i>▸</i></button>` : '');
   const tools = S.toolsOpen && TOOL_IDS.some(id => !S.tools.includes(id)) ? toolsCard() : '';
-  const bills = G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : '';
+  const bills = ''; // 고정비는 v0.77부터 매일 영수증에서 (일요일 밤 예고 없음)
   showScreen(`
     <div class="prep book">
       <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
@@ -305,12 +303,11 @@ export function renderReceipt() {
   const review = R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '';
   const pages = [
     `<div class="rc-hero">
-        <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
-        <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
+        <small>${dayLabel(R.day)} · ${R.fixed ? '오늘 순이익' : '오늘 총이익'}</small>
+        <b class="hero-num ${heroV(R) < 0 ? 'neg' : ''}" data-to="${heroV(R)}">0원</b>
         <div class="hero-star">★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${deltaHtml}${R.ratingN != null ? `<small class="rv-n">리뷰 ${R.ratingN}개${R.newReviews ? ` (+${R.newReviews})` : ''}</small>` : ''}</div>
-        <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
         ${R.newFaces ? `<p class="hero-new">리뷰가 쌓여 골목에 새 얼굴이 보이기 시작했습니다${R.newFaces > 1 ? ` (${R.newFaces}명)` : ''} · 손님 수첩</p>` : ''}
-      </div>`,
+      </div>${sumCard(R)}`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
     (FOOT_REPORT || boardOpen()) && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '', // 김밥 들어오는 날부터 (v0.63)
     `<div class="hls">${review}${masteryCard(R.mastery)}</div>`,
@@ -325,10 +322,37 @@ export function renderReceipt() {
       <div class="rc-dots">${dots}</div>
       <div class="rc-nav"><button class="btn big rc-prev" data-act="rcPrev" hidden>◂ 이전</button>
       <button class="btn primary big rc-next" data-act="rcNext"${last ? '' : ' hidden'}>다음 ▸</button>
-      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button></div>
+      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 정리 보기' : '다음 날 준비'}</button></div>
       ${last ? '<button class="btn ghost small rc-skip" data-act="afterReceipt">건너뛰기</button>' : ''}
     </div>`, 'scr-receipt');
   countUp(document.querySelector('.hero-num'));
+}
+// 맨 위 큰 숫자: 1장부터는 순이익(고정비까지 뺀 돈), 프롤로그는 총이익
+const heroV = R => (R.fixed ? R.profit : R.net);
+// 영수증 첫 장 「오늘 한 장 요약」 (v0.77 사용자 요청 — 데이브 더 다이버 정산처럼): 들어온 돈 · 나간 돈 · 가장 많이 남긴 메뉴 · 최근 7일
+//  매출 = 손님 수 × 한 명당 (실제 장사의 기본 공식) · 메뉴가 남긴 돈 = 판 돈 − 그릇 수 × 원가
+function sumCard(R) {
+  const out = R.usedCost + R.expiredCost + R.rushExtra + (R.fixed ? R.fixed.total : 0);
+  const row = (k, sign, v) => `<div class="rio-r"><span>${k}</span><i>${sign}</i><b>${won(v)}</b></div>`;
+  const io = `<div class="rio">
+    <div class="rio-p in"><div class="rio-h">들어온 돈</div>
+      ${row('음식', '+', R.revenue)}${row('팁', '+', R.tips)}
+      <div class="rio-r tot"><span>합</span><i>+</i><b>${won(R.revenue + R.tips)}</b></div></div>
+    <div class="rio-p out"><div class="rio-h">나간 돈</div>
+      ${row('재료값', '−', R.usedCost)}${row('버린 재료', '−', R.expiredCost)}${R.rushExtra ? row('급구매', '−', R.rushExtra) : ''}${R.fixed ? row('고정비', '−', R.fixed.total) : ''}
+      <div class="rio-r tot"><span>합</span><i>−</i><b>${won(out)}</b></div></div>
+  </div>
+  <p class="rio-f">손님 <b>${R.served}명</b> × 한 명당 <b>${won(R.avgSpend)}</b> = 매출 <b>${won(R.revenue)}</b></p>`;
+  const gain = m => R.sales[m].rev - R.sales[m].n * costOf(m);
+  const sold = MENU_IDS.filter(m => R.sales[m].n);
+  const top = sold.sort((a, b) => gain(b) - gain(a))[0];
+  const best = top ? `<div class="rs-best">${icon(top, 'rs-ic')}<div><small>가장 많이 남긴 메뉴</small><b>${MENUS[top].name}</b>
+    <span>${R.sales[top].n}그릇 × ${won(Math.round(gain(top) / R.sales[top].n))} = <em>${won(gain(top))}</em></span></div></div>` : '';
+  const pv = h => h.profit ?? h.net;
+  const H = G.history.slice(-7), max = Math.max(1, ...H.map(h => Math.abs(pv(h))));
+  const bars = H.map((h, k) => `<div class="rw-c${k === H.length - 1 ? ' today' : ''}"><i class="${pv(h) < 0 ? 'neg' : ''}" style="height:${Math.max(3, Math.round(Math.abs(pv(h)) / max * 40))}px"></i><small>${k === H.length - 1 ? '오늘' : h.day}</small></div>`).join('');
+  const week = H.length > 1 ? `<div class="rs-week"><small>최근 ${H.length}일 ${R.fixed ? '순이익' : '총이익'}</small><div class="rw">${bars}</div></div>` : '';
+  return `<div class="rsum">${io}${best}${week}</div>`;
 }
 // 영수증 다음 장 (같은 화면에서 숨기고 보여 줘요 — 다시 그리지 않아서 숫자 세기가 다시 돌지 않아요)
 let rcPage = 0;
@@ -360,7 +384,12 @@ function receiptDetail(R, lines, miss, rv, delta) {
         ${R.expiredCost ? `<div class="ln minus"><span>유통기한 지나 버린 재료</span><b>−${won(R.expiredCost)}</b></div>` : ''}
         ${R.rushExtra ? `<div class="ln minus"><span>급구매 웃돈</span><b>−${won(R.rushExtra)}</b></div>` : ''}
         ${R.cost ? `<div class="ln note"><span>원가율 (재료값 ÷ 매출)</span><b>${pct(R.cost.total)}</b></div>` : ''}
-        <div class="ln total"><span>오늘 남은 돈</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>
+        ${R.fixed ? `<div class="ln"><span>오늘 총이익 (매출 − 재료값)</span><b>${won(R.net)}</b></div>
+        <div class="ln minus"><span>가게 임대료</span><b>−${won(R.fixed.rent)}</b></div>
+        <div class="ln minus"><span>대출 이자·원금 <small>남은 대출 ${wonShort(G.loan)}</small></span><b>−${won(R.fixed.interest + R.fixed.principal)}</b></div>
+        <div class="ln minus"><span>공과금 (전기·가스·수도)</span><b>−${won(R.fixed.util)}</b></div>
+        ${R.fixed.dues ? `<div class="ln minus"><span>상인회 회비</span><b>−${won(R.fixed.dues)}</b></div>` : ''}
+        <div class="ln total"><span>오늘 순이익</span><b class="${R.profit < 0 ? 'neg' : ''}">${won(R.profit)}</b></div>` : `<div class="ln total"><span>오늘 총이익</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>`}
         ${R.dishWaste ? `<div class="ln note"><span>만들고 못 판 음식</span><b>${won(R.dishWaste)}</b></div>` : ''}
         ${leftLine(R)}
         <div class="dash"></div>
@@ -404,30 +433,25 @@ function weekCostLine() {
   return `<div class="ln note"><span>이번 주 원가율</span><b>${pct(now)}${diff}</b></div>`;
 }
 export function renderWeekly() {
-  const W = G.lastWeekly, B = W.bills, after = G.cash - B.total;
-  const bill = (name, sub, v) => `<div class="bill"><div><b>${name}</b><small>${sub}</small></div><b>${won(v)}</b></div>`;
+  const W = G.lastWeekly, S = W.sum || { days: 0, revenue: W.sales || 0, net: 0, fixed: 0, profit: 0, served: 0 };
+  const ln = (k, v, cls = '') => `<div class="ln ${cls}"><span>${k}</span><b>${v}</b></div>`;
   showScreen(`
     <div class="weekly">
       <div class="phase-tag night">일요일 밤 · ${W.week}주차</div>
-      <h2>고정비 내는 날</h2>
-      <p class="yday">이번 주 매출 <b>${wonShort(W.sales)}</b></p>
-      <div class="bills">
-        <small class="bills-h">이번 주 고지서</small>
-        ${bill('가게 임대료', '건물주 · 매주', B.rent)}
-        ${bill('대출 이자', `남은 대출 ${wonShort(G.loan)} · 연 ${Math.round(LOAN_RATE * 100)}%`, B.interest)}
-        ${bill('대출 원금', '창업 대출 나눠 갚기', B.principal)}
-        ${bill('공과금', `전기·가스·수도 · 이번 주 ${B.dishes}그릇`, B.util)}
-        ${B.dues ? bill('상인회 회비', '골목 상인회 · 매주', B.dues) : ''}
-        <div class="bill total"><b>합계</b><b>${won(B.total)}</b></div>
-      </div>
+      <h2>이번 주 정리</h2>
+      <p class="yday">고정비는 매일 냈습니다 · 이번 주 순이익</p>
+      <b class="week-big ${S.profit < 0 ? 'neg' : ''}">${won(S.profit)}</b>
       <div class="paper">
+        ${ln(`매출 <small>${S.days}일 · 손님 ${S.served}명</small>`, won(S.revenue))}
+        ${ln('총이익 (매출 − 재료값)', won(S.net))}
+        ${ln('고정비 (임대료·대출·공과금)', `−${won(S.fixed)}`, 'minus')}
+        ${ln('순이익', `<span class="${S.profit < 0 ? 'neg' : ''}">${won(S.profit)}</span>`, 'total')}
         ${weekCostLine()}
-        <div class="ln"><span>지금 잔고</span><b>${won(G.cash)}</b></div>
-        <div class="ln total"><span>내고 나면</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>
-        <div class="ln note"><span>남는 대출</span><b>${won(Math.max(0, G.loan - B.principal))}</b></div>
+        ${ln('별점', `★ ${G.rating == null ? '—' : G.rating.toFixed(1)}`)}
+        ${ln('지금 잔고', won(G.cash))}
+        ${ln('남은 대출', won(G.loan), 'note')}
       </div>
-      ${after < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 주문량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
-      <button class="btn primary big" data-act="afterWeekly">모두 내고 다음 주 시작 · ${won(B.total)}</button>
+      <button class="btn primary big" data-act="afterWeekly">다음 주 시작</button>
     </div>`, 'scr-weekly');
 }
 

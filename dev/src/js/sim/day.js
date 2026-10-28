@@ -260,16 +260,21 @@ export function endDay() {
   const facesBefore = facesNow().length;
   const newReviews = reviewsFromDay(L.sats); // 별점 = 최근 리뷰 평균 (sim/rating.js)
   const newFaces = Math.max(0, facesNow().length - facesBefore); // 리뷰가 쌓여 골목에 새 얼굴 (v0.58)
-  const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra;
+  const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra; // 총이익 (매출 − 재료값)
+  // 고정비는 매일 냅니다 (v0.77 사용자 결정 — 일요일 밤은 정리만). 1장부터(가게 통장을 받은 뒤)
+  const dishes = MENU_IDS.reduce((s, m) => s + L.sales[m].n, 0);
+  const fixed = G.story.ch >= 1 ? dayBills(dishes) : null;
+  if (fixed) { G.cash -= fixed.total; G.loan = Math.max(0, G.loan - fixed.principal); }
+  const profit = net - (fixed ? fixed.total : 0); // 순이익
   const rec = {
-    day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net,
+    day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net, fixed, profit,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, newFaces, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
-  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, revs: rec.reviews.map(v => ({ s: v.stars, w: v.who, t: v.text })), inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
+  G.history.push({ day: G.day, revenue, net, fixed: fixed ? fixed.total : 0, profit, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, revs: rec.reviews.map(v => ({ s: v.stars, w: v.who, t: v.text })), inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
   // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
@@ -281,7 +286,7 @@ export function endDay() {
   // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
   const clean = !L.missed.soldout && todayMenus().every(m => stockOf(m) > 0);
   tutEndDay(); // 오늘 못 한 길잡이 차례는 건너뛰어요 (주는 퀘스트는 받고 — 영수증 퀘스트도 셀 수 있게 먼저)
-  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
+  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('profitDay', { profit: fixed ? profit : 0 }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
   emit('track', 'day_close', { revenue: rec.revenue + rec.tips, net: rec.net, served: rec.served, missed: rec.missedTotal, rating: G.rating == null ? 0 : Math.round(G.rating * 10) / 10, reviews: G.ratingN || 0 });
@@ -289,38 +294,39 @@ export function endDay() {
   setPhase('receipt');
 }
 
-// 이번 주 고정비 고지서: 가게 임대료 · 대출 이자 · 대출 원금 · 공과금(전기·가스·수도)
-//  upTo: 이 날까지 판 그릇으로 공과금을 셈 (준비 화면에서는 어제까지로 미리 보여 줘요)
-export function weekBills(upTo = G.day) {
-  const interest = Math.min(LOAN_WEEKLY, Math.round(G.loan * LOAN_RATE / 52 / 100) * 100);
-  const principal = Math.min(LOAN_WEEKLY - interest, Math.max(0, G.loan));
-  const dishes = G.history.filter(h => h.day > G.day - 7 && h.day <= upTo).reduce((s, h) => s + Object.values(h.sold).reduce((a, b) => a + b, 0), 0);
-  const util = Math.round((UTIL_BASE + dishes * UTIL_PER_DISH) / 100) * 100;
-  const rent = WEEK_RENT + buildRent(); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
-  const dues = guildDues(); // 상인회 회비 (sim/guild.js)
-  return { rent, interest, principal, util, dues, dishes, total: rent + interest + principal + util + dues };
+// 하루 고정비 (v0.77 사용자 결정: 매일 정산): 주마다 내던 것 ÷ 7 — 가게 임대료 · 대출 이자·원금 · 공과금(기본 + 오늘 판 그릇) · 상인회 회비
+export function dayBills(dishes = 0) {
+  const r10 = v => Math.round(v / 10) * 10;
+  const interest = r10(Math.min(LOAN_WEEKLY, G.loan * LOAN_RATE / 52) / 7);
+  const principal = G.story.ch < 2 ? 0 : Math.min(Math.max(0, r10(LOAN_WEEKLY / 7) - interest), Math.max(0, G.loan)); // 1장은 거치 기간: 이자만 (v0.77 사용자 결정)
+  const util = r10(UTIL_BASE / 7 + dishes * UTIL_PER_DISH);
+  const rent = r10((WEEK_RENT + buildRent()) / 7); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
+  const dues = r10(guildDues() / 7); // 상인회 회비 (sim/guild.js)
+  return { rent, interest, principal, util, dues, total: rent + interest + principal + util + dues };
+}
+// 이번 주 정리 (일요일 밤): 지난 7일 기록을 더해요 — 돈은 이미 매일 냈어요
+export function weekSummary() {
+  const H = G.history.filter(h => h.day > G.day - 7 && h.day <= G.day);
+  const sum = k => H.reduce((s, h) => s + (h[k] || 0), 0);
+  return { days: H.length, revenue: sum('revenue'), net: sum('net'), fixed: sum('fixed'), profit: H.reduce((s, h) => s + (h.profit ?? h.net), 0), served: sum('served'), best: H.reduce((a, h) => (!a || (h.profit ?? h.net) > (a.profit ?? a.net) ? h : a), null) };
 }
 
-// 영수증 다음: 7일째 밤이면 고정비 내는 날(고지서), 아니면 다음 날 준비
+// 영수증 다음: 7일째 밤이면 이번 주 정리, 아니면 다음 날 준비
 defineCmd('afterReceipt', () => {
   if (isWeeklyNight()) {
-    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, bills: weekBills(), paid: false };
+    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, sum: weekSummary(), paid: false };
     setPhase('weekly');
   } else nextDay();
 });
-// 고지서를 내 손으로 내요 (잔고가 모자라도 일단 냅니다 — 프로토타입)
+// 이번 주 정리를 보고 다음 주로 (돈은 이미 매일 냈어요 — v0.77)
 defineCmd('afterWeekly', () => {
   const W = G.lastWeekly;
   if (W && !W.paid) {
-    const B = W.bills;
-    G.cash -= B.total;
-    G.loan = Math.max(0, G.loan - B.principal);
     G.weekSales = 0;
     W.paid = true;
-    emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
     storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
-    emit('track', 'weekly', { bills: B.total, after: Math.round(G.cash / 1000) });
+    emit('track', 'weekly', { profit: W.sum ? W.sum.profit : 0, after: Math.round(G.cash / 1000) });
   }
   nextDay();
 });

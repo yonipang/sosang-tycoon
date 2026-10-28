@@ -1121,6 +1121,39 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .bk-new { position: absolute; left: 1px; top: 1px; padding: 0 2px; background: var(--red); color: #fff; font-style: normal; font-size: 12px; line-height: 1.2; }
 .pk-row .bk-new, .q-sub .bk-new { position: static; display: inline-block; vertical-align: middle; } /* 새 메뉴 NEW (v0.64) */
 .hero-new { margin: 6px 0 0; color: var(--mustard); font-size: 16px; }
+
+/* 영수증 첫 장 요약 (v0.77) */
+.rsum { background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.3); padding: 8px 10px; color: var(--ink); }
+.rsum small { display: block; color: var(--ink-soft); font-size: 14px; }
+.rio { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rio-p { display: flex; flex-direction: column; background: #2a2a44; border: 2px solid var(--ink); padding: 4px 6px 6px; color: var(--paper); }
+.rio-h { font-size: 14px; color: var(--paper-2); margin-bottom: 2px; }
+.rio-r { display: grid; grid-template-columns: 1fr 12px auto; align-items: baseline; gap: 2px; font-size: 15px; line-height: 1.45; }
+.rio-r i { font-style: normal; text-align: center; }
+.rio-r b { font-weight: normal; text-align: right; }
+.rio-p.in .rio-r span, .rio-p.in .rio-r i { color: #7fd6a0; }
+.rio-p.out .rio-r span, .rio-p.out .rio-r i { color: #ff9a8a; }
+.rio-r.tot { margin: auto -4px 0; padding: 2px 4px; background: #3d3d66; }
+.rio-p .rio-r.tot { margin-top: auto; }
+.rio-f { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); text-align: center; }
+.rio-f b { font-weight: normal; color: var(--ink); }
+.rs-best { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--ink); }
+.rs-best .rs-ic { width: 40px; height: 40px; flex: none; }
+.rs-best b { display: block; font-weight: normal; font-size: 18px; }
+.rs-best span { font-size: 15px; color: var(--ink-soft); }
+.rs-best em { font-style: normal; color: var(--green); }
+.rs-week { margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--ink); }
+.rw { display: flex; gap: 4px; align-items: flex-end; height: 56px; margin-top: 4px; }
+.rw-c { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.rw-c i { display: block; flex: none; width: 70%; background: var(--line); }
+.rw-c i.neg { background: #e8a79b; }
+.rw-c.today i { background: var(--green); }
+.rw-c.today i.neg { background: var(--red); }
+.rw-c small { font-size: 12px; margin-top: 2px; }
+.rw-c.today small { color: var(--ink); }
+.week-big { display: block; text-align: center; font-size: 30px; font-weight: normal; color: #ffe36e; text-shadow: 0 3px 0 var(--ink); margin: 2px 0 10px; }
+.week-big.neg { color: #ffb3a6; }
+.ln .neg { color: var(--red); }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1508,7 +1541,7 @@ const REGULAR_BACK = 6; // 맛있게 먹고 여섯 번 다시 오면 단골 후�
 // 돈과 하루 (단위: 원·초)
 const START_CASH = 2500000;   // 개업 비용을 치르고 남은 돈 (자기 돈 300만 + 창업 대출 500만으로 시작) · v0.74 사용자 요청 「돈이 빠듯」 150만 → 250만
 const START_LOAN = 5000000;   // 창업 대출
-const WEEK_RENT = 250000;     // 주간 임대료 (7일차 밤에 내요) · v0.74 사용자 요청 「돈이 빠듯」 35만 → 25만
+const WEEK_RENT = 250000;     // 주간 임대료 (v0.77부터 ÷7 해서 매일 내요 — sim/day.js dayBills) · v0.74 사용자 요청 「돈이 빠듯」 35만 → 25만
 const LOAN_WEEKLY = 100000;   // 주간 대출 상환 (원리금: 이자 먼저, 나머지가 원금 — 1년 분할 초안)
 const LOAN_RATE = 0.05;       // 창업 대출 연이율 (이자 = 남은 대출 × 연이율 ÷ 52)
 // 공과금 (주마다): 기본(수도·전기 기본요금) + 판 그릇마다 가스·전기
@@ -1672,7 +1705,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.76';
+const GAME_VERSION = '0.77';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2158,7 +2191,7 @@ const QUESTS = {
   c2_doyun: { who: 'doyun', title: '시험 기간 야식', goal: '저녁 7시 넘어 계산한 손님', kind: 'lateServed', need: 20, give: { scenes: ['doyun2'] } },
   c2_miso: { who: 'miso', title: '가게 분위기 바꾸기', goal: '가게 분위기 30 만들기', kind: 'mood', need: 30, give: { scenes: ['miso2'], bond: ['miso', 5] } },
   c2_end: { who: 'me', title: '동네에서 소문', goal: '주간 정산 때 별점 3.5 이상', kind: 'weeklyRating', need: 1, needs: ['c2_doyun', 'c2_join', 'c2_miso'], give: { scenes: ['table', 'paper2', 'ch3soon'] } },
-  c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
+  c1_week: { who: 'me', title: '첫 주 버티기', goal: '순이익이 플러스인 날 (영수증 맨 위)', kind: 'profitDay', need: 3, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
 // 대화 장면
@@ -2421,7 +2454,7 @@ const SCENES = {
     lines: [
       ['moon', '환영하네, 사장. 이제 우리 골목 사람이야.'],
       ['moon', '설비는 밤에 철물점으로 와서 맡기게. 그날 밤에 손봐서 다음 장사부터 쓰게 해 줄게.'],
-      [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 매주 고정비와 함께 나갑니다.'],
+      [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 다른 고정비와 함께 나눠서 매일 나갑니다.'],
     ],
   },
   // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁
@@ -3455,6 +3488,7 @@ function storyNote(kind, d = {}) {
     else if (kind === 'paid') S.prog[id] = before + (d.n || 1);
     else if (kind === 'dayServed') S.prog[id] = Math.max(before, d.served || 0);
     else if (kind === 'cleanDay') S.prog[id] = before + (d.clean ? 1 : 0);
+    else if (kind === 'profitDay') S.prog[id] = before + (d.profit > 0 ? 1 : 0); // 순이익이 플러스인 날 (v0.77)
     else S.prog[id] = before + 1;
     S.prog[id] = Math.min(q.need, S.prog[id]);
     if (S.prog[id] !== before) emit('quest');
@@ -5317,16 +5351,21 @@ function endDay() {
   const facesBefore = facesNow().length;
   const newReviews = reviewsFromDay(L.sats); // 별점 = 최근 리뷰 평균 (sim/rating.js)
   const newFaces = Math.max(0, facesNow().length - facesBefore); // 리뷰가 쌓여 골목에 새 얼굴 (v0.58)
-  const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra;
+  const net = revenue + L.tips - usedCost - expiredCost - r.rushExtra; // 총이익 (매출 − 재료값)
+  // 고정비는 매일 냅니다 (v0.77 사용자 결정 — 일요일 밤은 정리만). 1장부터(가게 통장을 받은 뒤)
+  const dishes = MENU_IDS.reduce((s, m) => s + L.sales[m].n, 0);
+  const fixed = G.story.ch >= 1 ? dayBills(dishes) : null;
+  if (fixed) { G.cash -= fixed.total; G.loan = Math.max(0, G.loan - fixed.principal); }
+  const profit = net - (fixed ? fixed.total : 0); // 순이익
   const rec = {
-    day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net,
+    day: G.day, revenue, tips: L.tips, usedCost, expiredCost, expired, rushExtra: r.rushExtra, dishWaste, leftover, net, fixed, profit,
     sales: L.sales, served: L.served, missed: L.missed, missedTotal: missed,
     avgSpend: L.served ? Math.round(revenue / L.served) : 0,
     dayRating, rating: G.rating, ratingDelta: before == null || G.rating == null ? 0 : G.rating - before, ratingN: G.ratingN, newReviews, newFaces, foot: L.foot, entered: L.entered, closeMin: r.closeMin ?? DAY_MIN,
     cost: costBreakdown(revenue, L.sales, usedCost, expiredCost, r.rushExtra), // 원가율 나누어 보기 (sim/market.js)
     incidents: L.incidents || [], mastery: masteryGain, blog, hourly: L.hourly, reviews: pickReviews(L.events), prices: { ...G.prices }, ordered: r.ordered, faces: L.faces, priceFaces: L.priceFaces,
   };
-  G.history.push({ day: G.day, revenue, net, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, revs: rec.reviews.map(v => ({ s: v.stars, w: v.who, t: v.text })), inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
+  G.history.push({ day: G.day, revenue, net, fixed: fixed ? fixed.total : 0, profit, served: L.served, missed, rating: dayRating, prep: { ...r.ordered }, stockStart: { ...r.startStock }, sold: Object.fromEntries(MENU_IDS.map(m => [m, L.sales[m].n])), cost: usedCost + expiredCost + r.rushExtra, revs: rec.reviews.map(v => ({ s: v.stars, w: v.who, t: v.text })), inc: r.incidents.filter(x => x.state !== 'wait' && x.state !== 'skip').map(x => x.id) });
   if (G.history.length > 60) G.history.shift();
   G.stats.served += L.served; G.stats.sales += revenue;
   // 가격 장부: 메뉴마다, 가격마다 손님 얼굴을 쌓아 둬요 (준비 화면에서 보여 줘요)
@@ -5338,7 +5377,7 @@ function endDay() {
   // 이야기: 오늘 영업 결과로 퀘스트 세기 (재료가 안 떨어진 날 = 품절로 놓친 손님이 없고, 연 메뉴마다 재료가 남음)
   const clean = !L.missed.soldout && todayMenus().every(m => stockOf(m) > 0);
   tutEndDay(); // 오늘 못 한 길잡이 차례는 건너뛰어요 (주는 퀘스트는 받고 — 영수증 퀘스트도 셀 수 있게 먼저)
-  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
+  storyNote('receipt'); storyNote('dayServed', { served: L.served }); storyNote('profitDay', { profit: fixed ? profit : 0 }); storyNote('lunchClean', { clean: !L.lunchWait }); storyNote('mood', { mood: mood() }); storyNote('cleanDay', { clean }); storyNote('dayEnd');
   rec.quests = G.story.today.slice();
   G.lastReceipt = rec;
   emit('track', 'day_close', { revenue: rec.revenue + rec.tips, net: rec.net, served: rec.served, missed: rec.missedTotal, rating: G.rating == null ? 0 : Math.round(G.rating * 10) / 10, reviews: G.ratingN || 0 });
@@ -5346,38 +5385,39 @@ function endDay() {
   setPhase('receipt');
 }
 
-// 이번 주 고정비 고지서: 가게 임대료 · 대출 이자 · 대출 원금 · 공과금(전기·가스·수도)
-//  upTo: 이 날까지 판 그릇으로 공과금을 셈 (준비 화면에서는 어제까지로 미리 보여 줘요)
-function weekBills(upTo = G.day) {
-  const interest = Math.min(LOAN_WEEKLY, Math.round(G.loan * LOAN_RATE / 52 / 100) * 100);
-  const principal = Math.min(LOAN_WEEKLY - interest, Math.max(0, G.loan));
-  const dishes = G.history.filter(h => h.day > G.day - 7 && h.day <= upTo).reduce((s, h) => s + Object.values(h.sold).reduce((a, b) => a + b, 0), 0);
-  const util = Math.round((UTIL_BASE + dishes * UTIL_PER_DISH) / 100) * 100;
-  const rent = WEEK_RENT + buildRent(); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
-  const dues = guildDues(); // 상인회 회비 (sim/guild.js)
-  return { rent, interest, principal, util, dues, dishes, total: rent + interest + principal + util + dues };
+// 하루 고정비 (v0.77 사용자 결정: 매일 정산): 주마다 내던 것 ÷ 7 — 가게 임대료 · 대출 이자·원금 · 공과금(기본 + 오늘 판 그릇) · 상인회 회비
+function dayBills(dishes = 0) {
+  const r10 = v => Math.round(v / 10) * 10;
+  const interest = r10(Math.min(LOAN_WEEKLY, G.loan * LOAN_RATE / 52) / 7);
+  const principal = G.story.ch < 2 ? 0 : Math.min(Math.max(0, r10(LOAN_WEEKLY / 7) - interest), Math.max(0, G.loan)); // 1장은 거치 기간: 이자만 (v0.77 사용자 결정)
+  const util = r10(UTIL_BASE / 7 + dishes * UTIL_PER_DISH);
+  const rent = r10((WEEK_RENT + buildRent()) / 7); // 확장공사로 넓힌 만큼 더 (sim/furniture.js)
+  const dues = r10(guildDues() / 7); // 상인회 회비 (sim/guild.js)
+  return { rent, interest, principal, util, dues, total: rent + interest + principal + util + dues };
+}
+// 이번 주 정리 (일요일 밤): 지난 7일 기록을 더해요 — 돈은 이미 매일 냈어요
+function weekSummary() {
+  const H = G.history.filter(h => h.day > G.day - 7 && h.day <= G.day);
+  const sum = k => H.reduce((s, h) => s + (h[k] || 0), 0);
+  return { days: H.length, revenue: sum('revenue'), net: sum('net'), fixed: sum('fixed'), profit: H.reduce((s, h) => s + (h.profit ?? h.net), 0), served: sum('served'), best: H.reduce((a, h) => (!a || (h.profit ?? h.net) > (a.profit ?? a.net) ? h : a), null) };
 }
 
-// 영수증 다음: 7일째 밤이면 고정비 내는 날(고지서), 아니면 다음 날 준비
+// 영수증 다음: 7일째 밤이면 이번 주 정리, 아니면 다음 날 준비
 defineCmd('afterReceipt', () => {
   if (isWeeklyNight()) {
-    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, bills: weekBills(), paid: false };
+    G.lastWeekly = { week: G.day / 7, sales: G.weekSales, sum: weekSummary(), paid: false };
     setPhase('weekly');
   } else nextDay();
 });
-// 고지서를 내 손으로 내요 (잔고가 모자라도 일단 냅니다 — 프로토타입)
+// 이번 주 정리를 보고 다음 주로 (돈은 이미 매일 냈어요 — v0.77)
 defineCmd('afterWeekly', () => {
   const W = G.lastWeekly;
   if (W && !W.paid) {
-    const B = W.bills;
-    G.cash -= B.total;
-    G.loan = Math.max(0, G.loan - B.principal);
     G.weekSales = 0;
     W.paid = true;
-    emit('toast', `이번 주 고정비 ${B.total.toLocaleString('ko-KR')}원을 냈습니다`, 'info');
     emit('sfx', 'coin');
     storyNote('weekly'); storyNote('weeklyRating', { ok: ratingNow() >= WEEK_RATING }); // 2장 끝 「동네에서 소문」
-    emit('track', 'weekly', { bills: B.total, after: Math.round(G.cash / 1000) });
+    emit('track', 'weekly', { profit: W.sum ? W.sum.profit : 0, after: Math.round(G.cash / 1000) });
   }
   nextDay();
 });
@@ -5695,7 +5735,7 @@ const DEV_JUMPS = [
   { id: 'c1k', name: '1장 5일차 · 김밥·장사 도구', day: 5, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note'], active: ['c1_stock', 'c1_kimbap'], queue: ['tools'], menus: ['tteok', 'kimbap'], fresh: ['kimbap'], decor: [] },
   { id: 'c1f', name: '1장 6일차 · 튀김 (도구 다 있음)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
   { id: 'c1t', name: '1장 6일차 전날 밤 · 마을 첫 밤 (준비 시간·시장)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true },
-  { id: 'c1w', name: '1장 7일차 · 고정비 내는 날', day: 7, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], active: ['c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
+  { id: 'c1w', name: '1장 7일차 · 첫 주 정리', day: 7, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], active: ['c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
   { id: 'c2u', name: '9일차 전날 밤 · 메뉴 연구 칠판 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
   { id: 'c2f', name: '9일차 전날 밤 · 미소 가구 개업 (돈 60만 원, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 600000 },
   { id: 'c2f5', name: '9일차 전날 밤 · 미소 가구 ♥♥♥♥♥ (고급·특별·확장공사, 돈 400만 원)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 4000000, bond: { miso: 80, jung: 30 } },
@@ -7351,10 +7391,10 @@ function salesHTML() {
   const body = Object.keys(weeks).sort((a, b) => b - a).map(w => {
     const L = weeks[w], rev = L.reduce((s, h) => s + h.revenue, 0), net = L.reduce((s, h) => s + h.net, 0);
     const rows = L.map(h => `<div class="sl-row"><span>${h.day}일차 <small>${WEEKDAYS[(h.day - 1) % 7]}</small></span><b>${wonShort(h.revenue)}</b><b class="${h.net < 0 ? 'neg' : ''}">${wonShort(h.net)}</b><b>${h.served}명</b></div>`).join('');
-    return `<div class="sl-week"><span>${w}주차</span><b>매출 ${wonShort(rev)}</b><b class="${net < 0 ? 'neg' : ''}">남은 돈 ${wonShort(net)}</b></div>${rows}`;
+    return `<div class="sl-week"><span>${w}주차</span><b>매출 ${wonShort(rev)}</b><b class="${net < 0 ? 'neg' : ''}">총이익 ${wonShort(net)}</b></div>${rows}`;
   }).join('');
-  return `${head}<div class="sl-row sl-th"><span>날</span><b>매출</b><b>남은 돈</b><b>손님</b></div>${body}
-    <p class="ts-note">남은 돈 = 매출 − 재료값 (고정비는 주마다 따로 냅니다)</p>`;
+  return `${head}<div class="sl-row sl-th"><span>날</span><b>매출</b><b>총이익</b><b>손님</b></div>${body}
+    <p class="ts-note">총이익 = 매출 − 재료값 · 임대료 같은 고정비는 매일 따로 냅니다</p>`;
 }
 // ── js/ui/guild.js ──
 // 문 철물 · 상인회 창 (마을 · 2장): 가입 전엔 가입 할 일 하나, 가입 뒤엔 설비 5줄 + (♥♥♥♥) 장사 도구 등급 업
@@ -7995,7 +8035,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
       : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 남은 돈 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -8420,7 +8460,6 @@ function renderPrep() {
       <div class="sum">
         <div><span>재료 주문${alba ? ' <small>· 오 사장님 가게 돈</small>' : ''}</span><b>−${won(cost)}</b></div>
         ${alba ? '' : `<div><span>잔고</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>`}
-        ${G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : ''}
       </div>
       ${!town || dawn ? '<button class="btn primary big" data-act="open" data-guide="open">가게 열기 · 09:00</button>' : '<p class="pause-note">가게는 새벽에 엽니다. 집에서 자고 일어나 보세요</p>'}
       ${town ? '<button class="btn" data-act="toTown">골목으로</button>' : ''}
@@ -8437,7 +8476,7 @@ function renderLedger(last, after, dawn) {
   const payQ = S.active.some(id => QUESTS[id].kind === 'pay');
   const qline = payQ ? questCard() : (S.active.length ? `<button type="button" class="qline" data-act="quests" data-guide="quest"><small>${CHAPTERS[S.ch].name}</small><b>할 일${S.active.length ? ` ${S.active.length}` : ''}</b><i>▸</i></button>` : '');
   const tools = S.toolsOpen && TOOL_IDS.some(id => !S.tools.includes(id)) ? toolsCard() : '';
-  const bills = G.day % 7 === 0 ? `<div class="due"><span>오늘 밤 고정비</span><b class="nowrap">약 −${wonShort(weekBills(G.day - 1).total)}</b></div>` : '';
+  const bills = ''; // 고정비는 v0.77부터 매일 영수증에서 (일요일 밤 예고 없음)
   showScreen(`
     <div class="prep book">
       <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
@@ -8601,12 +8640,11 @@ function renderReceipt() {
   const review = R.reviews[0] ? `<div class="hl wide"><small>${stars(R.reviews[0].stars)} ${R.reviews[0].who}</small><b>「${R.reviews[0].text}」</b></div>` : '';
   const pages = [
     `<div class="rc-hero">
-        <small>${dayLabel(R.day)} · 오늘 남은 돈</small>
-        <b class="hero-num ${R.net < 0 ? 'neg' : ''}" data-to="${R.net}">0원</b>
+        <small>${dayLabel(R.day)} · ${R.fixed ? '오늘 순이익' : '오늘 총이익'}</small>
+        <b class="hero-num ${heroV(R) < 0 ? 'neg' : ''}" data-to="${heroV(R)}">0원</b>
         <div class="hero-star">★ ${R.rating == null ? '—' : R.rating.toFixed(1)} ${deltaHtml}${R.ratingN != null ? `<small class="rv-n">리뷰 ${R.ratingN}개${R.newReviews ? ` (+${R.newReviews})` : ''}</small>` : ''}</div>
-        <p class="hero-sub">손님 ${R.served}명${R.missedTotal ? ` · 놓친 손님 ${R.missedTotal}명` : ''}</p>
         ${R.newFaces ? `<p class="hero-new">리뷰가 쌓여 골목에 새 얼굴이 보이기 시작했습니다${R.newFaces > 1 ? ` (${R.newFaces}명)` : ''} · 손님 수첩</p>` : ''}
-      </div>`,
+      </div>${sumCard(R)}`,
     `<small class="rc-ph">오늘의 일</small><div class="hls">${day2}</div>`,
     (FOOT_REPORT || boardOpen()) && R.hourly && Object.keys(R.hourly).length ? `<div class="hls">${hourCard(R.hourly)}</div>` : '', // 김밥 들어오는 날부터 (v0.63)
     `<div class="hls">${review}${masteryCard(R.mastery)}</div>`,
@@ -8621,10 +8659,37 @@ function renderReceipt() {
       <div class="rc-dots">${dots}</div>
       <div class="rc-nav"><button class="btn big rc-prev" data-act="rcPrev" hidden>◂ 이전</button>
       <button class="btn primary big rc-next" data-act="rcNext"${last ? '' : ' hidden'}>다음 ▸</button>
-      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 고지서 보기' : '다음 날 준비'}</button></div>
+      <button class="btn primary big" data-act="afterReceipt" data-final${last ? ' hidden' : ''}>${G.day % 7 === 0 ? '이번 주 정리 보기' : '다음 날 준비'}</button></div>
       ${last ? '<button class="btn ghost small rc-skip" data-act="afterReceipt">건너뛰기</button>' : ''}
     </div>`, 'scr-receipt');
   countUp(document.querySelector('.hero-num'));
+}
+// 맨 위 큰 숫자: 1장부터는 순이익(고정비까지 뺀 돈), 프롤로그는 총이익
+const heroV = R => (R.fixed ? R.profit : R.net);
+// 영수증 첫 장 「오늘 한 장 요약」 (v0.77 사용자 요청 — 데이브 더 다이버 정산처럼): 들어온 돈 · 나간 돈 · 가장 많이 남긴 메뉴 · 최근 7일
+//  매출 = 손님 수 × 한 명당 (실제 장사의 기본 공식) · 메뉴가 남긴 돈 = 판 돈 − 그릇 수 × 원가
+function sumCard(R) {
+  const out = R.usedCost + R.expiredCost + R.rushExtra + (R.fixed ? R.fixed.total : 0);
+  const row = (k, sign, v) => `<div class="rio-r"><span>${k}</span><i>${sign}</i><b>${won(v)}</b></div>`;
+  const io = `<div class="rio">
+    <div class="rio-p in"><div class="rio-h">들어온 돈</div>
+      ${row('음식', '+', R.revenue)}${row('팁', '+', R.tips)}
+      <div class="rio-r tot"><span>합</span><i>+</i><b>${won(R.revenue + R.tips)}</b></div></div>
+    <div class="rio-p out"><div class="rio-h">나간 돈</div>
+      ${row('재료값', '−', R.usedCost)}${row('버린 재료', '−', R.expiredCost)}${R.rushExtra ? row('급구매', '−', R.rushExtra) : ''}${R.fixed ? row('고정비', '−', R.fixed.total) : ''}
+      <div class="rio-r tot"><span>합</span><i>−</i><b>${won(out)}</b></div></div>
+  </div>
+  <p class="rio-f">손님 <b>${R.served}명</b> × 한 명당 <b>${won(R.avgSpend)}</b> = 매출 <b>${won(R.revenue)}</b></p>`;
+  const gain = m => R.sales[m].rev - R.sales[m].n * costOf(m);
+  const sold = MENU_IDS.filter(m => R.sales[m].n);
+  const top = sold.sort((a, b) => gain(b) - gain(a))[0];
+  const best = top ? `<div class="rs-best">${icon(top, 'rs-ic')}<div><small>가장 많이 남긴 메뉴</small><b>${MENUS[top].name}</b>
+    <span>${R.sales[top].n}그릇 × ${won(Math.round(gain(top) / R.sales[top].n))} = <em>${won(gain(top))}</em></span></div></div>` : '';
+  const pv = h => h.profit ?? h.net;
+  const H = G.history.slice(-7), max = Math.max(1, ...H.map(h => Math.abs(pv(h))));
+  const bars = H.map((h, k) => `<div class="rw-c${k === H.length - 1 ? ' today' : ''}"><i class="${pv(h) < 0 ? 'neg' : ''}" style="height:${Math.max(3, Math.round(Math.abs(pv(h)) / max * 40))}px"></i><small>${k === H.length - 1 ? '오늘' : h.day}</small></div>`).join('');
+  const week = H.length > 1 ? `<div class="rs-week"><small>최근 ${H.length}일 ${R.fixed ? '순이익' : '총이익'}</small><div class="rw">${bars}</div></div>` : '';
+  return `<div class="rsum">${io}${best}${week}</div>`;
 }
 // 영수증 다음 장 (같은 화면에서 숨기고 보여 줘요 — 다시 그리지 않아서 숫자 세기가 다시 돌지 않아요)
 let rcPage = 0;
@@ -8656,7 +8721,12 @@ function receiptDetail(R, lines, miss, rv, delta) {
         ${R.expiredCost ? `<div class="ln minus"><span>유통기한 지나 버린 재료</span><b>−${won(R.expiredCost)}</b></div>` : ''}
         ${R.rushExtra ? `<div class="ln minus"><span>급구매 웃돈</span><b>−${won(R.rushExtra)}</b></div>` : ''}
         ${R.cost ? `<div class="ln note"><span>원가율 (재료값 ÷ 매출)</span><b>${pct(R.cost.total)}</b></div>` : ''}
-        <div class="ln total"><span>오늘 남은 돈</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>
+        ${R.fixed ? `<div class="ln"><span>오늘 총이익 (매출 − 재료값)</span><b>${won(R.net)}</b></div>
+        <div class="ln minus"><span>가게 임대료</span><b>−${won(R.fixed.rent)}</b></div>
+        <div class="ln minus"><span>대출 이자·원금 <small>남은 대출 ${wonShort(G.loan)}</small></span><b>−${won(R.fixed.interest + R.fixed.principal)}</b></div>
+        <div class="ln minus"><span>공과금 (전기·가스·수도)</span><b>−${won(R.fixed.util)}</b></div>
+        ${R.fixed.dues ? `<div class="ln minus"><span>상인회 회비</span><b>−${won(R.fixed.dues)}</b></div>` : ''}
+        <div class="ln total"><span>오늘 순이익</span><b class="${R.profit < 0 ? 'neg' : ''}">${won(R.profit)}</b></div>` : `<div class="ln total"><span>오늘 총이익</span><b class="${R.net < 0 ? 'neg' : ''}">${won(R.net)}</b></div>`}
         ${R.dishWaste ? `<div class="ln note"><span>만들고 못 판 음식</span><b>${won(R.dishWaste)}</b></div>` : ''}
         ${leftLine(R)}
         <div class="dash"></div>
@@ -8700,30 +8770,25 @@ function weekCostLine() {
   return `<div class="ln note"><span>이번 주 원가율</span><b>${pct(now)}${diff}</b></div>`;
 }
 function renderWeekly() {
-  const W = G.lastWeekly, B = W.bills, after = G.cash - B.total;
-  const bill = (name, sub, v) => `<div class="bill"><div><b>${name}</b><small>${sub}</small></div><b>${won(v)}</b></div>`;
+  const W = G.lastWeekly, S = W.sum || { days: 0, revenue: W.sales || 0, net: 0, fixed: 0, profit: 0, served: 0 };
+  const ln = (k, v, cls = '') => `<div class="ln ${cls}"><span>${k}</span><b>${v}</b></div>`;
   showScreen(`
     <div class="weekly">
       <div class="phase-tag night">일요일 밤 · ${W.week}주차</div>
-      <h2>고정비 내는 날</h2>
-      <p class="yday">이번 주 매출 <b>${wonShort(W.sales)}</b></p>
-      <div class="bills">
-        <small class="bills-h">이번 주 고지서</small>
-        ${bill('가게 임대료', '건물주 · 매주', B.rent)}
-        ${bill('대출 이자', `남은 대출 ${wonShort(G.loan)} · 연 ${Math.round(LOAN_RATE * 100)}%`, B.interest)}
-        ${bill('대출 원금', '창업 대출 나눠 갚기', B.principal)}
-        ${bill('공과금', `전기·가스·수도 · 이번 주 ${B.dishes}그릇`, B.util)}
-        ${B.dues ? bill('상인회 회비', '골목 상인회 · 매주', B.dues) : ''}
-        <div class="bill total"><b>합계</b><b>${won(B.total)}</b></div>
-      </div>
+      <h2>이번 주 정리</h2>
+      <p class="yday">고정비는 매일 냈습니다 · 이번 주 순이익</p>
+      <b class="week-big ${S.profit < 0 ? 'neg' : ''}">${won(S.profit)}</b>
       <div class="paper">
+        ${ln(`매출 <small>${S.days}일 · 손님 ${S.served}명</small>`, won(S.revenue))}
+        ${ln('총이익 (매출 − 재료값)', won(S.net))}
+        ${ln('고정비 (임대료·대출·공과금)', `−${won(S.fixed)}`, 'minus')}
+        ${ln('순이익', `<span class="${S.profit < 0 ? 'neg' : ''}">${won(S.profit)}</span>`, 'total')}
         ${weekCostLine()}
-        <div class="ln"><span>지금 잔고</span><b>${won(G.cash)}</b></div>
-        <div class="ln total"><span>내고 나면</span><b class="${after < 0 ? 'neg' : ''}">${won(after)}</b></div>
-        <div class="ln note"><span>남는 대출</span><b>${won(Math.max(0, G.loan - B.principal))}</b></div>
+        ${ln('별점', `★ ${G.rating == null ? '—' : G.rating.toFixed(1)}`)}
+        ${ln('지금 잔고', won(G.cash))}
+        ${ln('남은 대출', won(G.loan), 'note')}
       </div>
-      ${after < 0 ? `<p class="warn">잔고가 모자랍니다. 다음 주에는 가격이나 주문량을 다시 살펴보세요. (프로토타입에서는 그대로 이어집니다)</p>` : ''}
-      <button class="btn primary big" data-act="afterWeekly">모두 내고 다음 주 시작 · ${won(B.total)}</button>
+      <button class="btn primary big" data-act="afterWeekly">다음 주 시작</button>
     </div>`, 'scr-weekly');
 }
 

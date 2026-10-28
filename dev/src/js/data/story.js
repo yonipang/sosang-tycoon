@@ -71,7 +71,7 @@ export const QUESTS = {
   c2_doyun: { who: 'doyun', title: '시험 기간 야식', goal: '저녁 7시 넘어 계산한 손님', kind: 'lateServed', need: 20, give: { scenes: ['doyun2'] } },
   c2_miso: { who: 'miso', title: '가게 분위기 바꾸기', goal: '가게 분위기 30 만들기', kind: 'mood', need: 30, give: { scenes: ['miso2'], bond: ['miso', 5] } },
   c2_end: { who: 'me', title: '동네에서 소문', goal: '주간 정산 때 별점 3.5 이상', kind: 'weeklyRating', need: 1, needs: ['c2_doyun', 'c2_join', 'c2_miso'], give: { scenes: ['table', 'paper2', 'ch3soon'] } },
-  c1_week: { who: 'me', title: '첫 주 버티기', goal: '첫 주 고정비 내기 (임대료·대출·공과금)', kind: 'weekly', need: 1, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
+  c1_week: { who: 'me', title: '첫 주 버티기', goal: '순이익이 플러스인 날 (영수증 맨 위)', kind: 'profitDay', need: 3, needs: ['c1_first', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], give: { scenes: ['paper1', 'ch2soon'] } },
 };
 
 // 대화 장면
@@ -334,7 +334,7 @@ export const SCENES = {
     lines: [
       ['moon', '환영하네, 사장. 이제 우리 골목 사람이야.'],
       ['moon', '설비는 밤에 철물점으로 와서 맡기게. 그날 밤에 손봐서 다음 장사부터 쓰게 해 줄게.'],
-      [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 매주 고정비와 함께 나갑니다.'],
+      [null, '문 철물에서 설비를 손볼 수 있습니다. 회비 1만 원은 다른 고정비와 함께 나눠서 매일 나갑니다.'],
     ],
   },
   // 2장 시작 (1장 끝 신문 다음): 단골 이야기 → 박 할머니 부탁

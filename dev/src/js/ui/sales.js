@@ -12,8 +12,8 @@ export function salesHTML() {
   const body = Object.keys(weeks).sort((a, b) => b - a).map(w => {
     const L = weeks[w], rev = L.reduce((s, h) => s + h.revenue, 0), net = L.reduce((s, h) => s + h.net, 0);
     const rows = L.map(h => `<div class="sl-row"><span>${h.day}일차 <small>${WEEKDAYS[(h.day - 1) % 7]}</small></span><b>${wonShort(h.revenue)}</b><b class="${h.net < 0 ? 'neg' : ''}">${wonShort(h.net)}</b><b>${h.served}명</b></div>`).join('');
-    return `<div class="sl-week"><span>${w}주차</span><b>매출 ${wonShort(rev)}</b><b class="${net < 0 ? 'neg' : ''}">남은 돈 ${wonShort(net)}</b></div>${rows}`;
+    return `<div class="sl-week"><span>${w}주차</span><b>매출 ${wonShort(rev)}</b><b class="${net < 0 ? 'neg' : ''}">총이익 ${wonShort(net)}</b></div>${rows}`;
   }).join('');
-  return `${head}<div class="sl-row sl-th"><span>날</span><b>매출</b><b>남은 돈</b><b>손님</b></div>${body}
-    <p class="ts-note">남은 돈 = 매출 − 재료값 (고정비는 주마다 따로 냅니다)</p>`;
+  return `${head}<div class="sl-row sl-th"><span>날</span><b>매출</b><b>총이익</b><b>손님</b></div>${body}
+    <p class="ts-note">총이익 = 매출 − 재료값 · 임대료 같은 고정비는 매일 따로 냅니다</p>`;
 }
