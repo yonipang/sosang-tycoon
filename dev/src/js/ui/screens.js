@@ -75,7 +75,18 @@ function ledgerLine(m) {
   const e = (G.ledger[m] || {})[G.prices[m]];
   const faces = e ? FACE_ORDER.filter(f => e[f]).map(f => `<span class="lf">${icon('face_' + f, 'face')}${e[f]}</span>`).join('') : '';
   const cr = costRatio(m), mk = marketOn(m);
-  return `<div class="ledger"><span class="cr ${crClass(cr)}">원가율 ${Math.round(cr * 100)}%${mk ? `<i class="${mk.mul > 1 ? 'up' : 'down'}">${mk.mul > 1 ? '▲' : '▼'}시세</i>` : ''}</span><span class="lg"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</span></div>`;
+  return `<div class="ledger"><span class="cr ${crClass(cr)}">원가율 ${Math.round(cr * 100)}%${mk ? `<i class="${mk.mul > 1 ? 'up' : 'down'}">${mk.mul > 1 ? '▲' : '▼'}시세</i>` : ''}</span><span class="lg"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</span></div>${priceFeel(e)}`;
+}
+// 가격 장부 한 줄 풀이 (v0.76 사용자 요청: 적당한 가격 숫자는 보여 주지 않고, 이 가격에서 본 손님 얼굴로 짐작하게)
+function priceFeel(e) {
+  const n = e ? FACE_ORDER.reduce((a, f) => a + (e[f] || 0), 0) : 0;
+  if (n < 3) return '';
+  const k = f => (e[f] || 0) / n;
+  const [cls, txt] = k('angry') >= 0.2 ? ['pf-hi', '비싸다는 손님이 많습니다']
+    : k('angry') + k('meh') >= 0.35 ? ['pf-mid', '망설이는 손님이 꽤 있습니다']
+    : k('love') >= 0.5 ? ['pf-lo', '싸다고 반한 손님이 많습니다']
+    : ['pf-ok', '대체로 적당하다는 반응입니다'];
+  return `<p class="pfeel ${cls}">${txt}</p>`;
 }
 
 export function renderPrep() {

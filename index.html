@@ -572,6 +572,8 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .cr i { font-style: normal; margin-left: 4px; padding: 0 4px; border: 2px solid currentColor; }
 .cr i.up { color: var(--red); }
 .cr i.down { color: var(--green); }
+.pfeel { margin: 2px 0 0; font-size: 15px; text-align: right; line-height: 1.3; color: var(--ink-soft); }
+.pfeel.pf-hi { color: var(--red); } .pfeel.pf-mid { color: #b27a10; } .pfeel.pf-lo { color: var(--blue); } .pfeel.pf-ok { color: var(--green); }
 .hl.cost b { font-size: 28px; line-height: 1.2; }
 .hl.cost span { display: block; color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
 .hl.cost.good b { color: var(--green); }
@@ -1670,7 +1672,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.75';
+const GAME_VERSION = '0.76';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -5883,6 +5885,20 @@ function digit(n, x, y) {
   for (let i = 0; i < 15; i++) if (s[i] === '1') ctx.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
 }
 
+// 손님층 표시 (v0.76): 머리 왼쪽 작은 네모 — 색은 영수증 시간대 막대와 같아요 (style.css .t-*)
+//  학생 = 책가방 · 직장인 = 넥타이 · 어르신 = 지팡이 (흰 5×5 그림)
+const TYPE_BADGE = {
+  student: ['#e4703a', ['.###.', '#####', '#...#', '#####', '#####']],
+  worker: ['#3c5aa6', ['.###.', '..#..', '.###.', '.###.', '..#..']],
+  elder: ['#8c9a6a', ['.##..', '#..#.', '#..#.', '...#.', '...#.']],
+};
+function typeBadge(type, x, y) {
+  const [col, g] = TYPE_BADGE[type];
+  ctx.fillStyle = '#3b2a20'; ctx.fillRect(x, y, 9, 9);
+  ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, 7, 7);
+  ctx.fillStyle = '#fff';
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 5; k++) if (g[r][k] === '#') ctx.fillRect(x + 2 + k, y + 2 + r, 1, 1);
+}
 // 자기 자리에 도착해 앉아 있는지 (걸어가는 중이면 서 있는 그림)
 const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c.y === SEATS[c.seat].y;
 const SIT_LIFT = 16; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 위에 오게 (발은 탁자 뒤로 숨어요 — drawFrame 그리는 순서)
@@ -5895,6 +5911,7 @@ function drawCustomerUI(c) {
     ctx.fillStyle = '#e0533a'; ctx.fillRect(bx, by, 5, 7);
     ctx.fillStyle = '#fff'; ctx.fillRect(bx + 2, by + 1, 1, 3); ctx.fillRect(bx + 2, by + 5, 1, 1);
   }
+  if (c.type && TYPE_BADGE[c.type] && c.y < FRONT_Y) typeBadge(c.type, px - 3, top + 2); // 손님층 표시 (v0.76 사용자 요청: 누가 학생·직장인·어르신인지)
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);
@@ -8354,7 +8371,18 @@ function ledgerLine(m) {
   const e = (G.ledger[m] || {})[G.prices[m]];
   const faces = e ? FACE_ORDER.filter(f => e[f]).map(f => `<span class="lf">${icon('face_' + f, 'face')}${e[f]}</span>`).join('') : '';
   const cr = costRatio(m), mk = marketOn(m);
-  return `<div class="ledger"><span class="cr ${crClass(cr)}">원가율 ${Math.round(cr * 100)}%${mk ? `<i class="${mk.mul > 1 ? 'up' : 'down'}">${mk.mul > 1 ? '▲' : '▼'}시세</i>` : ''}</span><span class="lg"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</span></div>`;
+  return `<div class="ledger"><span class="cr ${crClass(cr)}">원가율 ${Math.round(cr * 100)}%${mk ? `<i class="${mk.mul > 1 ? 'up' : 'down'}">${mk.mul > 1 ? '▲' : '▼'}시세</i>` : ''}</span><span class="lg"><small>장부</small>${faces || '<small>이 가격은 기록 없음</small>'}</span></div>${priceFeel(e)}`;
+}
+// 가격 장부 한 줄 풀이 (v0.76 사용자 요청: 적당한 가격 숫자는 보여 주지 않고, 이 가격에서 본 손님 얼굴로 짐작하게)
+function priceFeel(e) {
+  const n = e ? FACE_ORDER.reduce((a, f) => a + (e[f] || 0), 0) : 0;
+  if (n < 3) return '';
+  const k = f => (e[f] || 0) / n;
+  const [cls, txt] = k('angry') >= 0.2 ? ['pf-hi', '비싸다는 손님이 많습니다']
+    : k('angry') + k('meh') >= 0.35 ? ['pf-mid', '망설이는 손님이 꽤 있습니다']
+    : k('love') >= 0.5 ? ['pf-lo', '싸다고 반한 손님이 많습니다']
+    : ['pf-ok', '대체로 적당하다는 반응입니다'];
+  return `<p class="pfeel ${cls}">${txt}</p>`;
 }
 
 function renderPrep() {

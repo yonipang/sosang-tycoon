@@ -159,6 +159,20 @@ function digit(n, x, y) {
   for (let i = 0; i < 15; i++) if (s[i] === '1') ctx.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
 }
 
+// 손님층 표시 (v0.76): 머리 왼쪽 작은 네모 — 색은 영수증 시간대 막대와 같아요 (style.css .t-*)
+//  학생 = 책가방 · 직장인 = 넥타이 · 어르신 = 지팡이 (흰 5×5 그림)
+const TYPE_BADGE = {
+  student: ['#e4703a', ['.###.', '#####', '#...#', '#####', '#####']],
+  worker: ['#3c5aa6', ['.###.', '..#..', '.###.', '.###.', '..#..']],
+  elder: ['#8c9a6a', ['.##..', '#..#.', '#..#.', '...#.', '...#.']],
+};
+function typeBadge(type, x, y) {
+  const [col, g] = TYPE_BADGE[type];
+  ctx.fillStyle = '#3b2a20'; ctx.fillRect(x, y, 9, 9);
+  ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, 7, 7);
+  ctx.fillStyle = '#fff';
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 5; k++) if (g[r][k] === '#') ctx.fillRect(x + 2 + k, y + 2 + r, 1, 1);
+}
 // 자기 자리에 도착해 앉아 있는지 (걸어가는 중이면 서 있는 그림)
 const sittingNow = c => isSeated(c) && !c.moving && c.x === SEATS[c.seat].x && c.y === SEATS[c.seat].y;
 const SIT_LIFT = 16; // 앉은 그림을 위로 올리는 픽셀: 엉덩이가 의자 방석 위에 오게 (발은 탁자 뒤로 숨어요 — drawFrame 그리는 순서)
@@ -171,6 +185,7 @@ function drawCustomerUI(c) {
     ctx.fillStyle = '#e0533a'; ctx.fillRect(bx, by, 5, 7);
     ctx.fillStyle = '#fff'; ctx.fillRect(bx + 2, by + 1, 1, 3); ctx.fillRect(bx + 2, by + 5, 1, 1);
   }
+  if (c.type && TYPE_BADGE[c.type] && c.y < FRONT_Y) typeBadge(c.type, px - 3, top + 2); // 손님층 표시 (v0.76 사용자 요청: 누가 학생·직장인·어르신인지)
   if (c.faceT > 0 && c.face) { spr('face_' + c.face, px + 3, top - 10); return; }
   if (c.state === 'reading') {
     bubble(px + 2, top - 8, 12, 7);

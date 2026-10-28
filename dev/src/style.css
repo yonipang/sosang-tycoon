@@ -567,6 +567,8 @@ body[data-phase="title"] .gear { visibility: hidden; }
 .cr i { font-style: normal; margin-left: 4px; padding: 0 4px; border: 2px solid currentColor; }
 .cr i.up { color: var(--red); }
 .cr i.down { color: var(--green); }
+.pfeel { margin: 2px 0 0; font-size: 15px; text-align: right; line-height: 1.3; color: var(--ink-soft); }
+.pfeel.pf-hi { color: var(--red); } .pfeel.pf-mid { color: #b27a10; } .pfeel.pf-lo { color: var(--blue); } .pfeel.pf-ok { color: var(--green); }
 .hl.cost b { font-size: 28px; line-height: 1.2; }
 .hl.cost span { display: block; color: var(--ink-soft); font-size: 16px; word-break: keep-all; }
 .hl.cost.good b { color: var(--green); }
