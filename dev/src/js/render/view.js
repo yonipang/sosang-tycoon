@@ -123,10 +123,16 @@ function drawRoom() {
   tileFill('sidewalk', 0, FRONT_Y, W, H);
   // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
   for (let x = 0; x < W; x++) {
-    if (x === DOOR.x) continue;
+    if (x >= DOOR.x && x < DOOR.x + DOOR.w) continue;
     spr('wall_front', x * TILE, FRONT_Y * TILE, false, 16, 16, 16);
   }
-  spr('doormat', DOOR.x * TILE, FRONT_Y * TILE);
+  tileFill(furnSpr('floor', 'floor_dining'), DOOR.x, FRONT_Y, DOOR.x + DOOR.w, FRONT_Y + 1); // 문 칸(두 칸)도 홀 바닥 위에 도어매트 (v0.73 사용자 요청)
+  { // 도어매트 한 장을 문 너비로 (가운데 줄무늬를 늘려요)
+    const r = SPR.doormat, x0 = DOOR.x * TILE, y0 = FRONT_Y * TILE, w = DOOR.w * TILE;
+    ctx.drawImage(atlas, r[0], r[1], 8, 16, x0, y0, 8, 16);
+    ctx.drawImage(atlas, r[0] + 7, r[1], 2, 16, x0 + 8, y0, w - 16, 16);
+    ctx.drawImage(atlas, r[0] + 8, r[1], 8, 16, x0 + w - 8, y0, 8, 16);
+  }
   // 주방과 홀 사이 얇은 그림자
   ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
 }

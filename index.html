@@ -1558,7 +1558,8 @@ let H = 13;
 const TILE = 16;
 let FRONT_Y = H - 2;  // 앞벽 줄
 let WALK_Y = H - 1;   // 가게 앞 보도 줄
-const DOOR = { x: 5, y: FRONT_Y };
+const DOOR = { x: 5, y: FRONT_Y, w: 2 }; // 문은 가로 두 칸 x5~6 (v0.73 사용자 요청)
+const isDoor = x => x >= DOOR.x && x < DOOR.x + DOOR.w;
 let layoutLv = 0;     // 지금 깔린 배치의 등급
 // 등급마다 홀 탁자 줄 수 (줄마다 탁자 2개 — x2·x6)
 const TABLE_ROWS = [0, 3, 4, 5];
@@ -1598,7 +1599,7 @@ const QUEUE_SPOTS = []; // 가게 앞 대기 줄
 const DOOR_OUT = { x: 5, y: 0 };
 const PLAYER_START = { x: 4, y: 4 };
 // 장식 (이야기로 생겨요 — G.story.decor). 놓일 칸은 처음부터 막아 둬요 (생겨도 길이 바뀌지 않게)
-const DECOR = { plant: { spr: 'plant', x: 11, y: 7 } }; // v0.72: 계산대 아래
+const DECOR = { plant: { spr: 'plant', x: 11, y: 10 } }; // 오른쪽 맨 아래 (v0.73 사용자 요청 · y는 applyShopLv에서 홀 끝 줄로)
 // 미소 가구 자리 (data/furniture.js): 창문·액자는 뒷벽 맨 윗줄(그림 가운데 픽셀 x, 위 y) · 화분은 홀 왼쪽 위·아래 두 칸(놓일 칸은 처음부터 막아 둬요)
 const FURN_SPOTS = { window: [[88, 0]], frame: [[40, 2], [184, 2]], plant: [] };
 
@@ -1619,6 +1620,7 @@ function applyShopLv(lv) {
   FURNITURE.length = 0;
   FURNITURE.push(...BACK_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
     { spr: 'counter', x: 10, y: 4 }, { spr: 'register', x: 11, y: 3.875, over: true });
+  DECOR.plant.y = last;
   FURN_SPOTS.plant = [[0, 4], [0, last]];
   return true;
 }
@@ -1638,7 +1640,7 @@ function solidForPlayer(x, y) {
 function solidForCustomer(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (y === WALK_Y) return false;
-  if (y === FRONT_Y) return x !== DOOR.x;
+  if (y === FRONT_Y) return !isDoor(x);
   return solidForPlayer(x, y);
 }
 // ── js/data/reviews.js ──
@@ -1661,7 +1663,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.72';
+const GAME_VERSION = '0.73';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -5835,10 +5837,16 @@ function drawRoom() {
   tileFill('sidewalk', 0, FRONT_Y, W, H);
   // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
   for (let x = 0; x < W; x++) {
-    if (x === DOOR.x) continue;
+    if (x >= DOOR.x && x < DOOR.x + DOOR.w) continue;
     spr('wall_front', x * TILE, FRONT_Y * TILE, false, 16, 16, 16);
   }
-  spr('doormat', DOOR.x * TILE, FRONT_Y * TILE);
+  tileFill(furnSpr('floor', 'floor_dining'), DOOR.x, FRONT_Y, DOOR.x + DOOR.w, FRONT_Y + 1); // 문 칸(두 칸)도 홀 바닥 위에 도어매트 (v0.73 사용자 요청)
+  { // 도어매트 한 장을 문 너비로 (가운데 줄무늬를 늘려요)
+    const r = SPR.doormat, x0 = DOOR.x * TILE, y0 = FRONT_Y * TILE, w = DOOR.w * TILE;
+    ctx.drawImage(atlas, r[0], r[1], 8, 16, x0, y0, 8, 16);
+    ctx.drawImage(atlas, r[0] + 7, r[1], 2, 16, x0 + 8, y0, w - 16, 16);
+    ctx.drawImage(atlas, r[0] + 8, r[1], 8, 16, x0 + w - 8, y0, 8, 16);
+  }
   // 주방과 홀 사이 얇은 그림자
   ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
 }
@@ -7515,7 +7523,7 @@ function leaveShop() {
 function spotTiles(S) {
   if (S.station) return { tiles: STATIONS[S.station].tiles, stand: STATIONS[S.station].stand };
   if (S.register) return { tiles: REGISTER.tiles, stand: REGISTER.stand };
-  if (S.door) return { tiles: [[DOOR.x, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1]] };
+  if (S.door) return { tiles: [[DOOR.x, FRONT_Y], [DOOR.x + 1, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1], [DOOR.x + 1, FRONT_Y - 1]] }; // 문 두 칸 (v0.73)
   return { tiles: S.tiles, stand: S.stand };
 }
 const spotsNow = () => SHOP_SPOTS; // v0.59부터 늘 다 (밤·새벽 구분 없음)
@@ -7539,13 +7547,30 @@ function doShop(act) {
   if (act === 'counter') { openCounter('sales'); playSfx('page'); return; } // 누르면 바로 영수증 (v0.66)
   runCmd('townAct', { place: 'shop', act });
 }
+// 조이스틱으로 걸을 때 막힌 칸: 탁자·의자 바로 위 줄도 막아요 (v0.73 사용자 요청 — 들어 올린 탁자 그림에 몸이 파묻혀 보였어요)
+const solidIn = (x, y) => solidForPlayer(x, y) || TABLES.some(t => y === t.y - 1 && x >= t.x && x < t.x + t.w) || SEATS.some(q => y === q.y - 1 && x === q.x);
 // 가게 안 조이스틱 (v0.48): 칸 단위 바닥에서 밀어서 걸어요. 물건·문에 부딪히면 그 일 (같은 칸에서는 한 번만)
 function inJoy(dt, vx, vy) {
   const I = T.inside, me = I.me, m = Math.hypot(vx, vy), sp = IN_WALK * Math.min(1, m) / m;
-  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt, free = (x, y) => !solidForPlayer(Math.round(x), Math.round(y));
+  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt, step = IN_WALK * dt;
+  // 몸 크기 상자로 부딪힘을 봐요 (v0.73: 반올림으로 보면 탁자에 반 칸 파묻혔어요) — 아래쪽은 거의 꽉 채워서 앞 물건(탁자 등)에 파묻히지 않게 · 좁은 통로는 줄 가운데로 살짝 끌어 줘요
+  const B = 0.2, BD = 0.02, free = (x, y) => [[x + B, y + B], [x + 1 - B, y + B], [x + B, y + 1 - BD], [x + 1 - B, y + 1 - BD]].every(([a, b]) => !solidIn(Math.floor(a), Math.floor(b)));
+  const nudge = (v, to) => v + Math.max(-step, Math.min(step, to - v));
   let hit = null;
-  if (free(nx, me.y)) me.x = nx; else hit = [Math.round(nx), Math.round(me.y)];
-  if (free(me.x, ny)) me.y = ny; else hit = hit || [Math.round(me.x), Math.round(ny)];
+  if (Math.abs(vx) > 0.01) {
+    if (free(nx, me.y)) me.x = nx;
+    else {
+      const rx = Math.round(me.x) + Math.sign(vx), ry = Math.round(me.y);
+      if (!solidIn(rx, ry)) { const y2 = nudge(me.y, ry); if (free(me.x, y2)) me.y = y2; } else hit = [rx, ry];
+    }
+  }
+  if (Math.abs(vy) > 0.01) {
+    if (free(me.x, ny)) me.y = ny;
+    else {
+      const rx = Math.round(me.x), ry = Math.round(me.y) + Math.sign(vy);
+      if (!solidIn(rx, ry)) { const x2 = nudge(me.x, rx); if (free(x2, me.y)) me.x = x2; } else hit = hit || [rx, ry];
+    }
+  }
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
   if (!hit) { I.bumped = null; return; }

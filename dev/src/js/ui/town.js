@@ -5,7 +5,7 @@ import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
 import { CAST, SCENES } from '../data/story.js';
-import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y, solidForPlayer } from '../data/layout.js';
+import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y, TABLES, SEATS, solidForPlayer } from '../data/layout.js';
 import { drawShopTo, shopViewSize } from '../render/view.js';
 import { findPath } from '../sim/path.js';
 import { salesHTML } from './sales.js';
@@ -188,7 +188,7 @@ function leaveShop() {
 function spotTiles(S) {
   if (S.station) return { tiles: STATIONS[S.station].tiles, stand: STATIONS[S.station].stand };
   if (S.register) return { tiles: REGISTER.tiles, stand: REGISTER.stand };
-  if (S.door) return { tiles: [[DOOR.x, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1]] };
+  if (S.door) return { tiles: [[DOOR.x, FRONT_Y], [DOOR.x + 1, FRONT_Y]], stand: [[DOOR.x, FRONT_Y - 1], [DOOR.x + 1, FRONT_Y - 1]] }; // 문 두 칸 (v0.73)
   return { tiles: S.tiles, stand: S.stand };
 }
 const spotsNow = () => SHOP_SPOTS; // v0.59부터 늘 다 (밤·새벽 구분 없음)
@@ -212,13 +212,30 @@ function doShop(act) {
   if (act === 'counter') { openCounter('sales'); playSfx('page'); return; } // 누르면 바로 영수증 (v0.66)
   runCmd('townAct', { place: 'shop', act });
 }
+// 조이스틱으로 걸을 때 막힌 칸: 탁자·의자 바로 위 줄도 막아요 (v0.73 사용자 요청 — 들어 올린 탁자 그림에 몸이 파묻혀 보였어요)
+const solidIn = (x, y) => solidForPlayer(x, y) || TABLES.some(t => y === t.y - 1 && x >= t.x && x < t.x + t.w) || SEATS.some(q => y === q.y - 1 && x === q.x);
 // 가게 안 조이스틱 (v0.48): 칸 단위 바닥에서 밀어서 걸어요. 물건·문에 부딪히면 그 일 (같은 칸에서는 한 번만)
 function inJoy(dt, vx, vy) {
   const I = T.inside, me = I.me, m = Math.hypot(vx, vy), sp = IN_WALK * Math.min(1, m) / m;
-  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt, free = (x, y) => !solidForPlayer(Math.round(x), Math.round(y));
+  const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt, step = IN_WALK * dt;
+  // 몸 크기 상자로 부딪힘을 봐요 (v0.73: 반올림으로 보면 탁자에 반 칸 파묻혔어요) — 아래쪽은 거의 꽉 채워서 앞 물건(탁자 등)에 파묻히지 않게 · 좁은 통로는 줄 가운데로 살짝 끌어 줘요
+  const B = 0.2, BD = 0.02, free = (x, y) => [[x + B, y + B], [x + 1 - B, y + B], [x + B, y + 1 - BD], [x + 1 - B, y + 1 - BD]].every(([a, b]) => !solidIn(Math.floor(a), Math.floor(b)));
+  const nudge = (v, to) => v + Math.max(-step, Math.min(step, to - v));
   let hit = null;
-  if (free(nx, me.y)) me.x = nx; else hit = [Math.round(nx), Math.round(me.y)];
-  if (free(me.x, ny)) me.y = ny; else hit = hit || [Math.round(me.x), Math.round(ny)];
+  if (Math.abs(vx) > 0.01) {
+    if (free(nx, me.y)) me.x = nx;
+    else {
+      const rx = Math.round(me.x) + Math.sign(vx), ry = Math.round(me.y);
+      if (!solidIn(rx, ry)) { const y2 = nudge(me.y, ry); if (free(me.x, y2)) me.y = y2; } else hit = [rx, ry];
+    }
+  }
+  if (Math.abs(vy) > 0.01) {
+    if (free(me.x, ny)) me.y = ny;
+    else {
+      const rx = Math.round(me.x), ry = Math.round(me.y) + Math.sign(vy);
+      if (!solidIn(rx, ry)) { const x2 = nudge(me.x, rx); if (free(x2, me.y)) me.x = x2; } else hit = hit || [rx, ry];
+    }
+  }
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
   if (!hit) { I.bumped = null; return; }

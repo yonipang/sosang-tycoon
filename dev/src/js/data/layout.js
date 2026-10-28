@@ -8,7 +8,8 @@ export let H = 13;
 export const TILE = 16;
 export let FRONT_Y = H - 2;  // 앞벽 줄
 export let WALK_Y = H - 1;   // 가게 앞 보도 줄
-export const DOOR = { x: 5, y: FRONT_Y };
+export const DOOR = { x: 5, y: FRONT_Y, w: 2 }; // 문은 가로 두 칸 x5~6 (v0.73 사용자 요청)
+export const isDoor = x => x >= DOOR.x && x < DOOR.x + DOOR.w;
 export let layoutLv = 0;     // 지금 깔린 배치의 등급
 // 등급마다 홀 탁자 줄 수 (줄마다 탁자 2개 — x2·x6)
 const TABLE_ROWS = [0, 3, 4, 5];
@@ -48,7 +49,7 @@ export const QUEUE_SPOTS = []; // 가게 앞 대기 줄
 export const DOOR_OUT = { x: 5, y: 0 };
 export const PLAYER_START = { x: 4, y: 4 };
 // 장식 (이야기로 생겨요 — G.story.decor). 놓일 칸은 처음부터 막아 둬요 (생겨도 길이 바뀌지 않게)
-export const DECOR = { plant: { spr: 'plant', x: 11, y: 7 } }; // v0.72: 계산대 아래
+export const DECOR = { plant: { spr: 'plant', x: 11, y: 10 } }; // 오른쪽 맨 아래 (v0.73 사용자 요청 · y는 applyShopLv에서 홀 끝 줄로)
 // 미소 가구 자리 (data/furniture.js): 창문·액자는 뒷벽 맨 윗줄(그림 가운데 픽셀 x, 위 y) · 화분은 홀 왼쪽 위·아래 두 칸(놓일 칸은 처음부터 막아 둬요)
 export const FURN_SPOTS = { window: [[88, 0]], frame: [[40, 2], [184, 2]], plant: [] };
 
@@ -69,6 +70,7 @@ export function applyShopLv(lv) {
   FURNITURE.length = 0;
   FURNITURE.push(...BACK_FURNITURE, ...TABLES.map(t => ({ spr: t.w === 2 ? 'table2' : 'table', x: t.x, y: t.y - TABLE_LIFT / TILE })),
     { spr: 'counter', x: 10, y: 4 }, { spr: 'register', x: 11, y: 3.875, over: true });
+  DECOR.plant.y = last;
   FURN_SPOTS.plant = [[0, 4], [0, last]];
   return true;
 }
@@ -88,6 +90,6 @@ export function solidForPlayer(x, y) {
 export function solidForCustomer(x, y) {
   if (x < 0 || y < 0 || x >= W || y >= H) return true;
   if (y === WALK_Y) return false;
-  if (y === FRONT_Y) return x !== DOOR.x;
+  if (y === FRONT_Y) return !isDoor(x);
   return solidForPlayer(x, y);
 }
