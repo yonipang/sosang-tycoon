@@ -14,7 +14,7 @@ import { bondLv, misoDisc, addBond } from './bond.js';
 import { BOND_TRADE } from '../data/bond.js';
 import { storyNote, setMoodSource } from './story.js';
 
-export const newFurn = () => ({ have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 });
+export const newFurn = () => ({ have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null, kfloor: null, kitchen: null }, seen: false, visits: 0, tradeDay: 0 });
 // 2장부터 미소 꽃집이 가구점으로
 export const furnOpen = () => !!(G.story && G.story.ch >= 2);
 // 미리보기: 장바구니를 잠깐 얹어서 계산·그리기 (저장 안 해요 — withFurn 안에서만)
@@ -71,7 +71,7 @@ export const furnSpr = (cat, base) => (furnHave(cat) ? itemInfo(cat, furnHave(ca
 export const chairSpr = () => (furnHave('table') ? itemInfo('table', furnHave('table')).spr.replace('table_', 'chair_') : 'chair');
 
 // 장바구니 (미소 가구 창: 고르고 미리 보고 「구매하기」) cart = { 카테고리: 물건 이름 }
-//  이미 있는 것은 빼고 셈 · 미소 컬렉션은 6가지 한 벌 값 · 사고 나서 6가지가 다 같은 물건(테마·등급)이면 15% 싸게
+//  이미 있는 것은 빼고 셈 · 미소 컬렉션은 8가지 한 벌 값 · 사고 나서 8가지가 다 같은 물건(테마·등급)이면 15% 싸게
 export function cartList(cart) { return Object.entries(cart || {}).filter(([c, k]) => FURN_CATS[c] && k && G.furn.have[c] !== k); }
 export function cartPrice(cart) {
   const L = cartList(cart);

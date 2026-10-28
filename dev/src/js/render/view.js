@@ -118,7 +118,7 @@ function drawRoom() {
   // 미소 가구: 뒷벽 창문·액자 (설비 뒤에 걸려요)
   if (furnHave('window')) for (const [x, y] of FURN_SPOTS.window) sprCx(furnSpr('window'), x, y);
   if (furnHave('frame')) for (const [x, y] of FURN_SPOTS.frame) sprCx(furnSpr('frame'), x, y);
-  tileFill('floor_kitchen', 0, 2, W, 4);
+  tileFill(furnSpr('kfloor', 'floor_kitchen'), 0, 2, W, 4);
   tileFill(furnSpr('floor', 'floor_dining'), 0, 4, W, FRONT_Y);
   tileFill('sidewalk', 0, FRONT_Y, W, H);
   // 앞벽: 낮은 벽(유리창 대신) — 문 칸만 비워요
@@ -181,7 +181,9 @@ function drawCustomerUI(c) {
 
 // 이야기로 생긴 장식: 칸 가운데, 발이 칸 아래쪽에 닿게
 // 미소 가구로 바꾼 식탁·의자·화분 (sim/furniture.js)
-const fSpr = f => (f.spr === 'table' ? furnSpr('table', 'table') : f.spr);
+// 미소 가구 주방 (v0.71): 뒷줄 조리대·화구·튀김기는 산 「조리대」 테마 그림으로
+const KIT_SPR = { counter: 'kc', stove: 'stove', fryer: 'fryer' };
+const fSpr = f => (f.spr === 'table' ? furnSpr('table', 'table') : f.y < 3 && KIT_SPR[f.spr] && furnHave('kitchen') ? KIT_SPR[f.spr] + '_' + furnHave('kitchen') : f.spr);
 const plantsNow = () => (furnHave('plant') ? FURN_SPOTS.plant.map(([x, y]) => ({ spr: furnSpr('plant'), x, y })) : []);
 const decorNow = () => (G.story ? G.story.decor : []).map(k => DECOR[k]).filter(Boolean);
 function drawDecor(d) { const r = SPR[d.spr]; if (r) spr(d.spr, d.x * TILE + 8 - Math.floor(r[2] / 2), (d.y + 1) * TILE - r[3]); }
@@ -250,7 +252,7 @@ export function drawFrame(dt) {
   const r = G.run;
   // 뒤쪽 설비(벽에 붙은 것)
   const back = visibleFurniture().filter(f => f.y < 3 && !f.over);
-  for (const f of back) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of back) spr(fSpr(f), f.x * TILE, f.y * TILE);
   for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   // 김이 나는 냄비
   if (r && r.cook) {
@@ -342,7 +344,7 @@ export function drawShopTo(canvas, S) {
   ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, VW, VH);
   drawRoom();
-  for (const f of visibleFurniture().filter(f => f.y < 3 && !f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
+  for (const f of visibleFurniture().filter(f => f.y < 3 && !f.over)) spr(fSpr(f), f.x * TILE, f.y * TILE);
   for (const f of visibleFurniture().filter(f => f.y < 3 && f.over)) spr(f.spr, f.x * TILE, f.y * TILE);
   const items = [];
   for (const f of FURNITURE.filter(f => f.y >= 3)) items.push({ y: f.y + (f.over ? 1.3 : 1), d: () => spr(fSpr(f), f.x * TILE, f.y * TILE) });

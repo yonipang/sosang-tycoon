@@ -60,6 +60,8 @@ export function migrate(o) {
   // 친밀도·미소 가구(v0.34) 이전 세이브: 정 사장님은 그동안 장 보러 간 날만큼 (♥♥ 바로 아래까지)
   if (!o.bond) o.bond = { pts: { miso: 0, jung: Math.min(14, (o.town && o.town.visits) || 0), moon: 0 }, day: 0, got: {} };
   if (!o.furn) o.furn = { have: { wall: null, floor: null, window: null, plant: null, frame: null, table: null }, seen: false, visits: 0, tradeDay: 0 };
+  // 미소 가구 주방(v0.71) 이전 세이브: 주방 두 칸은 비어 있어요 — 미소 컬렉션을 이미 다 샀으면 주방도 미소 컬렉션으로 (분위기 100 그대로)
+  if (!('kfloor' in o.furn.have)) { const m = ['wall', 'floor', 'window', 'plant', 'frame', 'table'].every(c => o.furn.have[c] === 'miso'); o.furn.have.kfloor = m ? 'miso' : null; o.furn.have.kitchen = m ? 'miso' : null; }
   // 리뷰 별점(v0.37) 이전 세이브: 옛 별점과 평균이 같은 리뷰 40개로 바꿔요
   if (!Array.isArray(o.revs)) {
     const r = typeof o.rating === 'number' ? Math.max(1, Math.min(5, o.rating)) : 3, lo = Math.floor(r), hi = Math.round((r - lo) * 40);

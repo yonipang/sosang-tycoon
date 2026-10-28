@@ -14,7 +14,7 @@ import { iconURL } from './icons.js';
 import { SPR } from '../art/atlas.js';
 
 // 미리보기 그림: 카테고리마다 정한 배율로 (픽셀이 뭉개지지 않게 pixelated)
-const PIC_K = { wall: 1.5, floor: 1.5, window: 2, plant: 1.5, frame: 3, table: 1.5 };
+const PIC_K = { wall: 1.5, floor: 1.5, window: 2, plant: 1.5, frame: 3, table: 1.5, kfloor: 1.5, kitchen: 1.2 };
 const pic = (name, k) => { const r = SPR[name] || [0, 0, 16, 16]; return `<img class="px fu-ic" src="${iconURL(name)}" style="width:${r[2] * k}px;height:${r[3] * k}px" alt="">`; };
 
 // 하트: 찬 단계 ♥ · 남은 단계 ♡ (다음 단계까지 막대)
@@ -44,7 +44,7 @@ export function drawFurnPreview() { const cv = document.getElementById('fuPrev')
 
 function tile(cat, key) {
   const I = itemInfo(cat, key), mine = furnHave(cat) === key, lock = key === 'miso' ? bondLv('miso') < MISO_SET.heart : itemLocked(cat, key);
-  const k = PIC_K[cat], img = cat === 'table' ? pic(I.spr.replace('table_', 'chair_'), k) + pic(I.spr, k) : pic(I.spr, k);
+  const k = PIC_K[cat], img = cat === 'table' ? pic(I.spr.replace('table_', 'chair_'), k) + pic(I.spr, k) : cat === 'kitchen' ? pic(I.spr.replace('kc_', 'stove_'), k) + pic(I.spr, k) : pic(I.spr, k); // 조리대는 화구 색도 같이
   const inCart = fcart[cat] === key;
   return `<button type="button" class="fu-tile${mine ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}" data-ts="fbuy" data-c="${cat}" data-k="${key}" ${mine || lock ? 'disabled' : ''}>
     <i class="fu-m">+${I.mood}</i>${inCart ? '<i class="fu-pk">담음</i>' : ''}<span class="fu-pic">${img}</span><b>${I.name}</b>
@@ -55,7 +55,7 @@ function themeTab(th) {
   const T = FURN_THEMES[th], n = withFurn(fcart, () => themeCount(th)), key = () => (grade === 2 ? th + '2' : th);
   const miss = setMissing(th, grade), lock = itemLocked('wall', key());
   return `<div class="fu-grade"><button type="button" data-ts="fgr" data-g="1" class="${grade === 1 ? 'sel' : ''}">일반</button><button type="button" data-ts="fgr" data-g="2" class="${grade === 2 ? 'sel' : ''}">고급 <small>${hearts(FURN_PREM_HEART)}</small></button></div>
-    <p class="fu-bonus ${n >= FURN_THEME_NEED ? 'on' : ''}">${n >= FURN_THEME_NEED ? '★' : `${n}/${FURN_THEME_NEED}`} ${T.bonusText}${miss.length > 1 && !lock ? ` <button type="button" class="fu-setbtn" data-ts="fset">6개 다 담기 · ${Math.round((1 - FURN_SET_RATE) * 100)}% 싸게</button>` : ''}</p>
+    <p class="fu-bonus ${n >= FURN_THEME_NEED ? 'on' : ''}">${n >= FURN_THEME_NEED ? '★' : `${n}/${FURN_THEME_NEED}`} ${T.bonusText}${miss.length > 1 && !lock ? ` <button type="button" class="fu-setbtn" data-ts="fset">${FURN_ORDER.length}개 다 담기 · ${Math.round((1 - FURN_SET_RATE) * 100)}% 싸게</button>` : ''}</p>
     <div class="fu-grid">${FURN_ORDER.map(c => tile(c, key())).join('')}</div>`;
 }
 
@@ -65,14 +65,14 @@ function specialTab() {
   return `<p class="fu-bonus">친밀도로 여는 물건 · 어느 테마로든 셉니다</p>
     <div class="fu-grid two">${Object.keys(FURN_SPECIAL).map(k => tile(FURN_SPECIAL[k].cat, k)).join('')}</div>
     <div class="fu-set${own ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}"><div class="fu-set-pics">${pics}</div>
-      <b>${MISO_SET.name}</b><small>${MISO_SET.note}</small><small>6가지 한 번에 · 분위기 ${MISO_SET.mood} · 테마 보너스 넷 다</small>
+      <b>${MISO_SET.name}</b><small>${MISO_SET.note}</small><small>${FURN_ORDER.length}가지 한 번에 · 분위기 ${MISO_SET.mood} · 테마 보너스 넷 다</small>
       <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
 }
 
 // 위: 가게 미리보기(창 너비를 꽉 채워요, 늘 위에 붙어 있음) · 그 아래 가진 물건(아이콘 한 줄) · 효과 한 줄
 function topHTML(head) {
   const now = mood(), next = withFurn(fcart, mood), on = withFurn(fcart, themesOn), disc = misoDisc();
-  const owned = FURN_ORDER.map(c => { const k = furnHave(c); return k ? `<span class="fu-own" title="${itemInfo(c, k).name}">${pic(itemInfo(c, k).spr, c === 'wall' || c === 'floor' ? 0.5 : 1)}</span>` : `<span class="fu-own none" title="${FURN_CATS[c].name}"></span>`; }).join('');
+  const owned = FURN_ORDER.map(c => { const k = furnHave(c); return k ? `<span class="fu-own" title="${itemInfo(c, k).name}">${pic(itemInfo(c, k).spr, c === 'wall' || c === 'floor' || c === 'kfloor' ? 0.5 : 1)}</span>` : `<span class="fu-own none" title="${FURN_CATS[c].name}"></span>`; }).join('');
   const eff = `분위기 <b>${now}</b>${next !== now ? ` → <b class="up">${next}</b>` : ''}<small>/100</small>${on.length ? ` · ${on.map(t => `★${FURN_THEMES[t].short || FURN_THEMES[t].name}`).join(' ')}` : ''}${disc ? ` · <span class="fu-disc">♥ ${Math.round(disc * 100)}%</span>` : ''}`;
   return `<div class="fu-top">${head}<canvas id="fuPrev" class="fu-prev" width="160" height="128" aria-label="가게 미리보기"></canvas>
     <div class="fu-side"><div class="fu-owned">${owned}</div><div class="fu-mood">${eff}</div></div></div>`;

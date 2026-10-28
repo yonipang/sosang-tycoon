@@ -24,20 +24,53 @@ def find_zip(arg_i, env, pattern):
 
 
 INT = zipfile.ZipFile(find_zip(1, 'LIMEZU_INTERIORS', '/mnt/user-data/uploads/moderninteriors*.zip'))
+INT_NAMES = set(INT.namelist())
 EXT = zipfile.ZipFile(find_zip(2, 'LIMEZU_EXTERIORS', '/mnt/user-data/uploads/modernexteriors*.zip'))
 _cache = {}
+
+
+SHADOW = (0, 0, 0, 31)  # 그림자는 모두 검정 12% (v0.71 사용자 요청 — LimeZu 원래 그림자는 불투명 붉은 회색)
+
+
+def shadowless_of(member):  # 같은 그림의 「그림자 없는」 판 경로 (LimeZu Interiors Theme_Sorter만 있어요)
+    if '/Theme_Sorter_Singles/' in member:
+        d, f = member.rsplit('/', 1)
+        d = d.replace('/Theme_Sorter_Singles/', '/Theme_Sorter_Shadowless_Singles/') + '_Shadowless'
+        return d + '/' + f.replace('_Singles_', '_Singles_Shadowless_')
+    if '/Theme_Sorter/' in member:
+        return member.replace('/Theme_Sorter/', '/Theme_Sorter_Shadowless/').replace('_16x16.png', '.png').replace('.png', '_Shadowless.png')
+    return None
 
 
 def img(z, member):
     key = (id(z), member)
     if key not in _cache:
-        _cache[key] = Image.open(io.BytesIO(z.read(member))).convert('RGBA')
+        im = Image.open(io.BytesIO(z.read(member))).convert('RGBA')
+        sm = shadowless_of(member) if z is INT else None
+        if sm and sm in INT_NAMES:  # 그림자 없는 판에서 빠진 픽셀 = 그림자 → 검정 8%
+            sl = Image.open(io.BytesIO(z.read(sm))).convert('RGBA')
+            if sl.size == im.size:
+                a, b = im.load(), sl.load()
+                for y in range(im.height):
+                    for x in range(im.width):
+                        if a[x, y][3] and not b[x, y][3]:
+                            a[x, y] = SHADOW
+        _cache[key] = im
     return _cache[key]
 
 
 def crop(z, member, x=0, y=0, w=None, h=None):
     im = img(z, member)
     return im.crop((x, y, x + (w or im.width), y + (h or im.height)))
+
+
+def floor48(x, y):  # 바닥 48x32: 블록의 아래 가운데 한 칸만 이어 붙여요 (v0.71 — 블록 윗줄의 벽 그림자 때문에 줄무늬가 생겼어요)
+    t = crop(INT, RB + 'Room_Builder_Floors_16x16.png', x + 16, y + 16, 16, 16)
+    o = Image.new('RGBA', (48, 32), (0, 0, 0, 0))
+    for tx in (0, 16, 32):
+        for ty in (0, 16):
+            o.alpha_composite(t, (tx, ty))
+    return o
 
 
 RB = '1_Interiors/16x16/Room_Builder_subfiles/'
@@ -136,9 +169,20 @@ def own_twigim(kind='veg'):
     return im
 
 
-def stack_counter(top, gap):
+def widen_top(top):  # 윗판(x1~27)을 앞면(x2~30) 너비에 맞춰요 — 가운데 기둥을 두 줄 더 넣어요 (v0.71 사용자 지적: 상판·서랍 너비가 안 맞음)
+    bb = top.getbbox()
+    if not bb or (bb[0], bb[2]) != (1, 28):
+        return top
+    src = top.crop((1, 0, 28, top.height)); o = Image.new('RGBA', top.size, (0, 0, 0, 0)); x = 2
+    for part in (src.crop((0, 0, 14, src.height)), src.crop((13, 0, 14, src.height)), src.crop((13, 0, 14, src.height)), src.crop((14, 0, src.width, src.height))):
+        o.alpha_composite(part, (x, 0)); x += part.width
+    return o
+
+
+def stack_counter(top, gap, front=None):
     """윗판 top을 앞면(Kitchen 121) 위에 얹어 바닥에 붙는 32x32 조리대 한 장으로 (gap: 윗판과 앞면의 세로 간격)"""
-    front = crop(INT, KIT % 121)
+    top = widen_top(top)
+    front = front or crop(INT, KIT % 121)
     im = Image.new('RGBA', (32, 32), (0, 0, 0, 0))
     fy = 32 - 20          # 앞면 아래 끝(20)이 칸 바닥에 오게
     im.alpha_composite(top, (0, fy - gap)) if fy - gap >= 0 else im.alpha_composite(top.crop((0, gap - fy, top.width, top.height)), (0, 0))
@@ -497,7 +541,7 @@ def recolor(src, hue=None, sat=1.0, val=1.0, add=0.0):  # 색만 바꾸기 (채�
     for y in range(o.height):
         for x in range(o.width):
             r, g, b, a = px[x, y]
-            if not a:
+            if not a or (r, g, b, a) == SHADOW:  # 그림자(검정 8%)는 그대로
                 continue
             h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
             if hue is not None and s_ > 0.12:
@@ -516,7 +560,7 @@ def furn_sprites():
         for i in range(3):
             w.paste(mid, (i * 16, 0))
         out['wall_' + th] = w
-        out['floor_' + th] = crop(INT, RB + 'Room_Builder_Floors_16x16.png', d['floor'][0], d['floor'][1], 48, 32)
+        out['floor_' + th] = floor48(d['floor'][0], d['floor'][1])
         out['win_' + th] = crop(INT, GEN, d['win'][0], d['win'][1], 25, 20)
         out['plant_' + th] = crop(INT, GEN, *d['plant'])
         out['frame_' + th] = crop(INT, LIV, d['frame'][0], d['frame'][1], 13, 14)
@@ -689,7 +733,7 @@ def furn2_sprites():
     for th, d in FURN2.items():
         g = FURN[th]
         out['wall_' + th + '2'] = wall48(*d['wall'])
-        out['floor_' + th + '2'] = crop(INT, FLOORS, d['floor'][0], d['floor'][1], 48, 32)
+        out['floor_' + th + '2'] = floor48(d['floor'][0], d['floor'][1])
         out['win_' + th + '2'] = curtain_win(crop(INT, GEN, g['win'][0], g['win'][1], 25, 20), d['curtain'])
         sh, x, y, w, h, pot = d['plant']
         pl = crop(INT, SH[sh], x, y, w, h)
@@ -703,7 +747,7 @@ def furn2_sprites():
     out['frame_old'] = sepia(crop(INT, LIV, 2, 458, 13, 14))  # 풍경 액자를 빛바랜 사진처럼
     # 미소 컬렉션 (♥♥♥♥♥)
     out['wall_miso'] = wall48(0, 0)
-    out['floor_miso'] = crop(INT, FLOORS, 64, 128, 48, 32)
+    out['floor_miso'] = floor48(64, 128)
     out['win_miso'] = own_flower_box(crop(INT, GEN, 131, 695, 25, 20))
     out['plant_miso'] = flower_dots(pot_tint(crop(INT, GEN, 133, 905, 22, 23), (240, 150, 176)), [(232, 96, 130), (246, 190, 60), (255, 255, 255)], 9)
     out['frame_miso'] = own_miso_frame()
@@ -712,11 +756,69 @@ def furn2_sprites():
     return out
 
 
+# ── 미소 가구 주방 (v0.71 사용자 결정): 조리대(kc_) · 주방 바닥(kf_) · 조리 기구(stove_·fryer_) ──
+#  조리대 = LimeZu 윗판 + 앞면(121)에 테마 색 · 조리 기구 = 회색 금속에만 색 · 바닥 = LimeZu 바닥 한 칸 이어 붙이기
+def metal(src, hue, sat, val=1.0, add=0.0):  # 푸른 회색 금속 픽셀만 색을 입혀요 — 윤곽선·불꽃·기름·그림자는 그대로
+    o = src.copy(); px = o.load()
+    for y in range(o.height):
+        for x in range(o.width):
+            r, g, b, a = px[x, y]
+            if a < 255:
+                continue
+            h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if s_ > 0.25 or v < 0.28 or b < r:
+                continue
+            r2, g2, b2 = colorsys.hsv_to_rgb(hue, sat, min(1, v * val + add))
+            px[x, y] = (int(r2 * 255), int(g2 * 255), int(b2 * 255), a)
+    return o
+
+
+def kitchen_sprites():
+    out = {}
+
+    def recolor(src, hue=None, sat=1.0, val=1.0, add=0.0):  # 주방용: 윤곽선(어두운 픽셀)·그림자는 그대로 두고 색만
+        o = src.copy(); px = o.load()
+        for y in range(o.height):
+            for x in range(o.width):
+                r, g, b, a = px[x, y]
+                if a < 255:
+                    continue
+                h, s_, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+                if v < 0.3 and s_ < 0.5:
+                    continue
+                if hue is not None and s_ > 0.12:
+                    h = hue
+                s_ = min(1, s_ * sat); v = min(1, v * val + add)
+                r2, g2, b2 = colorsys.hsv_to_rgb(h, s_, v)
+                px[x, y] = (int(r2 * 255), int(g2 * 255), int(b2 * 255), a)
+        return o
+    TOP, TOP_BEIGE, TOP_WHITE, FRONT = crop(INT, KIT % 126), crop(INT, KIT % 128), crop(INT, KIT % 132), crop(INT, KIT % 121)
+    STOVE, FRYER = crop(INT, KIT % 148), crop(INT, KIT % 194)
+    # 테마: (윗판, 앞면, 바닥 (x, y), 조리 기구 색 (hue, sat, val, add))
+    K = {
+        'retro': (recolor(TOP, hue=0.0, sat=1.6, val=0.95), recolor(FRONT, val=0.78, sat=1.1), (128, 32), (0.0, 0.55, 1.0, 0.05)),
+        'retro2': (recolor(TOP_WHITE, sat=0), recolor(FRONT, hue=0.0, sat=1.5, val=0.85), (128, 160), (0.08, 0.35, 1.05, 0.1)),
+        'wood': (recolor(TOP_BEIGE, sat=0.6), recolor(FRONT, sat=0.5, add=0.06), (64, 192), (0.1, 0.16, 1.05, 0.08)),
+        'wood2': (TOP, recolor(FRONT, val=0.7, sat=1.1), (192, 416), (0.08, 0.3, 0.95, 0.0)),
+        'pastel': (recolor(TOP, hue=0.42, sat=0.5, add=0.15), recolor(FRONT, hue=0.95, sat=0.35, add=0.18), (192, 448), (0.42, 0.28, 1.0, 0.12)),
+        'pastel2': (TOP_WHITE, recolor(FRONT, hue=0.45, sat=0.45, add=0.15), (192, 512), (0.95, 0.22, 1.0, 0.15)),
+        'minimal': (TOP_WHITE, recolor(FRONT, sat=0.1, add=0.15), (192, 64), (0.6, 0.02, 1.15, 0.15)),
+        'minimal2': (recolor(TOP, sat=0.05, val=0.55), recolor(FRONT, sat=0.05, val=0.9, add=0.05), (64, 512), (0.6, 0.03, 0.55, 0.0)),
+        'miso': (TOP_WHITE, recolor(FRONT, hue=0.95, sat=0.45, add=0.12), (128, 128), (0.95, 0.3, 1.0, 0.12)),
+    }
+    for k, (top, front, fl, eq) in K.items():
+        out['kc_' + k] = stack_counter(top, 13, front)
+        out['kf_' + k] = floor48(*fl)
+        out['stove_' + k] = metal(STOVE, *eq)
+        out['fryer_' + k] = metal(FRYER, *eq)
+    return out
+
+
 # ── 아틀라스에 넣을 것: 이름 → 그림 ───────────────────────────────────
 def collect():
     s = {}
-    s['floor_kitchen'] = crop(INT, RB + 'Room_Builder_Floors_16x16.png', 0, 64, 48, 32)
-    s['floor_dining'] = crop(INT, RB + 'Room_Builder_Floors_16x16.png', 64, 192, 48, 32)
+    s['floor_kitchen'] = floor48(0, 64)
+    s['floor_dining'] = floor48(64, 192)
     s['wall'] = crop(INT, RB + 'Room_Builder_Walls_16x16.png', 0, 288, 48, 32)
     s['wall_front'] = crop(INT, RB + 'Room_Builder_Walls_16x16.png', 192, 224, 48, 32)
     s['sidewalk'] = crop(EXT, CITY, 128, 0, 32, 32)
@@ -769,6 +871,7 @@ def collect():
         s['ing_' + k] = v
     s.update(furn_sprites())
     s.update(furn2_sprites())
+    s.update(kitchen_sprites())  # 미소 가구 주방 (v0.71)
     s['sign_furn'] = own_sign('가구', (150, 92, 56, 255), (196, 140, 96, 255))  # 2장: 미소 꽃집 → 미소 가구
     s['tteok'] = tight(own_tteok()); s['kimbap'] = tight(own_kimbap()); s['twigim'] = tight(own_twigim())
     s['tteok_s'] = own_tteok_s(); s['kimbap_s'] = own_kimbap_s(); s['twigim_s'] = own_twigim_s()

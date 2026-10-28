@@ -38,6 +38,7 @@
 ## 그림·글꼴 라이선스
 - 그림: LimeZu **Modern Interiors · Modern Exteriors** (구매, 크레딧 표기 필수, 원본 재배포 금지). 크레딧은 **엔딩 크레딧**(`js/data/credits.js`)에 — 엔딩이 생기기 전까지는 처음 화면 「크레딧」 버튼으로 같은 화면을 보여 줘요. 이 둘은 지우지 않아요. 원본 zip·PNG는 **절대 커밋하지 않아요** — `art_pack.py`가 쓰는 그림만 잘라 만든 `atlas.js`만 올려요. 원본 zip 경로는 `python3 dev/art_pack.py <Interiors zip> <Exteriors zip>` 인자나 환경 변수로 줘요(파일 맨 위 설명).
 - 직접 그린 그림(떡볶이·김밥·튀김·계산대·얼굴 아이콘 …)은 `art_pack.py` 안에 있어요.
+- LimeZu 실내 그림의 그림자는 `art_pack.py`가 「그림자 없는 판(Shadowless)」과 비교해 **검정 12%**로 바꿔요(v0.71 사용자 요청). 바닥은 블록 대신 깨끗한 한 칸을 이어 붙여요(`floor48`). 미소 가구 주방(조리대 `kc_`·주방 바닥 `kf_`·화구 `stove_`·튀김기 `fryer_`)은 `kitchen_sprites()`.
 - 글꼴: Neo둥근모 Pro (SIL OFL 1.1, `dev/art_src/fonts/neodgm-pro-OFL.txt`). 
 - 음악: `python3 dev/audio_pack.py <원본>` → `dev/src/js/audio/music.js` (손으로 안 고쳐요, 원본 wav는 커밋하지 않아요). 지금 곡은 lolurio 「Everyday Life」(CC BY 4.0) = 오 사장님 테마 — 크레딧(`js/data/credits.js`)에서 지우지 않아요. 재생은 `ui/music.js`의 `setMusic('이름')`.
 
