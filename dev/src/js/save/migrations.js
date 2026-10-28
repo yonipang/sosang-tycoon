@@ -26,6 +26,9 @@ export function migrate(o) {
     if (o.story.ch === 0 && (o.day || 1) >= 3 && !o.story.done.includes('p_ahead')) o.story.done.push('p_ahead');
   }
   if (!o.town) o.town = newTown(); // 마을 이전 세이브
+  // v0.74: 처음 돈 150만 → 250만. 이미 1장을 시작한 세이브(가게 통장을 받은 뒤)는 한 번만 100만 원을 더해요
+  if (o.story.ch >= 1 && !o.story.cash74) { o.cash = (o.cash || 0) + 1000000; o.story.cash74 = true; }
+  if (o.story.ch < 1) o.story.cash74 = true; // 프롤로그 세이브는 1장에서 새 처음 돈(250만)을 받아요
   // 마을(v0.20) 전에 1장을 하던 세이브: 다음 밤까지 기다리지 않고 지금(새벽)부터 골목으로. 밤 주문 대신 새벽 시장에서 사요
   //  (1장 첫날 4일차 아침은 오 사장님이 시켜 둔 재료로 여는 날이라 그대로 두고, 그날 밤부터 골목)
   if (o.story && o.story.ch >= 1 && !o.town.on && (o.day || 1) >= 5) {

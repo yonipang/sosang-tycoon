@@ -205,7 +205,7 @@ function todayCard() {
       return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
-    if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy"><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
+    if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy" ${nx.price > G.cash ? 'disabled' : ''}><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
     return `<div class="slot locked" aria-label="잠긴 칸">${LOCK_SVG}</div>`; // 자물쇠만 (v0.46 사용자 요청)
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.some(neverSold) ? '<i class="bk-new">NEW</i> 새 메뉴가 쉬는 중 · 칸을 눌러 올려 보세요' : `${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기`}</span></div>
@@ -219,7 +219,7 @@ function toolsCard() {
   if (!S.toolsOpen) return '';
   const rows = TOOL_IDS.map(id => {
     const t = TOOLS[id], own = S.tools.includes(id);
-    return `<div class="trow${own ? ' own' : ''}"><div class="t-txt"><b>${t.name}</b><small>${t.desc}</small></div>${own ? '<span class="t-own">있음</span>' : `<button type="button" class="btn small" data-act="buyTool" data-tool="${id}">${won(t.price)}</button>`}</div>`;
+    return `<div class="trow${own ? ' own' : ''}"><div class="t-txt"><b>${t.name}</b><small>${t.desc}</small></div>${own ? '<span class="t-own">있음</span>' : `<button type="button" class="btn small" data-act="buyTool" data-tool="${id}" ${t.price > G.cash ? 'disabled' : ''}>${won(t.price)}</button>`}</div>`;
   }).join('');
   return `<div class="tcard" data-guide="tools"><div class="q-head"><small>장사 도구</small><b>한 번 사면 계속 씁니다</b></div>${rows}</div>`;
 }

@@ -140,6 +140,12 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .btn.big { min-height: 56px; }
 .btn.ghost { background: transparent; color: var(--paper); border-color: var(--paper); box-shadow: none; }
 .btn.small { min-height: 40px; }
+/* 누를 수 없는 버튼 (돈이 모자람 등 — v0.74 사용자 요청): 색은 그대로 연하게 */
+.btn:disabled { cursor: default; }
+.btn:disabled:active { transform: none; }
+.btn:disabled { opacity: .45; }
+.btn:disabled:active { box-shadow: 0 4px 0 var(--ink); }
+.slot.buy[disabled] { opacity: .5; cursor: default; }
 
 /* 처음 화면 */
 #screen.scr-title { background: linear-gradient(180deg, #1d2340 0%, #3d2a20 70%); display: flex; align-items: center; }

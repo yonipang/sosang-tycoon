@@ -211,7 +211,7 @@ export const talking = () => !!open;
 function questRow(id, full) {
   const q = QUESTS[id], [a, b] = questProg(id), wait = questWaiting(id);
   const count = b > 1 && !wait ? ` ${a}/${b}` : '';
-  const btn = full && q.kind === 'pay' ? `<button type="button" class="btn small" data-act="questPay" data-q="${id}">${won(q.cost)} 내기</button>` : '';
+  const btn = full && q.kind === 'pay' ? `<button type="button" class="btn small" data-act="questPay" data-q="${id}" ${q.cost > G.cash ? 'disabled' : ''}>${won(q.cost)} 내기</button>` : '';
   return `<div class="qrow">${face(q.who, 'q-face')}<div class="q-txt"><b>${q.title}</b><small>${wait ? q.wait : q.goal + count}</small>${b > 1 && !wait ? `<i class="q-bar"><i style="width:${Math.round(a / b * 100)}%"></i></i>` : ''}</div>${btn}</div>`;
 }
 

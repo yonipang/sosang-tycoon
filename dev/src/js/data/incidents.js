@@ -1,6 +1,6 @@
 // 돌발 이벤트: 영업 중에 하루 1~2번, 손님이 뜸하거나 루즈해지는 시간에 떠요. 시간 안에 해내면 보상.
 // 시각은 게임 분 (0 = 09:00, 60 = 10:00 …). from~to 사이 무작위로 시작해요.
-//  minDay: 이 날부터 · weight: 고르는 무게 · limit: 시작부터 끝까지(게임 분)
+//  minDay: 이 날부터 · weight: 고르는 무게 · limit: 시작부터 끝까지(게임 분 · v0.74 사용자 요청으로 모두 1.5배, 미션 마감도 늦춤)
 //  kind: group(여럿이 차례로 · ptype 손님 유형, 없으면 아무나) · takeout(포장 · menu 정하면 그 메뉴) · mission(완벽 조리 · menu 정하면 그 메뉴만)
 //        guest(깜짝 손님 한 명 · 완벽하게 내주기) · inspect(점검: 시간 동안 놓친 손님이 없으면 성공)
 //  needMenu: 이 메뉴가 열려 있어야 골라요 · 어제 일어난 이벤트는 오늘 다시 고르지 않아요
@@ -11,7 +11,7 @@
 export const INCIDENTS = {
   group: {
     kind: 'group', name: '학원 끝난 아이들', short: '단체', from: 390, to: 450, minDay: 2, weight: 3,
-    ptype: 'student', size: 8, waves: 4, gap: 10, limit: 130, pass: 6, perHead: 1000, allBonus: 4000,
+    ptype: 'student', size: 8, waves: 4, gap: 10, limit: 195, pass: 6, perHead: 1000, allBonus: 4000,
     text: '학원 끝난 아이들이 몰려옵니다!',
     intro: [
       [null, '골목 끝에서 왁자지껄한 소리가 들려옵니다.'],
@@ -24,7 +24,7 @@ export const INCIDENTS = {
     win: '아이들이 배부르게 먹고 갔습니다', lose: '아이들을 다 받지 못했습니다. 자리·재료·속도를 챙겨 보세요',
   },
   takeout: {
-    kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 100, tip: 3000,
+    kind: 'takeout', name: '포장 전화', short: '포장', from: 300, to: 420, minDay: 2, weight: 3, qty: 3, limit: 150, tip: 3000,
     text: '{menu} {qty}인분 포장 주문!',
     intro: [
       ['caller', '여보세요, 거기 분식집이죠? {menu} {qty}인분 포장돼요? 금방 찾으러 갈게요.'],
@@ -35,19 +35,19 @@ export const INCIDENTS = {
     win: '포장 손님이 기분 좋게 가져갔습니다', lose: '포장 손님이 기다리다 주문을 취소했습니다',
   },
   mission: {
-    kind: 'mission', name: '오 사장님 미션', short: '미션', from: 150, to: 180, minDay: 4, weight: 2, need: 3, until: 330, reward: 20000,
-    text: '두 시 반까지 완벽하게 세 번!', who: 'oh',
+    kind: 'mission', name: '오 사장님 미션', short: '미션', from: 150, to: 180, minDay: 4, weight: 2, need: 3, until: 390, reward: 20000,
+    text: '세 시 반까지 완벽하게 세 번!', who: 'oh',
     intro: [
       ['ohPhone', '어이, 사장. 점심 장사 시작이지?'],
-      ['ohPhone', '두 시 반까지 완벽하게 세 번 만들어 봐라. 메뉴는 아무거나. 해내면 재료값 보태 주마.'],
+      ['ohPhone', '세 시 반까지 완벽하게 세 번 만들어 봐라. 메뉴는 아무거나. 해내면 재료값 보태 주마.'],
       ['me', '…해 볼게요!'],
     ],
-    goal: '두 시 반까지 아무 메뉴나 「완벽」 3번', prize: '재료값 20,000원',
+    goal: '세 시 반까지 아무 메뉴나 「완벽」 3번', prize: '재료값 20,000원',
     winSay: ['ohPhone', '제법이다. 재료값은 보내 놨다.'], loseSay: ['ohPhone', '아직 멀었다. 내일 또 해 봐라.'],
     win: '오 사장님이 재료값을 보태 줬습니다', lose: '오 사장님 미션은 다음 기회에',
   },
   guest: {
-    kind: 'guest', name: '맛집 블로거', short: '블로거', from: 300, to: 420, minDay: 4, weight: 1, menu: 'tteok', limit: 150,
+    kind: 'guest', name: '맛집 블로거', short: '블로거', from: 300, to: 420, minDay: 4, weight: 1, menu: 'tteok', limit: 225,
     text: '맛집 블로거가 왔습니다!',
     intro: [
       [null, '카메라를 목에 건 손님이 가게 안을 두리번거립니다.'],
@@ -60,7 +60,7 @@ export const INCIDENTS = {
   },
   rain: {
     kind: 'group', name: '소나기', short: '소나기', from: 180, to: 420, minDay: 3, weight: 3,
-    ptype: null, size: 6, waves: 3, gap: 6, limit: 90, pass: 4, perHead: 800, allBonus: 3000,
+    ptype: null, size: 6, waves: 3, gap: 6, limit: 135, pass: 4, perHead: 800, allBonus: 3000,
     text: '갑자기 소나기가 쏟아집니다!',
     intro: [
       [null, '하늘이 순식간에 어두워지더니 굵은 빗방울이 떨어집니다.'],
@@ -73,7 +73,7 @@ export const INCIDENTS = {
   },
   workers: {
     kind: 'group', name: '공사장 점심', short: '점심', from: 150, to: 200, minDay: 4, weight: 2,
-    ptype: 'worker', size: 6, waves: 3, gap: 8, limit: 100, pass: 5, perHead: 1500, allBonus: 5000,
+    ptype: 'worker', size: 6, waves: 3, gap: 8, limit: 150, pass: 5, perHead: 1500, allBonus: 5000,
     text: '골목 공사장 아저씨들이 점심을 먹으러 옵니다!',
     intro: [
       [null, '골목 끝 공사장에서 안전모를 쓴 사람들이 우르르 걸어옵니다.'],
@@ -86,7 +86,7 @@ export const INCIDENTS = {
   },
   parkOrder: {
     kind: 'takeout', name: '박 할머니의 부탁', short: '부탁', from: 240, to: 360, minDay: 5, weight: 2, needMenu: 'kimbap',
-    menu: 'kimbap', qty: 5, limit: 120, tip: 6000, who: 'park',
+    menu: 'kimbap', qty: 5, limit: 180, tip: 6000, who: 'park',
     text: '박 할머니가 김밥 5줄을 부탁했습니다',
     intro: [
       ['park', '사장, 바빠? 오늘 손주 생일이라 애들이 집에 모인대.'],
@@ -98,7 +98,7 @@ export const INCIDENTS = {
     win: '박 할머니가 김밥을 받아 들고 웃으며 갔습니다', lose: '박 할머니가 기다리다 그냥 가셨습니다',
   },
   inspect: {
-    kind: 'inspect', name: '구청 위생 점검', short: '점검', from: 200, to: 400, minDay: 5, weight: 2, limit: 90, reviews: 3,
+    kind: 'inspect', name: '구청 위생 점검', short: '점검', from: 200, to: 400, minDay: 5, weight: 2, limit: 135, reviews: 3,
     text: '구청에서 위생 점검을 나왔습니다',
     intro: [
       [null, '서류철을 든 사람이 가게 문을 열고 들어옵니다.'],
@@ -110,7 +110,7 @@ export const INCIDENTS = {
     win: '위생 우수 스티커를 받았습니다', lose: '점검 기록에 「손님 응대 미흡」이 남았습니다',
   },
   youtuber: {
-    kind: 'guest', name: '먹방 유튜버', short: '유튜버', from: 300, to: 480, minDay: 6, weight: 1, menu: 'twigim', limit: 120, review: 'youtuber',
+    kind: 'guest', name: '먹방 유튜버', short: '유튜버', from: 300, to: 480, minDay: 6, weight: 1, menu: 'twigim', limit: 180, review: 'youtuber',
     text: '먹방 유튜버가 왔습니다!',
     intro: [
       [null, '삼각대를 든 손님이 카메라를 켜며 들어옵니다.'],
@@ -123,14 +123,14 @@ export const INCIDENTS = {
   },
   ohKimbap: {
     kind: 'mission', name: '오 사장님 김밥 시험', short: '시험', from: 300, to: 330, minDay: 5, weight: 1, needMenu: 'kimbap',
-    menu: 'kimbap', need: 2, until: 480, reward: 15000, who: 'oh',
-    text: '다섯 시까지 김밥 완벽 두 번!',
+    menu: 'kimbap', need: 2, until: 570, reward: 15000, who: 'oh',
+    text: '여섯 시 반까지 김밥 완벽 두 번!',
     intro: [
       ['ohPhone', '박 할머니가 그러더라. 요즘 김밥 맛이 예전 같다고.'],
-      ['ohPhone', '진짜인지 보자. 다섯 시까지 김밥 「완벽」 두 줄. 해내면 김 값 보태 주마.'],
+      ['ohPhone', '진짜인지 보자. 여섯 시 반까지 김밥 「완벽」 두 줄. 해내면 김 값 보태 주마.'],
       ['me', '할머니가 그러셨어요? …해 볼게요!'],
     ],
-    goal: '다섯 시까지 김밥 「완벽」 2번', prize: '김 값 15,000원',
+    goal: '여섯 시 반까지 김밥 「완벽」 2번', prize: '김 값 15,000원',
     winSay: ['ohPhone', '…그래, 그 맛이다. 할머니 말이 맞네.'], loseSay: ['ohPhone', '김밥은 손이 빨라야 돼. 연습 더 해라.'],
     win: '오 사장님이 김 값을 보태 줬습니다', lose: '김밥 시험은 다음 기회에',
   },

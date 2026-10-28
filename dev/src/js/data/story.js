@@ -425,7 +425,7 @@ export const SCENES = {
 //  toolsOpen 장사 도구 칸이 열렸는지 · tools 산 도구 (data/tools.js) · tut 끝낸 가게 길잡이 차례 (data/tutorial.js)
 //  calls 최근 통화 [{ id 장면, day }] (휴대폰 · v0.54, 옛 세이브엔 없을 수 있어요)
 export function newStory() {
-  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [], calls: [] };
+  return { ch: 0, title: '', active: [], done: [], prog: {}, queue: ['intro'], menus: ['tteok'], soon: [], fresh: [], decor: [], today: [], toolsOpen: false, tools: [], tut: [], calls: [], cash74: true }; // cash74: v0.74 처음 돈 보정을 이미 받은 것으로 (save/migrations.js)
 }
 
 // 재료 시세 소식 (data/market.js): 골목 신문 「시세 소식」 한 장씩 — 밤사이 소식이 나면 sim/market.js가 줄에 넣어요
