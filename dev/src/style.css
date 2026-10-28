@@ -1149,3 +1149,22 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .week-big { display: block; text-align: center; font-size: 30px; font-weight: normal; color: #ffe36e; text-shadow: 0 3px 0 var(--ink); margin: 2px 0 10px; }
 .week-big.neg { color: #ffb3a6; }
 .ln .neg { color: var(--red); }
+/* 동네 탐방 (v0.78): 위 막대 체력 · 가방 · 사건 창 */
+.ex-sp { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; }
+.ex-sp b { font-weight: normal; font-size: 14px; }
+.ex-sp > i { display: block; width: 84px; height: 12px; border: 2px solid var(--paper); background: rgba(0,0,0,.35); }
+.ex-sp > i > i { display: block; height: 100%; background: #7fd6a0; transition: width .2s; }
+.ex-sp.low > i > i { background: var(--red); }
+.ex-bag { display: inline-flex; gap: 3px; }
+.ex-slot { width: 22px; height: 22px; border: 2px solid var(--paper); background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; }
+.ex-ic { width: 16px; height: 16px; object-fit: contain; }
+.ex-txt { margin: 4px 0 8px; line-height: 1.45; }
+.ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
+.ex-row span { display: flex; flex-direction: column; }
+.ex-row b { font-weight: normal; }
+.ex-row small { color: var(--ink-soft); }
+.ex-row.got { border: 0; }
+.ex-ric { width: 32px; height: 32px; object-fit: contain; flex: none; }
+.ex-memo { margin: 6px 0 0; padding: 6px 8px; background: var(--paper-2); border-left: 4px solid var(--mustard); font-size: 15px; }
+.ex-h { display: block; margin-top: 10px; color: var(--ink-soft); }
+.ts-act.ex-pass { opacity: .8; }

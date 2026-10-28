@@ -2,6 +2,7 @@
 // 들어오는 비율 = 기본(sim/day.js enterP — 별점·상권·개업 초기) × 손님층 배율(아래) × 재방문(sim/upgrade.js)
 // 손님층 배율 = 메뉴 궁합(그 손님층이 가장 좋아하는 메뉴가 오늘 없으면 ↓) × 전략(칠판 추천 메뉴 · 홍보 — 합쳐 STRATEGY_CAP까지)
 // 시간대 기록: G.run.log.hourly { 시: { pass: {손님층: 명}, in: {손님층: 명} } } → 영수증 시간대 그래프
+import { flyerMul } from './explore.js';
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS } from '../data/menu.js';
 import { CUSTOMER_TYPES, typeLike, BOARD_SLOTS, BOARD_MUL, FIT_MISS, STRATEGY_CAP } from '../data/customers.js';
@@ -40,6 +41,7 @@ function promoMul(type) {
   if (instaOn() && PROMO.insta.types.includes(type)) k *= PROMO.insta.mul;
   const b = buzzOn();
   if (b && PROMO.blogger.types.includes(type)) k *= b.mul;
+  k *= flyerMul(type); // 동네 탐방에서 붙인 전단 (v0.78)
   return k;
 }
 // 블로거가 다녀간 뒤 (sim/day.js endDay): 만족 4점 이상이면 며칠 동안 직장인·어르신이 더, 아니면 덜 → 리뷰 한 줄

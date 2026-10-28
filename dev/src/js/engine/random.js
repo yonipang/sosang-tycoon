@@ -22,3 +22,14 @@ export function weighted(obj) {
   for (const k in obj) { r -= Math.max(0, obj[k]); if (r < 0) return k; }
   return Object.keys(obj)[0];
 }
+// 따로 노는 난수 (같은 씨앗이면 같은 순서): 동네 탐방 지도처럼 하루 영업 난수와 섞이면 안 되는 곳 (sim/explore.js)
+export function makeRand(s) {
+  let st = (s >>> 0) || 1;
+  return () => {
+    st = (st + 0x6D2B79F5) >>> 0;
+    let t = st;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}

@@ -2,6 +2,7 @@
 // 세이브 호환: 저장 키·버전은 바꾸지 않아요. 새 칸은 기본값과 함께 추가만 하고, 옛 세이브 보정은 save/migrations.js에.
 import { MENUS, MENU_IDS, ING_IDS, PREP_FIRST_DAY, SLOT_START } from '../data/menu.js';
 import { START_CASH, START_LOAN } from '../data/economy.js';
+import { newExplore } from '../data/explore.js';
 import { newStory } from '../data/story.js';
 import { migrate } from './migrations.js';
 import { newTown } from '../sim/town.js';
@@ -25,7 +26,7 @@ export const SAVE_V = 1;
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore'];
 
 export const G = { phase: 'title', run: null };
 
@@ -62,6 +63,7 @@ export function newGame(shopName) {
     shopLv: 1,
     menuSlots: SLOT_START, // 오늘의 메뉴 칸 수 (sim/pantry.js slotBuy)
     guild: newGuild(),
+    explore: newExplore(), // 동네 탐방 (2장, v0.78)
     phase: 'prep',
     run: null,
   });

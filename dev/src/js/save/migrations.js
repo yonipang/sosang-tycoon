@@ -1,6 +1,7 @@
 // 옛 세이브 보정은 모두 여기에 둬요. 세이브 구조를 바꾸면 기본값을 채우는 줄을 아래에 더해요.
 import { newStory } from '../data/story.js';
 import { newTown } from '../sim/town.js';
+import { newExplore } from '../data/explore.js';
 import { TUTORIAL } from '../data/tutorial.js';
 import { MENUS, MENU_IDS, INGREDIENTS, ING_IDS, SLOTS_BY_GRADE } from '../data/menu.js';
 
@@ -26,6 +27,7 @@ export function migrate(o) {
     if (o.story.ch === 0 && (o.day || 1) >= 3 && !o.story.done.includes('p_ahead')) o.story.done.push('p_ahead');
   }
   if (!o.town) o.town = newTown(); // 마을 이전 세이브
+  if (!o.explore) o.explore = newExplore(); // 동네 탐방 이전 세이브 (v0.78)
   // v0.74: 처음 돈 150만 → 250만. 이미 1장을 시작한 세이브(가게 통장을 받은 뒤)는 한 번만 100만 원을 더해요
   if (o.story.ch >= 1 && !o.story.cash74) { o.cash = (o.cash || 0) + 1000000; o.story.cash74 = true; }
   if (o.story.ch < 1) o.story.cash74 = true; // 프롤로그 세이브는 1장에서 새 처음 돈(250만)을 받아요

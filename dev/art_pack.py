@@ -889,6 +889,7 @@ def collect():
     s['char20'] = own_moon()  # 문 회장 (2장 · 문 철물): 캐릭터 생성기 조각을 겹쳐 만들어요
     s['sign_hw'] = own_sign('철물', (88, 92, 104, 255), (130, 136, 150, 255))  # 세탁소 → 문 철물
     s.update(town2_sprites())  # 마을 동쪽 블록 · 가게 앞 꾸밈 · 상호작용 물건 (v0.48)
+    s.update(market_sprites(s))  # 동네 탐방: 재래시장 (v0.78)
     return s
 
 
@@ -943,6 +944,131 @@ def town2_sprites():
         if not k.startswith(('tw_', 'sign_')):
             bb = o[k].getbbox()
             if bb: o[k] = o[k].crop(bb)
+    return o
+
+
+# ── 동네 탐방: 재래시장 (v0.78) — 가게마다 다른 간판·진열 (사용자 요청: 시장 건물도 다 다르게, 개성 있게) ──
+ME16 = 'Modern_Exteriors_16x16/ME_Theme_Sorter_16x16/'
+MKT_SMALL = ME16 + '9_Shopping_Center_and_Markets_Singles_16x16/ME_Singles_Shopping_Center_and_Markets_16x16_Market_Small_%d.png'
+CAMP = ME16 + '11_Camping_Singles_16x16/ME_Singles_Camping_16x16_%s.png'
+VEH = ME16 + '10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_%s.png'
+GARD = ME16 + '17_Garden_Singles_16x16/ME_Singles_Garden_16x16_%s.png'
+POOL = ME16 + '14_Swimming_Pool_Singles_16x16/ME_Singles_Swimming_Pool_16x16_%s.png'
+_KFONT = {}
+
+
+def kfont(size=16):  # 게임 글꼴(Neo둥근모 Pro — dev/src/font.css에 든 woff2)로 간판 글씨를 써요. fontTools + brotli 필요
+    if size not in _KFONT:
+        import re
+        from fontTools.ttLib import TTFont
+        from PIL import ImageFont
+        css = open(os.path.join(DEV, 'src', 'font.css'), encoding='utf-8').read()
+        raw = base64.b64decode(re.search(r"url\(data:font/woff2;base64,([^)]+)\)", css).group(1))
+        f = TTFont(io.BytesIO(raw)); f.flavor = None
+        buf = io.BytesIO(); f.save(buf); buf.seek(0)
+        _KFONT[size] = ImageFont.truetype(buf, size)
+    return _KFONT[size]
+
+
+def tightb(im):
+    bb = im.getbbox()
+    return im.crop(bb) if bb else im
+
+
+def mk_signboard(text, bg, fg=(255, 248, 230, 255), w=72, h=18):  # 시장 간판: 가게 앞면 위를 가로지르는 판
+    im = Image.new('RGBA', (w, h), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    hi = tuple(min(255, c + 46) for c in bg[:3]) + (255,); lo = tuple(max(0, c - 50) for c in bg[:3]) + (255,)
+    d.rectangle((0, 0, w - 1, h - 1), fill=bg, outline=INK)
+    d.line((1, 1, w - 2, 1), fill=hi); d.line((1, h - 2, w - 2, h - 2), fill=lo)
+    for x in (2, w - 3): d.point((x, 3), fill=(220, 210, 190, 255)); d.point((x, h - 4), fill=(220, 210, 190, 255))  # 나사
+    fn = kfont(16)
+    tw = int(d.textlength(text, font=fn))
+    txt = Image.new('RGBA', (w, h + 4), (0, 0, 0, 0)); td = ImageDraw.Draw(txt)
+    td.text(((w - tw) // 2, 0), text, font=fn, fill=fg)
+    a = txt.split()[3].point(lambda v: 255 if v > 110 else 0)  # 글자는 또렷하게 (번짐 없이)
+    solid = Image.new('RGBA', txt.size, fg); solid.putalpha(a)
+    bb = a.getbbox()
+    if bb:
+        glyph = solid.crop((0, bb[1], w, bb[3]))
+        y = (h - glyph.height) // 2
+        sh = Image.new('RGBA', glyph.size, lo); sh.putalpha(glyph.split()[3])
+        im.alpha_composite(sh, (0, y + 1)); im.alpha_composite(glyph, (0, y))
+    return im
+
+
+def mk_shutter(w=68, h=36):  # 문 닫은 가게: 회색 셔터
+    im = Image.new('RGBA', (w, h), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((0, 0, w - 1, h - 1), fill=(150, 156, 168, 255), outline=INK)
+    for y in range(3, h - 3, 3): d.line((1, y, w - 2, y), fill=(118, 124, 138, 255))
+    d.rectangle((w // 2 - 5, h - 5, w // 2 + 4, h - 3), fill=(90, 94, 104, 255))  # 손잡이
+    d.line((1, 1, w - 2, 1), fill=(190, 196, 206, 255))
+    return im
+
+
+def mk_table_with(items, w=40):  # 진열 탁자 위에 물건 아이콘 (떡·반찬 …)
+    tb = tightb(crop(EXT, GARAGE, 304, 484, 44, 26)).resize((w, 22), Image.NEAREST)
+    im = Image.new('RGBA', (w, 30), (0, 0, 0, 0)); im.alpha_composite(tb, (0, 8))
+    for k, ic in enumerate(items):
+        x = 2 + k * ((w - 16) // max(1, len(items) - 1)) if len(items) > 1 else (w - 16) // 2
+        im.alpha_composite(ic, (x, 0))
+    return im
+
+
+def mk_bowls():  # 반찬통 여러 개 (16x16 하나)
+    im = Image.new('RGBA', (16, 16), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    for (x, y, c) in ((0, 6, (200, 60, 40)), (8, 6, (90, 150, 60)), (4, 0, (230, 180, 60))):
+        d.rectangle((x, y + 2, x + 7, y + 9), fill=(236, 236, 240, 255), outline=INK)
+        d.rectangle((x + 1, y + 3, x + 6, y + 5), fill=c + (255,))
+    return im
+
+
+def mk_sacks():  # 방앗간: 고춧가루·참깨 자루 (30x22)
+    im = Image.new('RGBA', (30, 22), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    for (x, top, c) in ((0, 4, (200, 50, 36)), (10, 0, (236, 220, 180)), (20, 5, (150, 110, 70))):
+        d.rounded_rectangle((x, top + 2, x + 9, 21), radius=2, fill=(230, 214, 176, 255), outline=INK)
+        d.ellipse((x + 1, top, x + 8, top + 5), fill=c + (255,), outline=INK)
+    return im
+
+
+def market_sprites(s):
+    o = {}
+    for i in range(1, 13):  # 가게 건물 12가지 색 — 지붕 가운데를 빼서 낮게
+        im = crop(EXT, MKT_SMALL % i).crop((0, 9, 80, 128))
+        o['mk_b%d' % i] = squash(im, 12, 44)
+    SIGNS = {  # 간판 글씨 · 판 색 (src/js/data/explore.js SHOP_TYPES와 같은 이름)
+        'fruit': ('싱싱과일', (220, 112, 36, 255)), 'veg': ('초록채소', (66, 136, 60, 255)), 'flower': ('꽃집', (196, 84, 136, 255)),
+        'fish': ('바다수산', (44, 104, 176, 255)), 'tteok': ('할매떡집', (184, 52, 64, 255)), 'mill': ('참방앗간', (122, 80, 48, 255)),
+        'banchan': ('엄마반찬', (210, 150, 30, 255)), 'dried': ('건어물', (56, 66, 100, 255)), 'gukbap': ('순대국밥', (140, 36, 36, 255)),
+        'goods': ('만물잡화', (96, 98, 112, 255)),
+    }
+    for k, (t, bg) in SIGNS.items():
+        o['mk_s_' + k] = mk_signboard(t, bg)
+    o['mk_shut'] = mk_shutter()
+    # 가게 앞 진열 (가게마다 달라요)
+    o['mk_d_fruit'] = tightb(crop(EXT, VEH % 'Fruit_Flowers_Cart_2'))
+    o['mk_d_veg'] = tightb(crop(EXT, VEH % 'Fruit_Flowers_Cart_3'))
+    o['mk_d_flower'] = tightb(crop(EXT, VEH % 'Fruit_Flowers_Cart_4'))
+    fish = Image.new('RGBA', (62, 26), (0, 0, 0, 0))
+    fish.alpha_composite(tightb(crop(EXT, CAMP % 'Fish_Crate_5')), (0, 2)); fish.alpha_composite(tightb(crop(EXT, CAMP % 'Fish_Crate_7')), (31, 0))
+    o['mk_d_fish'] = tightb(fish)
+    o['mk_d_tteok'] = mk_table_with([s['ing_ddeok'], s['ing_ddeok'], s['ing_ddeok']])
+    o['mk_d_banchan'] = mk_table_with([mk_bowls(), s['ing_egg'], mk_bowls()])
+    mill = Image.new('RGBA', (48, 24), (0, 0, 0, 0)); mill.alpha_composite(mk_sacks(), (0, 2)); mill.alpha_composite(s['ing_gochujang'], (32, 8))
+    o['mk_d_mill'] = tightb(mill)
+    dried = Image.new('RGBA', (46, 30), (0, 0, 0, 0)); dried.alpha_composite(tightb(crop(EXT, CAMP % 'Pier_Crates_4')), (0, 3)); dried.alpha_composite(s['ing_gim'], (28, 12)); dried.alpha_composite(s['ing_gim'], (30, 0))
+    o['mk_d_dried'] = tightb(dried)
+    o['mk_d_gukbap'] = tightb(crop(EXT, VEH % 'Street_Food_Cart_4'))
+    goods = Image.new('RGBA', (60, 40), (0, 0, 0, 0)); goods.alpha_composite(tightb(crop(EXT, GARD % 'Wood_Box_Full_3')), (0, 0)); goods.alpha_composite(tightb(crop(EXT, GARD % 'Wood_Box_Full_1')), (28, 10))
+    o['mk_d_goods'] = tightb(goods)
+    # 길 가운데 노점·물건
+    for i in (1, 2, 3, 6):
+        o['mk_cart%d' % i] = tightb(crop(EXT, VEH % ('Street_Food_Cart_%d' % i)))
+    for i in (2, 3, 4):
+        o['mk_umb%d' % i] = tightb(crop(EXT, POOL % ('Umbrella_%d' % i)))
+    for i in (1, 2, 3):
+        o['mk_bask%d' % i] = tightb(crop(EXT, CAMP % ('Basket_%d' % i)))
+    o['mk_crate'] = tightb(crop(EXT, CAMP % 'Pier_Crates_5'))
+    o['mk_lamp'] = tightb(crop(EXT, CAMP % 'Lantern_2'))
     return o
 
 

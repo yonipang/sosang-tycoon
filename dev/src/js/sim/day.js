@@ -20,6 +20,7 @@ import { tutNote, tutEndDay } from './tutorial.js';
 import { costOf, ingCost, marketNextDay, costBreakdown } from './market.js';
 import { invOf, invServings, stockInMenu, stockIn, useFifo, stockOf, takeMenu, giveMenu, shortIng, todayMenus, menuOn } from './pantry.js';
 import { upgradeEndDay } from './upgrade.js';
+import { typeName } from './explore.js';
 import { bookEndDay } from './book.js';
 import { townOpenRest } from './town.js';
 import { furnOpen, buildRent, syncLayout, mood } from './furniture.js';
@@ -177,8 +178,10 @@ export function tickDay(dt) {
   if (r.setupUntil >= 0 && r.min >= r.setupUntil) { r.setupUntil = -1; r.player.speed = PLAYER_SPEED * townSpeedMul(); }
   for (const f of r.referral || []) {
     if (f.done || r.closing || r.min < f.at) continue;
-    const chars = freeChars().slice(0, 2);
+    const ex = f.who.startsWith('ex_') ? f.who.slice(3) : null; // 동네 탐방에서 만난 사람들 (v0.78): 그 손님층으로
+    const chars = freeChars(ex || undefined).slice(0, 2);
     f.done = true;
+    if (ex) { if (chars.length && spawnParty(chars, { force: true, ref: 'ex' })) emit('toast', `시장에서 만난 ${typeName(ex)} 손님들이 찾아옵니다`, 'good'); continue; }
     if (chars.length && spawnParty(chars, { force: true, ref: f.who })) emit('toast', `${f.who === 'miso' ? (furnOpen() ? '미소 가구' : '미소 꽃집') : f.who === 'moon' ? '문 철물 상인회' : '최 사장 세탁소'} 소개로 손님이 옵니다`, 'good');
   }
   for (const f of r.met || []) { // 골목에서 이야기한 손님이 찾아와요

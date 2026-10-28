@@ -33,6 +33,8 @@ let bookSel = 0; // 손님 수첩에서 고른 사람
 import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
+import { exOn, exHook, exUpdate, exTap, exBar, exNav, exNavClick, exSheetClick, exTalk, busHTML, initExplore, exMapH } from './explore.js';
+import { exploreOpen } from '../sim/explore.js';
 
 const WALK = 96;     // 걷는 빠르기 (지도 픽셀/초) — v0.35 사용자 요청으로 60 → 96
 const VIEW_W = 224;  // 화면에 보이는 지도 너비 (14칸 — 멀리서 보듯, 포켓몬 하트골드 정도). 높이는 화면에 맞춰요
@@ -290,6 +292,7 @@ export function showTown() {
 }
 // 아래: 장소 바로 가기 (누르면 그곳까지 걸어가요). 지금 닫힌 곳은 흐리게
 function renderNav() {
+  if (exOn()) { $('townNav').innerHTML = exNav(); return; }
   if (T && T.inside) { // 가게 안: 할 일 버튼
     const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
@@ -310,12 +313,13 @@ function layoutTown() {
     return;
   }
   const s = Math.max(1, Math.floor(el.clientWidth / VIEW_W * dpr)) / dpr;
-  T.vw = VIEW_W; T.vh = Math.max(128, Math.min(MAP_H * TILE, Math.floor(availH / s)));
+  T.vw = VIEW_W; T.vh = Math.max(128, Math.min(exOn() ? exMapH() : MAP_H * TILE, Math.floor(availH / s)));
   cv.style.width = T.vw * s + 'px'; cv.style.height = T.vh * s + 'px';
 }
 
 // 위: 밤/새벽 · 시각 · 남은 일 칸 · 피로 · 위생
 function renderBar() {
+  if (exOn()) { $('townBar').innerHTML = exBar(); return; } // 동네 탐방: 체력 · 가방
   const Tn = G.town, dawn = Tn.part === 'dawn', max = slotsMax();
   const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;
   // 칸: 밤 4칸(남색) + 새벽 3칸(노랑) 한 줄 · 쓴 칸은 비우고, 넘긴 칸은 빨강
@@ -386,6 +390,7 @@ function joyMove(dt, vx, vy) {
 export function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
+  if (exOn()) { exUpdate(dt); return; } // 동네 탐방 중 (v0.78)
   if (T.inside) { if (!talking()) updateInside(dt); else drawShopTo($('townCv'), { me: T.inside.me, time: T.time, dawn: G.town.part === 'dawn' }); return; }
   const me = T.me;
   const [vx, vy] = talking() ? [0, 0] : joyVec();
@@ -420,6 +425,7 @@ const propOn = p => !p.only || onlyNow()[p.only];
 const propRect = p => [p.x, p.y - SPR[p.spr][3], SPR[p.spr][2], SPR[p.spr][3]];
 // 물건 창: 쉬기·자판기는 버튼, 나머지는 한 줄
 function openUse(p) {
+  if (p.use === 'bus' && exploreOpen()) { sheet(busHTML(), 'ex'); return; } // 2장부터: 새벽 첫차로 동네 탐방 (v0.78)
   const U = USES[p.use], head = `<div class="ts-head"><b>${U.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>`;
   if (!U.act) { sheet(`${head}<p class="ts-note">${U.note}</p>`); return; }
   const ok = useOk(p.use), why = G.town.fatigue <= 0 ? '지금은 피곤하지 않습니다' : p.use === 'drink' && G.town.drink === G.day ? '이번 턴에는 이미 마셨습니다' : '';
@@ -498,6 +504,7 @@ function updateTalkBtn() {
   b.hidden = false;
 }
 function talkPress() {
+  if (exOn()) { exTalk(); return; }
   const t = T.talkT;
   if (!t) return;
   $('townTalk').hidden = true; playSfx('tap');
@@ -513,6 +520,7 @@ function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button typ
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 function tapTown(e) {
   if (talking()) return;
+  if (exOn()) { exTap(e); return; }
   if (T.inside) { tapInside(e); return; }
   const r = $('townCv').getBoundingClientRect();
   const wx = T.cam.x + (e.clientX - r.left) / r.width * T.vw, wy = T.cam.y + (e.clientY - r.top) / r.height * T.vh;
@@ -724,6 +732,14 @@ function marketHTML() {
 }
 
 export function initTown() {
+  // 동네 탐방 (v0.78): 골목 화면을 빌려줘요
+  exHook({
+    sheet, closeSheet, fade: doorFade, joy: joyVec,
+    refresh: () => { renderBar(); renderNav(); layoutTown(); }, refreshBar: () => { renderBar(); renderNav(); },
+    view: () => ({ vw: T.vw, vh: T.vh }), sheetOpen: () => !!T.sheet,
+    back: () => { T.inside = null; T.me.x = tileX(36); T.me.y = tileY(22); T.me.path = []; T.me.moving = false; T.me.dir = 3; T.then = null; $('townTalk').textContent = '대화하기'; $('townTalk').hidden = true; renderBar(); renderNav(); layoutTown(); },
+  });
+  initExplore();
   // 누르기·끌기 (조이스틱)
   const cv = $('townCv'), joyEl = $('townJoy');
   cv.addEventListener('pointerdown', e => {
@@ -768,6 +784,8 @@ export function initTown() {
   $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); runCmd('phoneHelp'); } }); // 휴대폰 (v0.54) · 처음 열면 안내 카드 (v0.61)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;
+    const exB = e.target.closest('[data-ex]');
+    if (exB) { exNavClick(exB.dataset.ex); return; }
     const inB = e.target.closest('[data-in]');
     if (inB) { closeSheet(); playSfx('tap'); const a = inB.dataset.in; if (a === 'open') doShop('open'); else goSpot(a); return; }
     const b = e.target.closest('[data-go]'); if (!b) return; closeSheet(); goPlace(b.dataset.go); playSfx('tap');
@@ -779,6 +797,7 @@ export function initTown() {
     const b = e.target.closest('[data-ts]');
     if (!b) return;
     const k = b.dataset.ts;
+    if (exSheetClick(k, b)) return; // 동네 탐방 창
     if (k === 'close') { closeSheet(); playSfx('tap'); }
     else if (k === 'use') { const u = b.dataset.u; if (runCmd('townUse', { use: u })) { closeSheet(); if (u === 'rest') { T.sitUntil = T.time + 2.5; T.me.path = []; } } }
     else if (k === 'act') runCmd('townAct', { place: T.sheetPlace, act: b.dataset.a });
