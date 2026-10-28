@@ -1,12 +1,15 @@
 // 동네 탐방 화면 (v0.78): 골목 화면(ui/town.js)의 캔버스·막대·아래 버튼·창을 빌려 써요
 //  걷기는 골목과 같아요(조이스틱 · 짧게 누르면 그곳까지). 사람 옆에서 오른쪽 아래 상호작용 버튼 「살펴보기」 → 사건 창(고르기 하나)
 //  체력(위 막대)은 걸을 때 · 일을 도울 때 줄고, 국밥·어묵 국물로 조금 돌아와요. 버스 정류장으로 가면 돌아가요
-//  규칙은 sim/explore.js (runCmd 'exStart' · 'exWalk' · 'exPick' · 'exReturn'), 그리기 render/explore.js
+//  규칙은 sim/explore.js (runCmd 'exStart' · 'exWalk' · 'exPick' · 'exFinish' · 'exReturn'), 그리기 render/explore.js
+//  v0.81: 심부름(짐 배달 · 아이와 할머니 찾기)과 손기술(떡 자르기 · 김 뒤집기 · 꼬치 끼우기 · 나물 다듬기)
 import { G } from '../save/state.js';
 import { $, won, josa } from '../engine/util.js';
+import { fxRand } from '../engine/random.js';
+import { toast } from './feedback.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { TILE } from '../data/layout.js';
-import { EX_STAMINA, EX_BAG, EX_CLOCK, FINDS, MEMOS, EX_EVENTS_POOL } from '../data/explore.js';
+import { MK, EX_STAMINA, EX_BAG, EX_CLOCK, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL } from '../data/explore.js';
 import { exRun, exploreReady, exploredToday } from '../sim/explore.js';
 import { drawExplore } from '../render/explore.js';
 import { icon } from './icons.js';
@@ -16,6 +19,7 @@ import { talking } from './story.js';
 const EX_WALK = 96, EX_NEAR = { x: 22, y: 18 };
 let V = null;     // 탐방 화면 { me, cam, time, acc, open }
 let XC = null;     // 골목 화면이 빌려주는 것 { sheet, closeSheet, refresh, fade, view, joy, back }
+export const exView = () => V; // 시험 스크립트용 (main.js __T)
 export const exOn = () => !!V;
 export const exMapH = () => (exRun() ? exRun().map.H * TILE : 0);
 export function exHook(ctx) { XC = ctx; }
@@ -35,7 +39,7 @@ export function exGo() {
   XC.closeSheet();
   XC.fade(() => {
     if (!runCmd('exStart')) return;
-    const [sx, sy] = exRun().map.props.find(p => p.kind === 'bus') ? [3, 22] : [3, 22];
+    const [sx, sy] = MK.START;
     V = { me: { char: 0, x: exPx(sx), y: exPy(sy), dir: 1, path: [], moving: false }, cam: { x: 0, y: 0 }, time: 0, acc: 0, bumped: null };
     XC.refresh();
     XC.sheet(`${exHead('재래시장')}<p class="ts-note">새벽 시장이 막 문을 엽니다. 가게 앞 사람들에게 다가가 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
@@ -56,14 +60,15 @@ export function exHud() {
 }
 export function exBar() {
   const X = exRun(); if (!X) return '';
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span><span class="ex-place">재래시장</span>`;
+  const T = X.task;
+  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : '<span class="ex-place">재래시장</span>'}`;
 }
 export const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 export function exNavClick(k) {
   if (!V) return;
   playSfx('tap');
   if (k === 'bag') { XC.sheet(bagHTML(), 'ex'); return; }
-  if (k === 'bus') { XC.closeSheet(); exWalkTo([3, 22], () => XC.sheet(leaveHTML(), 'ex')); }
+  if (k === 'bus') { XC.closeSheet(); exWalkTo(MK.START, () => XC.sheet(leaveHTML(), 'ex')); }
 }
 function bagHTML() {
   const X = exRun();
@@ -81,21 +86,66 @@ function eventHTML(i) {
   const X = exRun(), S = X.spots[i], ev = exEvOf(S.ev);
   const btns = ev.choices.map((ch, k) => {
     const F = ch.give && FINDS[ch.give];
-    const cost = [ch.cost ? `체력 −${ch.cost}` : '', ch.pay ? `${won(ch.pay)}` : '', ch.heal ? `체력 +${ch.heal}` : ''].filter(Boolean).join(' · ');
+    const cost = [ch.task ? (ch.task.kind === 'escort' ? '직접 찾아 주기' : `직접 배달 · 들고 걸으면 체력 ${EX_CARRY}배`) : '', ch.mini ? `손기술 · ${ch.mini.name}` : '', ch.cost ? `체력 −${ch.cost}` : '', ch.pay ? `${won(ch.pay)}` : '', ch.heal ? `체력 +${ch.heal}` : ''].filter(Boolean).join(' · ');
     const why = ch.pay && G.cash < ch.pay ? '잔고가 모자랍니다' : ch.cost && X.sp < ch.cost ? '힘이 모자랍니다' : '';
     return `<button type="button" class="ts-act" data-ts="exPick" data-s="${i}" data-i="${k}" ${why ? 'disabled' : ''}><b>${ch.label}</b><small>${why || [cost, F ? `가방에: ${F.name}` : ''].filter(Boolean).join(' · ')}</small></button>`;
   }).join('');
   return `${exHead(ev.title)}<p class="ex-txt">${ev.text}</p>${btns}<button type="button" class="ts-act ex-pass" data-ts="close"><b>지나치기</b><small>체력을 아껴요</small></button>`;
 }
-function fullHTML(spot, i) {
+function fullHTML(spot, i, fin) {
   const X = exRun(), F = FINDS[exEvOf(X.spots[spot].ev).choices[i].give];
-  const rows = X.bag.map((id, d) => { const B = FINDS[id]; return `<button type="button" class="ts-act" data-ts="exDrop" data-s="${spot}" data-i="${i}" data-d="${d}"><b>${B.name} 버리고 담기</b><small>${B.text}</small></button>`; }).join('');
-  return `${exHead('가방이 가득 찼습니다')}<p class="ts-note">${josa(F.name, '을/를')} 담으려면 하나를 내려놓아야 합니다.</p>${rows}<button type="button" class="ts-act ex-pass" data-ts="close"><b>그만두기</b><small>그대로 둡니다</small></button>`;
+  const k = fin ? 'exDropF' : 'exDrop';
+  const rows = X.bag.map((id, d) => { const B = FINDS[id]; return `<button type="button" class="ts-act" data-ts="${k}" data-s="${spot}" data-i="${i}" data-d="${d}"><b>${B.name} 버리고 담기</b><small>${B.text}</small></button>`; }).join('');
+  const skip = fin ? '<button type="button" class="ts-act ex-pass" data-ts="exSkipF"><b>안 받고 끝내기</b><small>가방은 그대로</small></button>' : '<button type="button" class="ts-act ex-pass" data-ts="close"><b>그만두기</b><small>그대로 둡니다</small></button>';
+  return `${exHead('가방이 가득 찼습니다', !fin)}<p class="ts-note">${josa(F.name, '을/를')} 담으려면 하나를 내려놓아야 합니다.</p>${rows}${skip}`;
 }
+// ── 손기술 (v0.81): timing 움직이는 바늘이 초록 칸에 올 때 누르기 · mash 시간 안에 빠르게 눌러 채우기 ──
+function mgStart(title, M) {
+  V.mg = M.kind === 'timing' ? { ...M, title, pos: 0, dir: 1, round: 0, hits: 0, zone: mgZone(), flash: '' } : { ...M, title, fill: 0, t: M.time };
+  XC.sheet(mgHTML(), 'ex mg');
+}
+function mgZone() { const w = 0.24, a = 0.08 + fxRand() * (0.84 - w); return [a, a + w]; }
+function mgHTML() {
+  const m = V.mg;
+  const top = m.kind === 'timing'
+    ? `<p class="mg-help">바늘이 초록 칸에 올 때 누르세요 · ${m.rounds}번 중 ${m.need}번</p><div class="mg-dots">${Array.from({ length: m.rounds }, (_, k) => `<i class="${k < m.round ? (m.res[k] ? 'ok' : 'no') : ''}"></i>`).join('')}</div>
+       <div class="mg-bar"><i class="mg-zone" style="left:${m.zone[0] * 100}%;width:${(m.zone[1] - m.zone[0]) * 100}%"></i><i class="mg-needle" id="mgNeedle"></i></div>`
+    : `<p class="mg-help">${m.time}초 안에 빠르게 눌러 막대를 채우세요</p><div class="mg-bar fill"><i class="mg-fill" id="mgFill"></i></div><p class="mg-time" id="mgTime"></p>`;
+  return `${exHead(m.title + ' · ' + m.name, false)}${top}<button type="button" class="btn primary big mg-go" data-ts="exMg">${m.act}</button>`;
+}
+function mgPress() {
+  const m = V.mg; if (!m) return;
+  if (m.kind === 'timing') {
+    const ok = m.pos >= m.zone[0] && m.pos <= m.zone[1];
+    m.res = m.res || []; m.res.push(ok); if (ok) m.hits++;
+    m.round++; playSfx(ok ? 'perfect' : 'tap');
+    if (m.round >= m.rounds) return mgEnd(m.hits >= m.need ? 1 : 0);
+    m.zone = mgZone(); m.speed *= 1.08;
+    XC.sheet(mgHTML(), 'ex mg');
+  } else { m.fill = Math.min(1, m.fill + 1 / m.taps); playSfx('tap'); if (m.fill >= 1) mgEnd(1); }
+}
+function mgTick(dt) {
+  const m = V.mg; if (!m) return;
+  if (!XC.sheetOpen()) { mgEnd(0); return; } // 창을 닫으면 그만두기(실패)
+  if (m.kind === 'timing') {
+    m.pos += m.dir * m.speed * dt; if (m.pos > 1) { m.pos = 1; m.dir = -1; } if (m.pos < 0) { m.pos = 0; m.dir = 1; }
+    const n = $('mgNeedle'); if (n) n.style.left = (m.pos * 100).toFixed(1) + '%';
+  } else {
+    m.t -= dt; m.fill = Math.max(0, m.fill - dt * 0.06);
+    const f = $('mgFill'), t = $('mgTime');
+    if (f) f.style.width = (m.fill * 100).toFixed(1) + '%';
+    if (t) t.textContent = `남은 시간 ${Math.max(0, m.t).toFixed(1)}초`;
+    if (m.t <= 0) mgEnd(0);
+  }
+}
+function mgEnd(score) { V.mg = null; runCmd('exFinish', { score }); }
 export function exSheetClick(k, b) {
   if (k === 'exGo') { playSfx('page'); exGo(); return true; }
   if (k === 'exPick') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i }); return true; }
   if (k === 'exDrop') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i, drop: +b.dataset.d }); return true; }
+  if (k === 'exDropF') { runCmd('exFinish', { drop: +b.dataset.d }); return true; }
+  if (k === 'exSkipF') { runCmd('exFinish', { drop: -1 }); return true; }
+  if (k === 'exMg') { mgPress(); return true; }
   if (k === 'exLeave') { playSfx('page'); exHome(); return true; }
   return false;
 }
@@ -112,7 +162,14 @@ export function initExplore() {
       const F = arg.give && FINDS[arg.give];
       XC.sheet(`${exHead(arg.title || '', true)}<p class="ex-txt">${arg.say || ''}</p>${F ? `<div class="ex-row got">${icon(F.icon, 'ex-ric')}<span><b>가방에 담았습니다: ${F.name}</b><small>${F.text}</small></span></div>` : ''}${arg.memo ? `<p class="ex-memo">동네 메모 · ${MEMOS[arg.memo]}</p>` : ''}`, 'ex');
       XC.refresh();
-    } else if (what === 'full') XC.sheet(fullHTML(arg.spot, arg.i), 'ex');
+    } else if (what === 'full') XC.sheet(fullHTML(arg.spot, arg.i, arg.finish), 'ex');
+    else if (what === 'task') {
+      const T = arg.task;
+      V.trail = [];
+      XC.sheet(`${exHead(arg.title)}<p class="ex-txt">${T.kind === 'escort' ? `아이가 손을 꼭 잡고 따라옵니다. 할머니는 ${T.hint ? `「${T.hint}」 근처에 ` : ''}계실 거래요. 찾으면 상호작용 버튼으로 「${T.verb}」.` : `${josa(T.item, '을/를')} 들었습니다. 「${T.label}」에 가서 상호작용 버튼으로 「${T.verb}」. 짐을 들고 걸으면 체력이 ${EX_CARRY}배로 줄어요.`}</p>`, 'ex');
+      XC.refresh();
+    } else if (what === 'mini') mgStart(arg.title, arg.mini);
+    else if (what === 'done') XC.refreshBar();
     else if (what === 'faint') {
       if (V) { V.me.path = []; }
       XC.sheet(faintHTML(), 'ex faint');
@@ -187,10 +244,13 @@ function openSpot(i) { V.me.path = []; V.me.moving = false; playSfx('tap'); XC.s
 // 상호작용 버튼 (v0.80 — ui/town.js updateActBtn): 사람 옆이면 「살펴보기」, 정류장 옆이면 「돌아가기」
 export function exActTarget() {
   const X = exRun(); if (!V || !X || X.fainted) return null;
+  const T = X.task;
+  if (X.pend && !T) return { label: '가방 정리', run: () => runCmd('exFinish') }; // 손기술 뒤 가방이 가득 찼을 때 창을 닫아 버렸으면
+  if (T && Math.abs(exPx(T.tx) - V.me.x) < EX_NEAR.x && Math.abs(exPy(T.ty) - V.me.y) < EX_NEAR.y) return { label: T.verb, run: () => { V.me.path = []; runCmd('exFinish'); } };
   const i = spotNear();
-  if (i >= 0) return { label: '살펴보기', run: () => openSpot(i) };
+  if (i >= 0) return { label: '살펴보기', run: () => (T ? toast(T.kind === 'escort' ? '먼저 아이를 할머니께 모셔다드려요' : `먼저 ${josa(T.item, '을/를')} 전해 줘요`, 'info') : openSpot(i)) };
   const [tx, ty] = exMeTile(), bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 4) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
+  if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 5) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
   return null;
 }
 
@@ -226,7 +286,17 @@ export function exUpdate(dt) {
   const M = X.map;
   V.cam.x = Math.max(0, Math.min(M.W * TILE - vw, me.x - vw / 2));
   V.cam.y = Math.max(0, Math.min(M.H * TILE - vh, me.y - 16 - vh / 2));
-  drawExplore($('townCv'), { map: M, cam: V.cam, vw, vh, me, time: V.time, marks: X.spots.filter(s => !s.done) });
+  if (V.mg) mgTick(dt);
+  // 따라오는 아이 (심부름 escort): 내가 지나온 자리를 조금 늦게 밟아요
+  let follow = null;
+  if (X.task && X.task.follow) {
+    V.trail = V.trail || [];
+    const last = V.trail[V.trail.length - 1];
+    if (!last || Math.hypot(last.x - me.x, last.y - me.y) > 1.5) { V.trail.push({ x: me.x, y: me.y, dir: me.dir }); if (V.trail.length > 40) V.trail.shift(); }
+    const p = V.trail[Math.max(0, V.trail.length - 10)] || { x: me.x, y: me.y + 8, dir: me.dir };
+    follow = { char: X.task.follow, x: p.x, y: p.y, dir: p.dir, moving: me.moving };
+  }
+  drawExplore($('townCv'), { map: M, cam: V.cam, vw, vh, me, time: V.time, marks: X.task ? [] : X.spots.filter(s => !s.done), follow, carry: !!(X.task && X.task.carry), target: X.task ? { tx: X.task.tx, ty: X.task.ty } : null });
 }
 // 짧게 누르기: 사람·정류장 → 그 옆까지 걸어가기만 (창은 상호작용 버튼으로) · 바닥 → 그곳까지
 export function exTap(e) {
@@ -235,10 +305,12 @@ export function exTap(e) {
   const wx = V.cam.x + (e.clientX - r.left) / r.width * vw, wy = V.cam.y + (e.clientY - r.top) / r.height * vh;
   const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
   playSfx('tap');
+  const T = X.task;
+  if (T && wx >= exPx(T.tx) - 8 && wx < exPx(T.tx) + 8 && wy >= exPy(T.ty) - 30 && wy < exPy(T.ty) + 4) { const at = exBeside(T.tx, T.ty); if (at) exWalkTo(at, () => { V.me.dir = T.ty < at[1] ? 1 : T.ty > at[1] ? 3 : T.tx > at[0] ? 0 : 2; }); return; }
   const si = X.spots.findIndex(s => !s.done && wx >= exPx(s.tx) - 8 && wx < exPx(s.tx) + 8 && wy >= exPy(s.ty) - 30 && wy < exPy(s.ty) + 4);
   if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; }); return; } // 걸어가기만 (v0.80)
   const bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo([3, 22]); return; }
+  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(MK.START); return; }
   if (tx < 0 || ty < 0 || tx >= X.map.W || ty >= X.map.H || exWalls()[ty * X.map.W + tx]) return;
   exWalkTo([tx, ty]);
 }

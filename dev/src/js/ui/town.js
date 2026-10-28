@@ -496,7 +496,7 @@ function townActTarget() {
   const t = talkTarget();
   if (t) return { label: '대화', run: () => { T.talkT = t; talkPress(); } };
   const place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) return { label: place === 'shop' ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
+  if (place) return { label: place === 'shop' || placeActs(place).length > 1 ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => adj(a, b, tx, ty)));
   if (prop) return { label: USE_LABEL[prop.use] || '살펴보기', run: () => { T.me.path = []; openUse(prop); } };
   const look = LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
@@ -524,6 +524,7 @@ function updateActBtn() {
   const busy = talking() || T.fading || T.sheet || !!chatQ;
   const t = busy ? null : exOn() ? exActTarget() : T.inside ? insideActTarget() : townActTarget();
   T.act = t;
+  if (b.hidden !== busy) b.hidden = busy; // 창·대화가 열려 있으면 숨겨요 — 창을 가리지 않게 (v0.81 사용자 요청)
   const label = t ? t.label : '…';
   if (b.textContent !== label) b.textContent = label;
   if (b.disabled !== !t) b.disabled = !t;
@@ -595,9 +596,11 @@ function sheet(html, cls) {
 export function closeSheet() { const s = $('townSheet'); if (!s) return; s.hidden = true; s.innerHTML = ''; if (T) T.sheet = false; }
 
 const NEIGHBOR = { miso: '미소 사장님', choi: '최 사장님' };
+const TALK_WHO = { furnTalk: '미소 사장님', guildTalk: '문 회장님', jungTalk: '정 사장님' }; // 가게 주인과 대화 · 가게 메뉴는 따로 (v0.81 사용자 요청)
 function actLabel(place, act) {
   const A = ACTS[act];
-  if (act === 'talk') return `${josa(NEIGHBOR[PLACES[place].who], '과/와')} 이야기하기`;
+  if (act === 'talk') return `${josa(NEIGHBOR[PLACES[place].who], '과/와')} 대화하기`;
+  if (TALK_WHO[act]) return `${josa(TALK_WHO[act], '과/와')} 대화하기`;
   return A.name;
 }
 function openPlace(id) {
@@ -675,10 +678,10 @@ function actRow(id, a) {
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '특가 · 단골가 · 처음 들어갈 때 1시간' : '배달 · 시간이 들지 않습니다')
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
-      : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
-      : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
+      : a === 'guild' ? '장사 도구 · 설비 손보기' : a === 'furn' ? '탁자 · 의자 · 장식 사기'
+      : TALK_WHO[a] ? (ok ? (a === 'jungTalk' ? '친밀도 +2 · 시간이 들지 않습니다' : '친밀도 · 내일 소개 손님') : '오늘은 이미 대화했습니다')
       : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
-    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
+    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(TALK_WHO[a] && !ok) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
 
@@ -867,6 +870,7 @@ export function initTown() {
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
+    if (what === 'shopTalk') { const id = T.sheetPlace; if (chatQ) chatQ.after = () => openPlace(id); return; } // 가게 주인과 대화 뒤엔 그 가게 창으로
     if (what === 'market') { T.sheetPlace = 'market'; mkPhone = false; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
     if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'guild') { T.sheetPlace = 'laundry'; if (chatQ) chatQ.after = () => sheet(guildHTML(), 'guild'); else sheet(guildHTML(), 'guild'); return; } // 문 회장님 이야기 뒤에 상인회 창

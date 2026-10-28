@@ -39,6 +39,7 @@ export const placeShort = id => (ch2(id) || PLACES[id]).short;
 export const placeActs = id => (ch2(id) || PLACE_ACTS)[ch2(id) ? 'acts' : id];
 export const actNow = (place, act) => placeOpen(place) && placeActs(place).includes(act)
   && !(act === 'talk' && G.town.talked.includes(PLACES[place].who))
+  && !(act === 'furnTalk' && G.town.talked.includes('miso')) && !(act === 'guildTalk' && G.town.talked.includes('moon')) && !(act === 'jungTalk' && G.town.talked.includes('jung'))
   && !(act === 'clean' && G.town.hygiene >= 100) && !(act === 'setup' && G.town.setup === G.day) // 할 필요가 없는 일은 막아요
   && !(act === 'insta' && G.town.insta === G.day) && !(act === 'blogger' && G.town.blogDay === G.day);
 
@@ -81,25 +82,23 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { emit('town', 'open'); return true; } // 집에서 자면 남은 시간은 쉬고 아침에 가게 열기 (v0.59)
-  if (act === 'furn') { // 미소 가구: 그날 처음 들어갈 때 한 칸 + 이야기(친밀도·소개 손님) — 밤 칸을 다 써도 창은 그대로 (새벽이 돼도 그 창에서는 살 수 있어요)
-    if (!T.furnIn) {
-      useSlots(A.cost); T.furnIn = true; G.furn.visits++; T.talked.push('miso'); T.referral.push('miso');
-      const first = G.furn.visits === 1, lines = first ? FURN_FIRST : FURN_CHATS[(G.furn.visits - 2) % FURN_CHATS.length];
-      emit('town', 'chat', lines);
-      if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
-    }
-    emit('town', 'furn');
+  // 가게 주인과 대화 · 가게 메뉴는 따로 (v0.81 사용자 요청): 대화는 하루 한 번(친밀도 · 미소·문 회장은 한 시간 + 내일 소개 손님), 가게 메뉴는 시간 안 씀
+  if (act === 'furnTalk') {
+    useSlots(A.cost); G.furn.visits++; T.talked.push('miso'); T.referral.push('miso');
+    const first = G.furn.visits === 1, lines = first ? FURN_FIRST : FURN_CHATS[(G.furn.visits - 2) % FURN_CHATS.length];
+    emit('town', 'chat', lines); emit('town', 'shopTalk');
+    if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
     emit('prep'); return true;
   }
-  if (act === 'guild') { // 문 철물: 그날 처음 들어갈 때 한 칸 + 문 회장님 이야기(친밀도·소개 손님)
-    if (!T.guildIn) {
-      useSlots(A.cost); T.guildIn = true; T.talked.push('moon'); T.referral.push('moon');
-      emit('town', 'chat', moonChat());
-      addBond('moon', BOND_TALK, '이야기');
-    }
-    emit('town', 'guild');
+  if (act === 'guildTalk') {
+    useSlots(A.cost); T.talked.push('moon'); T.referral.push('moon');
+    emit('town', 'chat', moonChat()); emit('town', 'shopTalk');
+    addBond('moon', BOND_TALK, '이야기');
     emit('prep'); return true;
   }
+  if (act === 'jungTalk') { if (jungChat()) emit('town', 'shopTalk'); return true; }
+  if (act === 'furn') { T.furnIn = true; emit('town', 'furn'); emit('prep'); return true; } // 미소 가구 창 (밤 칸을 다 써도 그대로)
+  if (act === 'guild') { T.guildIn = true; emit('town', 'guild'); emit('prep'); return true; } // 상인회 창
   if (act === 'market') {
     if (!T.marketIn) { useSlots(marketCost()); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
     emit('town', 'market'); emit('prep'); return true;
@@ -140,9 +139,10 @@ export const marketUnit = i => Math.round(ingCost(i) * (isDeal(i) ? MARKET_DEAL 
 export const phoneUnit = i => Math.round(ingCost(i) * PHONE_ORDER.mul / 10) * 10;
 // 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 시간을 쓰지 않아요
 export const marketCost = () => (bondLv('jung') >= JUNG_DELIVERY_LV ? 0 : ACTS.market.cost);
-// 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀): 친밀도 +2
-export const jungTalkOk = () => townMode() && G.town.marketIn && !G.town.talked.includes('jung');
-defineCmd('jungTalk', () => {
+// 정 사장님과 대화 (하루 한 번, 칸 안 씀): 친밀도 +2
+export const jungTalkOk = () => townMode() && !G.town.talked.includes('jung'); // v0.81: 가게 창 밖에서도 (장보기와 따로)
+defineCmd('jungTalk', () => jungChat());
+function jungChat() {
   const T = G.town;
   if (G.phase !== 'prep' || !jungTalkOk()) return false;
   T.talked.push('jung');
@@ -151,7 +151,7 @@ defineCmd('jungTalk', () => {
   addBond('jung', BOND_TALK, '이야기');
   emit('prep');
   return true;
-});
+}
 // 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 } · phone: 휴대폰 주문(정가 · 친밀도 없음 · 빼 둔 재료 없음)
 defineCmd('marketBuyCart', ({ cart, phone }) => {
   const T = G.town;

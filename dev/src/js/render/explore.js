@@ -17,6 +17,30 @@ function xMark(x, y, t) {
   xc.fillStyle = '#fffaf0'; xc.fillRect(bx + 1, by, 9, 10); xc.fillRect(bx, by + 1, 11, 8); xc.fillRect(bx + 4, by + 10, 2, 2);
   xc.fillStyle = '#e0533a'; xc.fillRect(bx + 4, by + 2, 2, 4); xc.fillRect(bx + 4, by + 7, 2, 1);
 }
+// 들고 있는 짐 (심부름): 머리 위 나무 상자
+function xCarry(x, y, t) {
+  const bx = Math.round(x - 6), by = Math.round(y - 41 + (Math.floor(t * 8) % 2));
+  xc.fillStyle = '#5a3a22'; xc.fillRect(bx, by, 12, 9);
+  xc.fillStyle = '#a8743f'; xc.fillRect(bx + 1, by + 1, 10, 7);
+  xc.fillStyle = '#c99556'; xc.fillRect(bx + 1, by + 1, 10, 2); xc.fillRect(bx + 1, by + 5, 10, 1);
+}
+// 심부름 목적지: 노란 ▼ (화면 밖이면 가장자리에 화살표)
+function xTarget(x, y, t, cx, cy, vw, vh) {
+  const inX = x > cx + 6 && x < cx + vw - 6, inY = y - 44 > cy + 4 && y < cy + vh - 4;
+  if (inX && inY) {
+    const by = Math.round(y - 46 + Math.sin(t * 6) * 2), bx = Math.round(x);
+    xc.fillStyle = '#3a2a10'; xc.fillRect(bx - 6, by - 1, 13, 4); xc.fillRect(bx - 4, by + 3, 9, 3); xc.fillRect(bx - 2, by + 6, 5, 2);
+    xc.fillStyle = '#ffd34a'; xc.fillRect(bx - 5, by, 11, 2); xc.fillRect(bx - 3, by + 2, 7, 2); xc.fillRect(bx - 1, by + 4, 3, 2);
+    return;
+  }
+  const mx = cx + vw / 2, my = cy + vh / 2, dx = x - mx, dy = y - 20 - my;
+  const k = Math.min((vw / 2 - 14) / Math.max(1, Math.abs(dx)), (vh / 2 - 14) / Math.max(1, Math.abs(dy)));
+  const ax = mx + dx * k, ay = my + dy * k, a = Math.atan2(dy, dx), p = 1 + Math.sin(t * 6) * 0.15;
+  xc.save(); xc.translate(Math.round(ax), Math.round(ay)); xc.rotate(a); xc.scale(p, p);
+  xc.fillStyle = '#3a2a10'; xc.beginPath(); xc.moveTo(9, 0); xc.lineTo(-6, -8); xc.lineTo(-6, 8); xc.closePath(); xc.fill();
+  xc.fillStyle = '#ffd34a'; xc.beginPath(); xc.moveTo(7, 0); xc.lineTo(-4, -6); xc.lineTo(-4, 6); xc.closePath(); xc.fill();
+  xc.restore();
+}
 function xGlow(x, y, r, a) {
   const g = xc.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, `rgba(255,200,110,${a})`); g.addColorStop(1, 'rgba(255,200,110,0)');
@@ -24,7 +48,7 @@ function xGlow(x, y, r, a) {
 }
 const CARTS = ['mk_cart1', 'mk_cart2', 'mk_cart3', 'mk_cart6'], UMBS = ['mk_umb2', 'mk_umb3', 'mk_umb4', 'mk_umb3'];
 
-// S: { map, cam, vw, vh, me, time, marks: [{tx,ty}] }
+// S: { map, cam, vw, vh, me, time, marks: [{tx,ty}], follow: 따라오는 사람, carry: 짐을 들었나, target: {tx,ty} 심부름 목적지 }
 export function drawExplore(canvas, S) {
   if (!XA) { XA = new Image(); XA.src = ATLAS_URL; }
   if (!XA.complete) return;
@@ -65,8 +89,9 @@ export function drawExplore(canvas, S) {
     else if (p.kind === 'crate') items.push({ y: bot, d: () => xSpr('mk_crate', bx + 1, bot - xh('mk_crate')) });
     else if (p.kind === 'bus') items.push({ y: bot, d: () => xSpr('busstop', bx, bot - xh('busstop')) });
   }
-  for (const a of M.actors) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
-  items.push({ y: S.me.y + 0.5, d: () => xPerson(S.me, t) });
+  for (const a of M.actors) if (!a.hidden) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
+  if (S.follow) items.push({ y: S.follow.y + 0.4, d: () => xPerson(S.follow, t + 0.3) });
+  items.push({ y: S.me.y + 0.5, d: () => { xPerson(S.me, t); if (S.carry) xCarry(S.me.x, S.me.y, t); } });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   // 새벽빛 + 가게 불빛
   xc.fillStyle = 'rgba(60,80,145,.28)'; xc.fillRect(cx, cy, S.vw, S.vh);
@@ -76,5 +101,6 @@ export function drawExplore(canvas, S) {
   for (const p of M.props) if (p.kind === 'cart') xGlow(p.tx * TILE + 24, p.ty * TILE - 6, 26, 0.14 * fl);
   xc.globalCompositeOperation = 'source-over';
   for (const m of S.marks || []) xMark(m.tx * TILE + 8, m.ty * TILE - 34, t);
+  if (S.target) xTarget(S.target.tx * TILE + 8, S.target.ty * TILE + 13, t, cx, cy, S.vw, S.vh);
   xc.setTransform(1, 0, 0, 1, 0, 0);
 }

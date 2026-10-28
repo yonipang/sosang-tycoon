@@ -4,7 +4,7 @@
 import { G } from '../save/state.js';
 import { emit, defineCmd } from './events.js';
 import { makeRand } from '../engine/random.js';
-import { MK, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
+import { MK, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
 import { townMode } from './town.js';
 import { stockIn } from './pantry.js';
 import { addBond } from './bond.js';
@@ -96,37 +96,111 @@ defineCmd('exStart', () => {
 // 걸은 만큼 체력 (화면이 걸음을 알려 줘요 — 칸 단위 거리)
 defineCmd('exWalk', ({ d }) => {
   if (!X || !(d > 0)) return false;
-  X.walked += d; X.sp = Math.max(0, X.sp - d * EX_STEP);
+  X.walked += d; X.sp = Math.max(0, X.sp - d * EX_STEP * (X.task && X.task.carry ? EX_CARRY : 1)); // 짐을 들면 더 힘들어요
   if (X.sp <= 0) faint();
   return true;
 });
 // 사건 고르기: i번째 선택 (drop: 가방이 가득 찼을 때 버릴 칸)
+//  심부름(task)은 시작만 하고, 손기술(mini)은 화면이 놀이를 끝낸 뒤 exFinish로 마무리해요 (v0.81)
 defineCmd('exPick', ({ spot, i, drop }) => {
-  if (!X) return false;
+  if (!X || X.task || X.pend) return false;
   const S = X.spots[spot]; if (!S || S.done) return false;
   const ev = evOf(S.ev), C = ev.choices[i]; if (!C) return false;
   if (C.pay && G.cash < C.pay) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (C.cost && X.sp < C.cost) { emit('toast', '그럴 힘이 남아 있지 않습니다', 'warn'); return false; }
-  if (C.give && X.bag.length >= EX_BAG) {
-    if (drop === undefined) { emit('explore', 'full', { spot, i }); return false; }
-    X.bag.splice(drop, 1);
+  if (C.task) {
+    const T = exMakeTask(S, C.task);
+    if (T) { X.task = { ...T, spot, i }; emit('sfx', 'page'); emit('explore', 'task', { title: ev.title, task: X.task }); return true; }
   }
-  if (C.pay) G.cash -= C.pay;
-  if (C.cost) X.sp -= C.cost;
+  if (C.mini) {
+    if (C.cost) X.sp -= C.cost;
+    X.pend = { spot, i, mini: true };
+    emit('explore', 'mini', { title: ev.title, mini: C.mini });
+    if (X.sp <= 0) faint();
+    return true;
+  }
+  return exDone(S, ev, C, drop, true);
+});
+// 심부름 · 손기술 마무리: score 0이면 실패(가방엔 안 담겨요) · drop 가방이 찼을 때 버릴 칸(-1이면 담지 않고 끝내기)
+defineCmd('exFinish', ({ score, drop } = {}) => {
+  if (!X) return false;
+  const P = X.pend || (X.task ? { spot: X.task.spot, i: X.task.i } : null); if (!P) return false;
+  if (score !== undefined) P.score = score;
+  const S = X.spots[P.spot], ev = evOf(S.ev), C = ev.choices[P.i];
+  if (P.mini && !P.score) { // 손기술 실패
+    X.pend = null; S.done = true; X.did++;
+    emit('sfx', 'angry'); emit('explore', 'picked', { title: ev.title, say: C.fail || '잘 안 됐습니다.', fail: true });
+    return true;
+  }
+  X.pend = P;
+  const ok = exDone(S, ev, C, drop, false);
+  if (ok) {
+    X.pend = null;
+    if (X.task) {
+      const t = X.task; X.task = null;
+      if (t.kind === 'escort') { // 아이는 할머니 옆에 서요
+        const M = X.map, kid = M.actors.find(a => a.hidden);
+        if (kid) for (const dx of [1, -1, 2, -2]) { const k = t.ty * M.W + t.tx + dx; if (!M.walls[k]) { kid.tx = t.tx + dx; kid.ty = t.ty; kid.hidden = false; M.walls[k] = 1; break; } }
+      }
+    }
+    emit('explore', 'done'); // 화면: 위 막대(할 일) 다시 그리기
+  }
+  return ok;
+});
+function exDone(S, ev, C, drop, pay) {
+  if (C.give && X.bag.length >= EX_BAG) {
+    if (drop === undefined) { emit('explore', 'full', { spot: X.spots.indexOf(S), i: ev.choices.indexOf(C), finish: !pay }); return false; }
+    if (drop >= 0) X.bag.splice(drop, 1);
+  }
+  if (pay && C.pay) G.cash -= C.pay;
+  if (pay && C.cost) X.sp -= C.cost;
   if (C.heal) X.sp = Math.min(EX_STAMINA, X.sp + C.heal);
-  if (C.give) X.bag.push(C.give);
+  const give = C.give && !(drop === -1) ? C.give : null;
+  if (give) X.bag.push(give);
   if (C.bond) addBond(C.bond[0], C.bond[1], '시장에서 받은 꽃', true);
   if (ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo)) X.memos.push(ev.memo);
   S.done = true; X.did++;
-  emit('sfx', C.give ? 'coin' : 'page');
-  emit('explore', 'picked', { title: ev.title, say: C.say, give: C.give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
+  emit('sfx', give ? 'coin' : 'page');
+  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
   if (X.sp <= 0) faint();
   return true;
-});
+}
+// 심부름 만들기: deliver = 받을 사람(멀리 있는 곳 먼저) · escort = 시장 어딘가에 할머니가 나타나요
+function exAnchors() {
+  const M = X.map, out = [];
+  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: SHOP_TYPES[s.type].name });
+  for (const p of M.props) if (p.npc) out.push({ key: p.kind, tx: p.npc.tx, ty: p.npc.ty, label: p.kind === 'cart' ? '어묵 노점' : '파라솔 할머니' });
+  return out;
+}
+const exFar = (a, S) => Math.abs(a.tx - S.tx) + Math.abs(a.ty - S.ty);
+function exMakeTask(S, T) {
+  const M = X.map;
+  if (T.kind === 'deliver') {
+    const cand = exAnchors().filter(a => (a.tx !== S.tx || a.ty !== S.ty) && T.to.includes(a.key) && !X.spots.some(q => !q.done && q.tx === a.tx && q.ty === a.ty));
+    if (!cand.length) return null;
+    cand.sort((a, b) => (T.to.indexOf(a.key) - T.to.indexOf(b.key)) * 4 + (exFar(b, S) - exFar(a, S)) / 6);
+    const to = cand.find(a => exFar(a, S) >= 12) || cand[0];
+    return { kind: 'deliver', item: T.item, verb: T.verb, carry: true, tx: to.tx, ty: to.ty, label: to.label };
+  }
+  if (T.kind === 'escort') { // 멀리 떨어진 빈 칸에 할머니 (옆 칸도 비어 있어야 다가갈 수 있어요)
+    const r = makeRand((G.baseSeed || 1) + G.day * 31 + S.tx * 7 + S.ty);
+    for (let t = 0; t < 200; t++) {
+      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = 7 + Math.floor(r() * (M.H - 8)), k = ty * M.W + tx;
+      if (M.walls[k] || M.walls[k + M.W] || exFar({ tx, ty }, S) < 14) continue;
+      const near = M.shops.filter(s => !s.closed).sort((a, b) => Math.abs(a.x / 16 + 2 - tx) + Math.abs(a.bot / 16 - ty) - (Math.abs(b.x / 16 + 2 - tx) + Math.abs(b.bot / 16 - ty)))[0];
+      const g = { char: EX_CHARS.grandma, tx, ty, key: 'grandma' };
+      M.actors.push(g); M.walls[k] = 1;
+      const kid = M.actors.find(a => a.tx === S.tx && a.ty === S.ty); if (kid) { kid.hidden = true; M.walls[S.ty * M.W + S.tx] = 0; } // 아이는 나를 따라와요
+      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? SHOP_TYPES[near.type].name : '', follow: EX_CHARS.kid };
+    }
+    return null;
+  }
+  return null;
+}
 // 체력이 바닥나면: 가방 절반(내림)을 두고 택시로 돌아와요
 function faint() {
   if (!X || X.fainted) return;
-  X.fainted = true;
+  X.fainted = true; X.task = null; X.pend = null;
   const lose = Math.floor(X.bag.length / 2);
   X.lost = [];
   for (let k = 0; k < lose; k++) X.lost.push(...X.bag.splice(Math.floor((X.walked * 7 + k * 13) % X.bag.length), 1));

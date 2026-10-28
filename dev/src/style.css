@@ -1165,6 +1165,18 @@ body.in-ex #questTrack { display: none !important; }
 .ex-ic { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
 .ex-place { padding: 2px 8px; border: 2px solid var(--paper); margin-right: auto; }
 .ex-txt { margin: 4px 0 8px; line-height: 1.45; }
+.ex-place.ex-task { background: #ffd34a; color: #2a2010; border-color: #2a2010; max-width: 62%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* 손기술 (v0.81) */
+.mg-help { margin: 2px 0 10px; text-align: center; }
+.mg-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.mg-dots i { width: 14px; height: 14px; border: 2px solid var(--ink); background: var(--paper); }
+.mg-dots i.ok { background: #4fae5a; } .mg-dots i.no { background: #d8553f; }
+.mg-bar { position: relative; height: 30px; border: 3px solid var(--ink); background: #f3e6c8; margin: 0 4px 14px; overflow: hidden; }
+.mg-zone { position: absolute; top: 0; bottom: 0; background: #7cc576; border-left: 2px solid #3d8a45; border-right: 2px solid #3d8a45; }
+.mg-needle { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: #2a2010; left: 0; }
+.mg-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: #ffb43a; }
+.mg-time { text-align: center; margin: -6px 0 10px; }
+.mg-go { width: 100%; min-height: 64px; font-size: 20px; touch-action: manipulation; }
 .ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
 .ex-row span { display: flex; flex-direction: column; }
 .ex-row b { font-weight: normal; }

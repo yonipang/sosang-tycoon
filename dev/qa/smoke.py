@@ -75,6 +75,8 @@ def town_night_dawn(pg):
     R('townAct', "{place:'shop',act:'insta'}")  # 홍보 (v0.54부터 휴대폰 앱 — 규칙은 그대로 우리 가게 일)
     if pg.evaluate('__T.G.story.ch') >= 2 and 'furn' not in seen:  # 미소 가구 (2장 · 밤 네 번째 칸): 들르면 이야기 → 가구 창(새벽이 돼도 창은 그대로) · 벽지 하나 사기
         seen.append('furn')
+        pg.evaluate("__T.runCmd('townAct', {place:'flower',act:'furnTalk'})"); pg.wait_for_timeout(100); town_chat(pg); pg.wait_for_timeout(150)  # 대화는 따로 (v0.81)
+        if 'miso' not in pg.evaluate('__T.G.town.talked'): errs.append('미소 사장님과 대화가 안 돼요')
         pg.evaluate("__T.runCmd('townAct', {place:'flower',act:'furn'})"); pg.wait_for_timeout(100); town_chat(pg); pg.wait_for_timeout(150)
         if not pg.locator('#townSheet.furn').count(): errs.append('미소 가구 창이 안 열려요')
         else:

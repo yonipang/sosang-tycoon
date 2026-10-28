@@ -1170,6 +1170,18 @@ body.in-ex #questTrack { display: none !important; }
 .ex-ic { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
 .ex-place { padding: 2px 8px; border: 2px solid var(--paper); margin-right: auto; }
 .ex-txt { margin: 4px 0 8px; line-height: 1.45; }
+.ex-place.ex-task { background: #ffd34a; color: #2a2010; border-color: #2a2010; max-width: 62%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* 손기술 (v0.81) */
+.mg-help { margin: 2px 0 10px; text-align: center; }
+.mg-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.mg-dots i { width: 14px; height: 14px; border: 2px solid var(--ink); background: var(--paper); }
+.mg-dots i.ok { background: #4fae5a; } .mg-dots i.no { background: #d8553f; }
+.mg-bar { position: relative; height: 30px; border: 3px solid var(--ink); background: #f3e6c8; margin: 0 4px 14px; overflow: hidden; }
+.mg-zone { position: absolute; top: 0; bottom: 0; background: #7cc576; border-left: 2px solid #3d8a45; border-right: 2px solid #3d8a45; }
+.mg-needle { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: #2a2010; left: 0; }
+.mg-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: #ffb43a; }
+.mg-time { text-align: center; margin: -6px 0 10px; }
+.mg-go { width: 100%; min-height: 64px; font-size: 20px; touch-action: manipulation; }
 .ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
 .ex-row span { display: flex; flex-direction: column; }
 .ex-row b { font-weight: normal; }
@@ -1746,7 +1758,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.80';
+const GAME_VERSION = '0.81';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -1915,7 +1927,7 @@ const FATIGUE_SLOW = 0.08;
 //  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
 //  market 장보기: 정 사장 가게 (그날 처음 들어갈 때 한 시간 · 특가·단골가·친밀도) — 휴대폰 「식자재 주문」은 정가로 시간 없이 (PHONE_ORDER) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
-//  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
+//  furn 미소 가구(2장부터): 가구 보기는 시간 안 씀 · 미소 사장님과 대화(furnTalk)는 한 시간(친밀도·소개 손님) — v0.81부터 따로 (sim/furniture.js)
 //  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
 //   · 계산대 = 판매 장부·손님 수첩 · 퇴식대 = 청소 · 화구 = 오픈 준비 · 문 = 골목으로 (SHOP_SPOTS)
 //  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
@@ -1931,8 +1943,11 @@ const ACTS = {
   book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
-  furn: { name: '가구 둘러보기', cost: 1, when: 'any' },
-  guild: { name: '철물점 · 상인회', cost: 1, when: 'any' },
+  furn: { name: '가구 보기', cost: 0, when: 'any' },
+  guild: { name: '상인회 · 설비', cost: 0, when: 'any' },
+  furnTalk: { name: '대화하기', cost: 1, when: 'any' }, // 가게 주인과 대화는 가게 메뉴와 따로 (v0.81 사용자 요청)
+  guildTalk: { name: '대화하기', cost: 1, when: 'any' },
+  jungTalk: { name: '대화하기', cost: 0, when: 'any' }, // 정 사장님: 전처럼 시간 안 씀
   sleep: { name: '자고 가게 열기', cost: 0, when: 'any' }, // 집: 남은 시간은 쉬고 「가게 열기」 화면으로 (v0.59)
   market: { name: '장보기', cost: 1, when: 'any' },
   setup: { name: '오픈 준비 (진열)', cost: 1, when: 'any' },
@@ -1945,7 +1960,7 @@ const PLACE_ACTS = {
   shop: ['pantry', 'ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
-  market: ['market'],
+  market: ['jungTalk', 'market'],
 };
 // 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
 const SHOP_SPOTS = [
@@ -1957,7 +1972,7 @@ const SHOP_SPOTS = [
   { act: 'exit', name: '문 · 골목으로', door: true },
 ];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
-const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] }, laundry: { name: '문 철물 · 상인회', short: '철물점', acts: ['guild'] } }; // laundry는 문 회장님이 온 뒤(sim/guild.js guildOpen)
+const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furnTalk', 'furn'] }, laundry: { name: '문 철물 · 상인회', short: '철물점', acts: ['guildTalk', 'guild'] } }; // laundry는 문 회장님이 온 뒤(sim/guild.js guildOpen)
 const HYGIENE_DECAY = 25;
 const CLEAN_GAIN = 60;
 const HYGIENE_LOW = 40;
@@ -3035,7 +3050,7 @@ const EX_CLOCK = '05:30'; // 새벽 첫차
 
 // 재래시장 지도 (16px 칸): 위 가게 줄(0~5줄) · 길 A(6~11줄, 6줄은 가게 앞 진열) · 아래 가게 줄(12~17줄, 가게 사이 1칸 골목으로 지나가요) · 길 B(18~23줄)
 //  가게 한 자리 = 너비 80px(5칸) + 사이 16px. 왼쪽 2칸 · 오른쪽 2칸은 위아래로 이어진 길. 버스 정류장은 왼쪽 아래
-const MK = { W: 45, H: 24, SLOTS: 7, X0: 32, STEP: 96, BOT1: 88, BOT2: 280, START: [3, 22] };
+const MK = { W: 45, H: 24, SLOTS: 7, X0: 32, STEP: 96, BOT1: 88, BOT2: 280, START: [7, 22] }; // 정류장 오른쪽 (v0.81: 정류장 뒤에 가려 안 보였어요)
 
 // 가게 종류 (간판·진열 그림은 dev/art_pack.py market_sprites — mk_s_ · mk_d_)
 //  owner: 가게 앞에 서 있는 사장님 그림 (캐릭터 번호) · w: 가게 앞 진열 그림 너비(px — 막히는 칸)
@@ -3053,7 +3068,8 @@ const SHOP_TYPES = {
 };
 const SHOP_IDS = Object.keys(SHOP_TYPES);
 const EX_CLOSED = 3;      // 날마다 문 닫은 가게 수 (14자리 중)
-const EX_CHARS = { cart: 15, stall: 14, kid: 15 }; // 노점 아주머니 · 파라솔 할머니 · 길 잃은 아이 (캐릭터 번호)
+const EX_CHARS = { cart: 15, stall: 14, kid: 15, grandma: 13 }; // 노점 아주머니 · 파라솔 할머니 · 길 잃은 아이 · 아이 할머니 (캐릭터 번호)
+const EX_CARRY = 2;       // 짐을 들고 걸으면 체력이 이만큼 배로 들어요
 // 저장 칸 G.explore (save/state.js): last 마지막으로 다녀온 날 · runs 횟수 · memos 동네 메모 id · flyer 전단 효과
 const newExplore = () => ({ last: 0, runs: 0, memos: [], flyer: null });
 
@@ -3084,34 +3100,39 @@ const MEMOS = {
 
 // 사건: at 'shop:종류'(그 가게가 열린 날만 · 사장님) · 'cart'(길 가운데 노점) · 'stall'(할머니 노점 파라솔) · 'board'(시장 게시판) · 'kid'(길 잃은 아이)
 //  choices: { label, cost 체력, pay 돈, give 가방에 담을 것, heal 체력 회복, bond [이웃, 점수], say 결과 한 줄 } — 마지막은 늘 「지나치기」
+//   실제로 돕기 (v0.81 사용자 결정 「심부름 + 손기술」):
+//   task 심부름 — deliver: 짐(item)을 들고 to 목록 중 열린 곳(멀리 있는 곳 먼저)까지 걸어가 「전해 주기」(들고 걸으면 체력 EX_CARRY배)
+//                 escort: 아이가 따라와요. 시장 어딘가에 나타난 할머니를 찾아 「모셔다드리기」(근처 가게 이름이 힌트)
+//   mini 손기술 — timing: 움직이는 바늘이 초록 칸에 올 때 누르기(rounds번 중 need번) · mash: 시간 안에 빠르게 눌러 막대 채우기(taps번)
+//   fail: 손기술을 놓쳤을 때 한 줄 (체력은 들고 가방엔 안 담겨요)
 //  memo: 이 사건을 한 번이라도 하면 남는 동네 메모
 const EX_EVENTS_POOL = [
-  { id: 'fishIce', at: 'shop:fish', title: '바다수산 사장님', text: '얼음 상자를 나르느라 정신이 없습니다. 「거기, 이것 좀 같이 들어 줄 수 있어요?」',
-    choices: [{ label: '같이 나르기', cost: 15, give: 'refWorker', say: '「고마워요! 새벽 배송 기사님들한테 분식집 얘기 해 둘게요.」' }], memo: 'mkDeliver' },
+  { id: 'fishIce', at: 'shop:fish', title: '바다수산 사장님', text: '얼음 상자를 나르느라 정신이 없습니다. 「거기, 이 상자 좀 갖다줄 수 있어요? 손이 모자라서요.」',
+    choices: [{ label: '얼음 상자 배달하기', task: { kind: 'deliver', item: '얼음 상자', to: ['shop:gukbap', 'shop:dried', 'shop:banchan', 'cart', 'stall'], verb: '전해 주기' }, give: 'refWorker', say: '「벌써 갖다줬어요? 고마워요! 새벽 배송 기사님들한테 분식집 얘기 해 둘게요.」' }], memo: 'mkDeliver' },
   { id: 'tteokPull', at: 'shop:tteok', title: '할매떡집 할머니', text: '가래떡이 김을 내며 줄줄이 뽑혀 나옵니다. 「분식집 사장이구먼. 떡 자르는 것 좀 거들래?」',
-    choices: [{ label: '떡 자르기 돕기', cost: 12, give: 'ddeok', say: '「손이 야무지네. 이건 수고비여.」' }, { label: '떡 한 줄 사 먹기', pay: 2000, heal: 15, say: '따끈한 가래떡에 기운이 납니다.' }] },
-  { id: 'millSack', at: 'shop:mill', title: '참방앗간 할아버지', text: '고추 빻는 냄새가 매캐합니다. 「젊은이, 저 자루 좀 안으로 들여 줄 텐가?」',
-    choices: [{ label: '자루 옮기기', cost: 15, give: 'gochu', say: '「옛날식으로 담근 거여. 떡볶이에 넣어 봐.」' }, { label: '빻는 것 구경하기', cost: 6, give: 'noteTteok', say: '「고춧가루는 굵은 거랑 고운 걸 섞어야 맛이 깊어.」' }], memo: 'mkPrice' },
+    choices: [{ label: '떡 자르기 돕기', cost: 8, mini: { kind: 'timing', name: '떡 자르기', act: '자르기!', rounds: 3, need: 2, speed: 1.1 }, fail: '「아이고, 삐뚤빼뚤하네. 괜찮여, 다음에 또 와.」', give: 'ddeok', say: '「손이 야무지네. 이건 수고비여.」' }, { label: '떡 한 줄 사 먹기', pay: 2000, heal: 15, say: '따끈한 가래떡에 기운이 납니다.' }] },
+  { id: 'millSack', at: 'shop:mill', title: '참방앗간 할아버지', text: '고추 빻는 냄새가 매캐합니다. 「젊은이, 이 자루 좀 단골집에 갖다줄 텐가?」',
+    choices: [{ label: '자루 배달하기', task: { kind: 'deliver', item: '고춧가루 자루', to: ['shop:tteok', 'shop:banchan', 'shop:gukbap', 'cart'], verb: '전해 주기' }, give: 'gochu', say: '「옛날식으로 담근 거여. 떡볶이에 넣어 봐.」' }, { label: '빻는 것 구경하기', cost: 6, give: 'noteTteok', say: '「고춧가루는 굵은 거랑 고운 걸 섞어야 맛이 깊어.」' }], memo: 'mkPrice' },
   { id: 'vegDeal', at: 'shop:veg', title: '초록채소 사장님', text: '「대파 오늘 실하게 들어왔어요! 분식집이면 파 많이 쓰죠?」',
     choices: [{ label: '인사하고 덤 받기', cost: 4, give: 'scallion', say: '「단골 되면 더 줄게요!」' }] },
   { id: 'banchanTaste', at: 'shop:banchan', title: '엄마반찬 사장님', text: '반찬통을 정리하던 사장님이 김밥 한 조각을 내밉니다. 「새로 만든 건데 맛 좀 봐 줄래요?」',
     choices: [{ label: '맛보고 이야기 나누기', cost: 5, give: 'noteKimbap', say: '「김밥은 밥을 살살, 끝에서 힘을 줘야 안 터져요.」' }] },
   { id: 'driedGim', at: 'shop:dried', title: '건어물 사장님', text: '김을 굽는 고소한 냄새가 납니다. 「일손이 모자라서… 좀 뒤집어 줄래요?」',
-    choices: [{ label: '김 굽기 돕기', cost: 12, give: 'gim', say: '「잘 구웠네! 김밥집에 딱이에요.」' }] },
+    choices: [{ label: '김 굽기 돕기', cost: 8, mini: { kind: 'timing', name: '김 뒤집기', act: '뒤집기!', rounds: 3, need: 2, speed: 1.3 }, fail: '「앗, 조금 탔네요. 그래도 고마워요.」', give: 'gim', say: '「잘 구웠네! 김밥집에 딱이에요.」' }] },
   { id: 'gukbapMeal', at: 'shop:gukbap', title: '순대국밥', text: '상인들이 국밥 한 그릇씩 비우고 하루를 시작합니다. 김이 모락모락 납니다.',
     choices: [{ label: '국밥 한 그릇 (5,000원)', pay: 5000, heal: 35, say: '든든합니다. 다리에 힘이 붙었습니다.' }], memo: 'mkMeal' },
-  { id: 'fruitBox', at: 'shop:fruit', title: '싱싱과일 사장님', text: '과일 상자가 길까지 쌓여 있습니다. 「아이고, 이걸 언제 다 정리하나.」',
-    choices: [{ label: '상자 정리 돕기', cost: 12, give: 'refElder', say: '「고마워요. 우리 시장 어르신들한테 분식집 소문 내 줄게요.」' }], memo: 'mkElder' },
+  { id: 'fruitBox', at: 'shop:fruit', title: '싱싱과일 사장님', text: '과일 상자가 길까지 쌓여 있습니다. 「아이고, 주문 들어온 상자를 갖다줘야 하는데 가게를 비울 수가 없네.」',
+    choices: [{ label: '과일 상자 배달하기', task: { kind: 'deliver', item: '과일 상자', to: ['stall', 'shop:veg', 'shop:gukbap', 'cart'], verb: '전해 주기' }, give: 'refElder', say: '「고마워요. 우리 시장 어르신들한테 분식집 소문 내 줄게요.」' }], memo: 'mkElder' },
   { id: 'flowerOne', at: 'shop:flower', title: '꽃집 사장님', text: '「미소 사장님 아는 분이죠? 이거 갖다 드려요. 새벽에 들어온 거예요.」',
     choices: [{ label: '꽃 받아 가기', cost: 3, bond: ['miso', 3], say: '미소 사장님이 좋아할 것 같습니다.' }] },
   { id: 'boardFlyer', at: 'board', title: '시장 게시판', text: '시장 사람들이 오가며 보는 게시판입니다. 빈자리가 조금 있습니다.',
     choices: [{ label: '전단 붙이기', cost: 8, give: 'flyerElder', say: '잘 보이는 자리에 붙였습니다.' }], memo: 'mkWeekend' },
   { id: 'cartSoup', at: 'cart', title: '어묵 노점', text: '「새벽부터 고생이네. 국물 한 잔 하고 가요.」 노점 아주머니가 꼬치를 끼우고 있습니다.',
-    choices: [{ label: '국물 한 잔 (1,000원)', pay: 1000, heal: 12, say: '뜨끈한 국물이 목을 타고 내려갑니다.' }, { label: '꼬치 끼우기 돕기', cost: 10, give: 'fishcake', say: '「손 빠르네! 남는 거 가져가요.」' }] },
+    choices: [{ label: '국물 한 잔 (1,000원)', pay: 1000, heal: 12, say: '뜨끈한 국물이 목을 타고 내려갑니다.' }, { label: '꼬치 끼우기 돕기', cost: 8, mini: { kind: 'mash', name: '꼬치 끼우기', act: '끼우기!', taps: 16, time: 5 }, fail: '「아이고, 다 흘렸네. 괜찮아요, 국물이나 마시고 가요.」', give: 'fishcake', say: '「손 빠르네! 남는 거 가져가요.」' }] },
   { id: 'stallEgg', at: 'stall', title: '파라솔 할머니', text: '나물을 다듬던 할머니가 손짓합니다. 「이거 좀 같이 다듬어 줄 텨?」',
-    choices: [{ label: '나물 다듬기 돕기', cost: 10, give: 'egg', say: '「집에서 키운 닭이 낳은 거여. 가져가.」' }], memo: 'mkDawn' },
+    choices: [{ label: '나물 다듬기 돕기', cost: 8, mini: { kind: 'mash', name: '나물 다듬기', act: '다듬기!', taps: 14, time: 5 }, fail: '「허허, 손이 아직 서툴구먼.」', give: 'egg', say: '「집에서 키운 닭이 낳은 거여. 가져가.」' }], memo: 'mkDawn' },
   { id: 'lostKid', at: 'kid', title: '길 잃은 아이', text: '아이 하나가 울먹이며 두리번거립니다. 「할머니가 없어졌어요…」',
-    choices: [{ label: '할머니 찾아 주기', cost: 15, give: 'refElder', say: '「아이고, 고마워라! 내 친구들이랑 꼭 먹으러 갈게.」' }] },
+    choices: [{ label: '할머니 찾아 주기', task: { kind: 'escort', verb: '모셔 드리기' }, give: 'refElder', say: '「아이고, 고마워라! 내 친구들이랑 꼭 먹으러 갈게.」' }] },
 ];
 // ── js/save/migrations.js ──
 // 옛 세이브 보정은 모두 여기에 둬요. 세이브 구조를 바꾸면 기본값을 채우는 줄을 아래에 더해요.
@@ -4405,6 +4426,7 @@ const placeShort = id => (ch2(id) || PLACES[id]).short;
 const placeActs = id => (ch2(id) || PLACE_ACTS)[ch2(id) ? 'acts' : id];
 const actNow = (place, act) => placeOpen(place) && placeActs(place).includes(act)
   && !(act === 'talk' && G.town.talked.includes(PLACES[place].who))
+  && !(act === 'furnTalk' && G.town.talked.includes('miso')) && !(act === 'guildTalk' && G.town.talked.includes('moon')) && !(act === 'jungTalk' && G.town.talked.includes('jung'))
   && !(act === 'clean' && G.town.hygiene >= 100) && !(act === 'setup' && G.town.setup === G.day) // 할 필요가 없는 일은 막아요
   && !(act === 'insta' && G.town.insta === G.day) && !(act === 'blogger' && G.town.blogDay === G.day);
 
@@ -4447,25 +4469,23 @@ defineCmd('townAct', ({ place, act }) => {
   if (act === 'sales') { emit('town', 'sales'); return true; }
   if (act === 'open') { emit('town', 'open'); return true; }
   if (act === 'sleep') { emit('town', 'open'); return true; } // 집에서 자면 남은 시간은 쉬고 아침에 가게 열기 (v0.59)
-  if (act === 'furn') { // 미소 가구: 그날 처음 들어갈 때 한 칸 + 이야기(친밀도·소개 손님) — 밤 칸을 다 써도 창은 그대로 (새벽이 돼도 그 창에서는 살 수 있어요)
-    if (!T.furnIn) {
-      useSlots(A.cost); T.furnIn = true; G.furn.visits++; T.talked.push('miso'); T.referral.push('miso');
-      const first = G.furn.visits === 1, lines = first ? FURN_FIRST : FURN_CHATS[(G.furn.visits - 2) % FURN_CHATS.length];
-      emit('town', 'chat', lines);
-      if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
-    }
-    emit('town', 'furn');
+  // 가게 주인과 대화 · 가게 메뉴는 따로 (v0.81 사용자 요청): 대화는 하루 한 번(친밀도 · 미소·문 회장은 한 시간 + 내일 소개 손님), 가게 메뉴는 시간 안 씀
+  if (act === 'furnTalk') {
+    useSlots(A.cost); G.furn.visits++; T.talked.push('miso'); T.referral.push('miso');
+    const first = G.furn.visits === 1, lines = first ? FURN_FIRST : FURN_CHATS[(G.furn.visits - 2) % FURN_CHATS.length];
+    emit('town', 'chat', lines); emit('town', 'shopTalk');
+    if (first) addBond('miso', BOND_FIRST, '첫 손님', true); else addBond('miso', BOND_TALK, '이야기');
     emit('prep'); return true;
   }
-  if (act === 'guild') { // 문 철물: 그날 처음 들어갈 때 한 칸 + 문 회장님 이야기(친밀도·소개 손님)
-    if (!T.guildIn) {
-      useSlots(A.cost); T.guildIn = true; T.talked.push('moon'); T.referral.push('moon');
-      emit('town', 'chat', moonChat());
-      addBond('moon', BOND_TALK, '이야기');
-    }
-    emit('town', 'guild');
+  if (act === 'guildTalk') {
+    useSlots(A.cost); T.talked.push('moon'); T.referral.push('moon');
+    emit('town', 'chat', moonChat()); emit('town', 'shopTalk');
+    addBond('moon', BOND_TALK, '이야기');
     emit('prep'); return true;
   }
+  if (act === 'jungTalk') { if (jungChat()) emit('town', 'shopTalk'); return true; }
+  if (act === 'furn') { T.furnIn = true; emit('town', 'furn'); emit('prep'); return true; } // 미소 가구 창 (밤 칸을 다 써도 그대로)
+  if (act === 'guild') { T.guildIn = true; emit('town', 'guild'); emit('prep'); return true; } // 상인회 창
   if (act === 'market') {
     if (!T.marketIn) { useSlots(marketCost()); T.marketIn = true; T.visits++; emit('town', 'chat', JUNG_HELLO[Math.min(T.visits, JUNG_HELLO.length) - 1]); }
     emit('town', 'market'); emit('prep'); return true;
@@ -4506,9 +4526,10 @@ const marketUnit = i => Math.round(ingCost(i) * (isDeal(i) ? MARKET_DEAL : 1) * 
 const phoneUnit = i => Math.round(ingCost(i) * PHONE_ORDER.mul / 10) * 10;
 // 정 사장님 ♥♥♥♥♥: 새벽 배달 — 장보기에 시간을 쓰지 않아요
 const marketCost = () => (bondLv('jung') >= JUNG_DELIVERY_LV ? 0 : ACTS.market.cost);
-// 시장에서 정 사장님과 이야기 (하루 한 번, 칸 안 씀): 친밀도 +2
-const jungTalkOk = () => townMode() && G.town.marketIn && !G.town.talked.includes('jung');
-defineCmd('jungTalk', () => {
+// 정 사장님과 대화 (하루 한 번, 칸 안 씀): 친밀도 +2
+const jungTalkOk = () => townMode() && !G.town.talked.includes('jung'); // v0.81: 가게 창 밖에서도 (장보기와 따로)
+defineCmd('jungTalk', () => jungChat());
+function jungChat() {
   const T = G.town;
   if (G.phase !== 'prep' || !jungTalkOk()) return false;
   T.talked.push('jung');
@@ -4517,7 +4538,7 @@ defineCmd('jungTalk', () => {
   addBond('jung', BOND_TALK, '이야기');
   emit('prep');
   return true;
-});
+}
 // 장바구니로 한 번에 사기 (시장 창 아래 「구매하기」): cart { 재료: 몇 묶음 } · phone: 휴대폰 주문(정가 · 친밀도 없음 · 빼 둔 재료 없음)
 defineCmd('marketBuyCart', ({ cart, phone }) => {
   const T = G.town;
@@ -4704,37 +4725,111 @@ defineCmd('exStart', () => {
 // 걸은 만큼 체력 (화면이 걸음을 알려 줘요 — 칸 단위 거리)
 defineCmd('exWalk', ({ d }) => {
   if (!X || !(d > 0)) return false;
-  X.walked += d; X.sp = Math.max(0, X.sp - d * EX_STEP);
+  X.walked += d; X.sp = Math.max(0, X.sp - d * EX_STEP * (X.task && X.task.carry ? EX_CARRY : 1)); // 짐을 들면 더 힘들어요
   if (X.sp <= 0) faint();
   return true;
 });
 // 사건 고르기: i번째 선택 (drop: 가방이 가득 찼을 때 버릴 칸)
+//  심부름(task)은 시작만 하고, 손기술(mini)은 화면이 놀이를 끝낸 뒤 exFinish로 마무리해요 (v0.81)
 defineCmd('exPick', ({ spot, i, drop }) => {
-  if (!X) return false;
+  if (!X || X.task || X.pend) return false;
   const S = X.spots[spot]; if (!S || S.done) return false;
   const ev = evOf(S.ev), C = ev.choices[i]; if (!C) return false;
   if (C.pay && G.cash < C.pay) { emit('toast', '잔고가 모자랍니다', 'warn'); return false; }
   if (C.cost && X.sp < C.cost) { emit('toast', '그럴 힘이 남아 있지 않습니다', 'warn'); return false; }
-  if (C.give && X.bag.length >= EX_BAG) {
-    if (drop === undefined) { emit('explore', 'full', { spot, i }); return false; }
-    X.bag.splice(drop, 1);
+  if (C.task) {
+    const T = exMakeTask(S, C.task);
+    if (T) { X.task = { ...T, spot, i }; emit('sfx', 'page'); emit('explore', 'task', { title: ev.title, task: X.task }); return true; }
   }
-  if (C.pay) G.cash -= C.pay;
-  if (C.cost) X.sp -= C.cost;
+  if (C.mini) {
+    if (C.cost) X.sp -= C.cost;
+    X.pend = { spot, i, mini: true };
+    emit('explore', 'mini', { title: ev.title, mini: C.mini });
+    if (X.sp <= 0) faint();
+    return true;
+  }
+  return exDone(S, ev, C, drop, true);
+});
+// 심부름 · 손기술 마무리: score 0이면 실패(가방엔 안 담겨요) · drop 가방이 찼을 때 버릴 칸(-1이면 담지 않고 끝내기)
+defineCmd('exFinish', ({ score, drop } = {}) => {
+  if (!X) return false;
+  const P = X.pend || (X.task ? { spot: X.task.spot, i: X.task.i } : null); if (!P) return false;
+  if (score !== undefined) P.score = score;
+  const S = X.spots[P.spot], ev = evOf(S.ev), C = ev.choices[P.i];
+  if (P.mini && !P.score) { // 손기술 실패
+    X.pend = null; S.done = true; X.did++;
+    emit('sfx', 'angry'); emit('explore', 'picked', { title: ev.title, say: C.fail || '잘 안 됐습니다.', fail: true });
+    return true;
+  }
+  X.pend = P;
+  const ok = exDone(S, ev, C, drop, false);
+  if (ok) {
+    X.pend = null;
+    if (X.task) {
+      const t = X.task; X.task = null;
+      if (t.kind === 'escort') { // 아이는 할머니 옆에 서요
+        const M = X.map, kid = M.actors.find(a => a.hidden);
+        if (kid) for (const dx of [1, -1, 2, -2]) { const k = t.ty * M.W + t.tx + dx; if (!M.walls[k]) { kid.tx = t.tx + dx; kid.ty = t.ty; kid.hidden = false; M.walls[k] = 1; break; } }
+      }
+    }
+    emit('explore', 'done'); // 화면: 위 막대(할 일) 다시 그리기
+  }
+  return ok;
+});
+function exDone(S, ev, C, drop, pay) {
+  if (C.give && X.bag.length >= EX_BAG) {
+    if (drop === undefined) { emit('explore', 'full', { spot: X.spots.indexOf(S), i: ev.choices.indexOf(C), finish: !pay }); return false; }
+    if (drop >= 0) X.bag.splice(drop, 1);
+  }
+  if (pay && C.pay) G.cash -= C.pay;
+  if (pay && C.cost) X.sp -= C.cost;
   if (C.heal) X.sp = Math.min(EX_STAMINA, X.sp + C.heal);
-  if (C.give) X.bag.push(C.give);
+  const give = C.give && !(drop === -1) ? C.give : null;
+  if (give) X.bag.push(give);
   if (C.bond) addBond(C.bond[0], C.bond[1], '시장에서 받은 꽃', true);
   if (ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo)) X.memos.push(ev.memo);
   S.done = true; X.did++;
-  emit('sfx', C.give ? 'coin' : 'page');
-  emit('explore', 'picked', { title: ev.title, say: C.say, give: C.give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
+  emit('sfx', give ? 'coin' : 'page');
+  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
   if (X.sp <= 0) faint();
   return true;
-});
+}
+// 심부름 만들기: deliver = 받을 사람(멀리 있는 곳 먼저) · escort = 시장 어딘가에 할머니가 나타나요
+function exAnchors() {
+  const M = X.map, out = [];
+  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: SHOP_TYPES[s.type].name });
+  for (const p of M.props) if (p.npc) out.push({ key: p.kind, tx: p.npc.tx, ty: p.npc.ty, label: p.kind === 'cart' ? '어묵 노점' : '파라솔 할머니' });
+  return out;
+}
+const exFar = (a, S) => Math.abs(a.tx - S.tx) + Math.abs(a.ty - S.ty);
+function exMakeTask(S, T) {
+  const M = X.map;
+  if (T.kind === 'deliver') {
+    const cand = exAnchors().filter(a => (a.tx !== S.tx || a.ty !== S.ty) && T.to.includes(a.key) && !X.spots.some(q => !q.done && q.tx === a.tx && q.ty === a.ty));
+    if (!cand.length) return null;
+    cand.sort((a, b) => (T.to.indexOf(a.key) - T.to.indexOf(b.key)) * 4 + (exFar(b, S) - exFar(a, S)) / 6);
+    const to = cand.find(a => exFar(a, S) >= 12) || cand[0];
+    return { kind: 'deliver', item: T.item, verb: T.verb, carry: true, tx: to.tx, ty: to.ty, label: to.label };
+  }
+  if (T.kind === 'escort') { // 멀리 떨어진 빈 칸에 할머니 (옆 칸도 비어 있어야 다가갈 수 있어요)
+    const r = makeRand((G.baseSeed || 1) + G.day * 31 + S.tx * 7 + S.ty);
+    for (let t = 0; t < 200; t++) {
+      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = 7 + Math.floor(r() * (M.H - 8)), k = ty * M.W + tx;
+      if (M.walls[k] || M.walls[k + M.W] || exFar({ tx, ty }, S) < 14) continue;
+      const near = M.shops.filter(s => !s.closed).sort((a, b) => Math.abs(a.x / 16 + 2 - tx) + Math.abs(a.bot / 16 - ty) - (Math.abs(b.x / 16 + 2 - tx) + Math.abs(b.bot / 16 - ty)))[0];
+      const g = { char: EX_CHARS.grandma, tx, ty, key: 'grandma' };
+      M.actors.push(g); M.walls[k] = 1;
+      const kid = M.actors.find(a => a.tx === S.tx && a.ty === S.ty); if (kid) { kid.hidden = true; M.walls[S.ty * M.W + S.tx] = 0; } // 아이는 나를 따라와요
+      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? SHOP_TYPES[near.type].name : '', follow: EX_CHARS.kid };
+    }
+    return null;
+  }
+  return null;
+}
 // 체력이 바닥나면: 가방 절반(내림)을 두고 택시로 돌아와요
 function faint() {
   if (!X || X.fainted) return;
-  X.fainted = true;
+  X.fainted = true; X.task = null; X.pend = null;
   const lose = Math.floor(X.bag.length / 2);
   X.lost = [];
   for (let k = 0; k < lose; k++) X.lost.push(...X.bag.splice(Math.floor((X.walked * 7 + k * 13) % X.bag.length), 1));
@@ -6747,6 +6842,30 @@ function xMark(x, y, t) {
   xc.fillStyle = '#fffaf0'; xc.fillRect(bx + 1, by, 9, 10); xc.fillRect(bx, by + 1, 11, 8); xc.fillRect(bx + 4, by + 10, 2, 2);
   xc.fillStyle = '#e0533a'; xc.fillRect(bx + 4, by + 2, 2, 4); xc.fillRect(bx + 4, by + 7, 2, 1);
 }
+// 들고 있는 짐 (심부름): 머리 위 나무 상자
+function xCarry(x, y, t) {
+  const bx = Math.round(x - 6), by = Math.round(y - 41 + (Math.floor(t * 8) % 2));
+  xc.fillStyle = '#5a3a22'; xc.fillRect(bx, by, 12, 9);
+  xc.fillStyle = '#a8743f'; xc.fillRect(bx + 1, by + 1, 10, 7);
+  xc.fillStyle = '#c99556'; xc.fillRect(bx + 1, by + 1, 10, 2); xc.fillRect(bx + 1, by + 5, 10, 1);
+}
+// 심부름 목적지: 노란 ▼ (화면 밖이면 가장자리에 화살표)
+function xTarget(x, y, t, cx, cy, vw, vh) {
+  const inX = x > cx + 6 && x < cx + vw - 6, inY = y - 44 > cy + 4 && y < cy + vh - 4;
+  if (inX && inY) {
+    const by = Math.round(y - 46 + Math.sin(t * 6) * 2), bx = Math.round(x);
+    xc.fillStyle = '#3a2a10'; xc.fillRect(bx - 6, by - 1, 13, 4); xc.fillRect(bx - 4, by + 3, 9, 3); xc.fillRect(bx - 2, by + 6, 5, 2);
+    xc.fillStyle = '#ffd34a'; xc.fillRect(bx - 5, by, 11, 2); xc.fillRect(bx - 3, by + 2, 7, 2); xc.fillRect(bx - 1, by + 4, 3, 2);
+    return;
+  }
+  const mx = cx + vw / 2, my = cy + vh / 2, dx = x - mx, dy = y - 20 - my;
+  const k = Math.min((vw / 2 - 14) / Math.max(1, Math.abs(dx)), (vh / 2 - 14) / Math.max(1, Math.abs(dy)));
+  const ax = mx + dx * k, ay = my + dy * k, a = Math.atan2(dy, dx), p = 1 + Math.sin(t * 6) * 0.15;
+  xc.save(); xc.translate(Math.round(ax), Math.round(ay)); xc.rotate(a); xc.scale(p, p);
+  xc.fillStyle = '#3a2a10'; xc.beginPath(); xc.moveTo(9, 0); xc.lineTo(-6, -8); xc.lineTo(-6, 8); xc.closePath(); xc.fill();
+  xc.fillStyle = '#ffd34a'; xc.beginPath(); xc.moveTo(7, 0); xc.lineTo(-4, -6); xc.lineTo(-4, 6); xc.closePath(); xc.fill();
+  xc.restore();
+}
 function xGlow(x, y, r, a) {
   const g = xc.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, `rgba(255,200,110,${a})`); g.addColorStop(1, 'rgba(255,200,110,0)');
@@ -6754,7 +6873,7 @@ function xGlow(x, y, r, a) {
 }
 const CARTS = ['mk_cart1', 'mk_cart2', 'mk_cart3', 'mk_cart6'], UMBS = ['mk_umb2', 'mk_umb3', 'mk_umb4', 'mk_umb3'];
 
-// S: { map, cam, vw, vh, me, time, marks: [{tx,ty}] }
+// S: { map, cam, vw, vh, me, time, marks: [{tx,ty}], follow: 따라오는 사람, carry: 짐을 들었나, target: {tx,ty} 심부름 목적지 }
 function drawExplore(canvas, S) {
   if (!XA) { XA = new Image(); XA.src = ATLAS_URL; }
   if (!XA.complete) return;
@@ -6795,8 +6914,9 @@ function drawExplore(canvas, S) {
     else if (p.kind === 'crate') items.push({ y: bot, d: () => xSpr('mk_crate', bx + 1, bot - xh('mk_crate')) });
     else if (p.kind === 'bus') items.push({ y: bot, d: () => xSpr('busstop', bx, bot - xh('busstop')) });
   }
-  for (const a of M.actors) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
-  items.push({ y: S.me.y + 0.5, d: () => xPerson(S.me, t) });
+  for (const a of M.actors) if (!a.hidden) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
+  if (S.follow) items.push({ y: S.follow.y + 0.4, d: () => xPerson(S.follow, t + 0.3) });
+  items.push({ y: S.me.y + 0.5, d: () => { xPerson(S.me, t); if (S.carry) xCarry(S.me.x, S.me.y, t); } });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   // 새벽빛 + 가게 불빛
   xc.fillStyle = 'rgba(60,80,145,.28)'; xc.fillRect(cx, cy, S.vw, S.vh);
@@ -6806,6 +6926,7 @@ function drawExplore(canvas, S) {
   for (const p of M.props) if (p.kind === 'cart') xGlow(p.tx * TILE + 24, p.ty * TILE - 6, 26, 0.14 * fl);
   xc.globalCompositeOperation = 'source-over';
   for (const m of S.marks || []) xMark(m.tx * TILE + 8, m.ty * TILE - 34, t);
+  if (S.target) xTarget(S.target.tx * TILE + 8, S.target.ty * TILE + 13, t, cx, cy, S.vw, S.vh);
   xc.setTransform(1, 0, 0, 1, 0, 0);
 }
 // ── js/ui/settings.js ──
@@ -7809,11 +7930,13 @@ function guildHTML() {
 // 동네 탐방 화면 (v0.78): 골목 화면(ui/town.js)의 캔버스·막대·아래 버튼·창을 빌려 써요
 //  걷기는 골목과 같아요(조이스틱 · 짧게 누르면 그곳까지). 사람 옆에서 오른쪽 아래 상호작용 버튼 「살펴보기」 → 사건 창(고르기 하나)
 //  체력(위 막대)은 걸을 때 · 일을 도울 때 줄고, 국밥·어묵 국물로 조금 돌아와요. 버스 정류장으로 가면 돌아가요
-//  규칙은 sim/explore.js (runCmd 'exStart' · 'exWalk' · 'exPick' · 'exReturn'), 그리기 render/explore.js
+//  규칙은 sim/explore.js (runCmd 'exStart' · 'exWalk' · 'exPick' · 'exFinish' · 'exReturn'), 그리기 render/explore.js
+//  v0.81: 심부름(짐 배달 · 아이와 할머니 찾기)과 손기술(떡 자르기 · 김 뒤집기 · 꼬치 끼우기 · 나물 다듬기)
 
 const EX_WALK = 96, EX_NEAR = { x: 22, y: 18 };
 let V = null;     // 탐방 화면 { me, cam, time, acc, open }
 let XC = null;     // 골목 화면이 빌려주는 것 { sheet, closeSheet, refresh, fade, view, joy, back }
+const exView = () => V; // 시험 스크립트용 (main.js __T)
 const exOn = () => !!V;
 const exMapH = () => (exRun() ? exRun().map.H * TILE : 0);
 function exHook(ctx) { XC = ctx; }
@@ -7833,7 +7956,7 @@ function exGo() {
   XC.closeSheet();
   XC.fade(() => {
     if (!runCmd('exStart')) return;
-    const [sx, sy] = exRun().map.props.find(p => p.kind === 'bus') ? [3, 22] : [3, 22];
+    const [sx, sy] = MK.START;
     V = { me: { char: 0, x: exPx(sx), y: exPy(sy), dir: 1, path: [], moving: false }, cam: { x: 0, y: 0 }, time: 0, acc: 0, bumped: null };
     XC.refresh();
     XC.sheet(`${exHead('재래시장')}<p class="ts-note">새벽 시장이 막 문을 엽니다. 가게 앞 사람들에게 다가가 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
@@ -7854,14 +7977,15 @@ function exHud() {
 }
 function exBar() {
   const X = exRun(); if (!X) return '';
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span><span class="ex-place">재래시장</span>`;
+  const T = X.task;
+  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : '<span class="ex-place">재래시장</span>'}`;
 }
 const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 function exNavClick(k) {
   if (!V) return;
   playSfx('tap');
   if (k === 'bag') { XC.sheet(bagHTML(), 'ex'); return; }
-  if (k === 'bus') { XC.closeSheet(); exWalkTo([3, 22], () => XC.sheet(leaveHTML(), 'ex')); }
+  if (k === 'bus') { XC.closeSheet(); exWalkTo(MK.START, () => XC.sheet(leaveHTML(), 'ex')); }
 }
 function bagHTML() {
   const X = exRun();
@@ -7879,21 +8003,66 @@ function eventHTML(i) {
   const X = exRun(), S = X.spots[i], ev = exEvOf(S.ev);
   const btns = ev.choices.map((ch, k) => {
     const F = ch.give && FINDS[ch.give];
-    const cost = [ch.cost ? `체력 −${ch.cost}` : '', ch.pay ? `${won(ch.pay)}` : '', ch.heal ? `체력 +${ch.heal}` : ''].filter(Boolean).join(' · ');
+    const cost = [ch.task ? (ch.task.kind === 'escort' ? '직접 찾아 주기' : `직접 배달 · 들고 걸으면 체력 ${EX_CARRY}배`) : '', ch.mini ? `손기술 · ${ch.mini.name}` : '', ch.cost ? `체력 −${ch.cost}` : '', ch.pay ? `${won(ch.pay)}` : '', ch.heal ? `체력 +${ch.heal}` : ''].filter(Boolean).join(' · ');
     const why = ch.pay && G.cash < ch.pay ? '잔고가 모자랍니다' : ch.cost && X.sp < ch.cost ? '힘이 모자랍니다' : '';
     return `<button type="button" class="ts-act" data-ts="exPick" data-s="${i}" data-i="${k}" ${why ? 'disabled' : ''}><b>${ch.label}</b><small>${why || [cost, F ? `가방에: ${F.name}` : ''].filter(Boolean).join(' · ')}</small></button>`;
   }).join('');
   return `${exHead(ev.title)}<p class="ex-txt">${ev.text}</p>${btns}<button type="button" class="ts-act ex-pass" data-ts="close"><b>지나치기</b><small>체력을 아껴요</small></button>`;
 }
-function fullHTML(spot, i) {
+function fullHTML(spot, i, fin) {
   const X = exRun(), F = FINDS[exEvOf(X.spots[spot].ev).choices[i].give];
-  const rows = X.bag.map((id, d) => { const B = FINDS[id]; return `<button type="button" class="ts-act" data-ts="exDrop" data-s="${spot}" data-i="${i}" data-d="${d}"><b>${B.name} 버리고 담기</b><small>${B.text}</small></button>`; }).join('');
-  return `${exHead('가방이 가득 찼습니다')}<p class="ts-note">${josa(F.name, '을/를')} 담으려면 하나를 내려놓아야 합니다.</p>${rows}<button type="button" class="ts-act ex-pass" data-ts="close"><b>그만두기</b><small>그대로 둡니다</small></button>`;
+  const k = fin ? 'exDropF' : 'exDrop';
+  const rows = X.bag.map((id, d) => { const B = FINDS[id]; return `<button type="button" class="ts-act" data-ts="${k}" data-s="${spot}" data-i="${i}" data-d="${d}"><b>${B.name} 버리고 담기</b><small>${B.text}</small></button>`; }).join('');
+  const skip = fin ? '<button type="button" class="ts-act ex-pass" data-ts="exSkipF"><b>안 받고 끝내기</b><small>가방은 그대로</small></button>' : '<button type="button" class="ts-act ex-pass" data-ts="close"><b>그만두기</b><small>그대로 둡니다</small></button>';
+  return `${exHead('가방이 가득 찼습니다', !fin)}<p class="ts-note">${josa(F.name, '을/를')} 담으려면 하나를 내려놓아야 합니다.</p>${rows}${skip}`;
 }
+// ── 손기술 (v0.81): timing 움직이는 바늘이 초록 칸에 올 때 누르기 · mash 시간 안에 빠르게 눌러 채우기 ──
+function mgStart(title, M) {
+  V.mg = M.kind === 'timing' ? { ...M, title, pos: 0, dir: 1, round: 0, hits: 0, zone: mgZone(), flash: '' } : { ...M, title, fill: 0, t: M.time };
+  XC.sheet(mgHTML(), 'ex mg');
+}
+function mgZone() { const w = 0.24, a = 0.08 + fxRand() * (0.84 - w); return [a, a + w]; }
+function mgHTML() {
+  const m = V.mg;
+  const top = m.kind === 'timing'
+    ? `<p class="mg-help">바늘이 초록 칸에 올 때 누르세요 · ${m.rounds}번 중 ${m.need}번</p><div class="mg-dots">${Array.from({ length: m.rounds }, (_, k) => `<i class="${k < m.round ? (m.res[k] ? 'ok' : 'no') : ''}"></i>`).join('')}</div>
+       <div class="mg-bar"><i class="mg-zone" style="left:${m.zone[0] * 100}%;width:${(m.zone[1] - m.zone[0]) * 100}%"></i><i class="mg-needle" id="mgNeedle"></i></div>`
+    : `<p class="mg-help">${m.time}초 안에 빠르게 눌러 막대를 채우세요</p><div class="mg-bar fill"><i class="mg-fill" id="mgFill"></i></div><p class="mg-time" id="mgTime"></p>`;
+  return `${exHead(m.title + ' · ' + m.name, false)}${top}<button type="button" class="btn primary big mg-go" data-ts="exMg">${m.act}</button>`;
+}
+function mgPress() {
+  const m = V.mg; if (!m) return;
+  if (m.kind === 'timing') {
+    const ok = m.pos >= m.zone[0] && m.pos <= m.zone[1];
+    m.res = m.res || []; m.res.push(ok); if (ok) m.hits++;
+    m.round++; playSfx(ok ? 'perfect' : 'tap');
+    if (m.round >= m.rounds) return mgEnd(m.hits >= m.need ? 1 : 0);
+    m.zone = mgZone(); m.speed *= 1.08;
+    XC.sheet(mgHTML(), 'ex mg');
+  } else { m.fill = Math.min(1, m.fill + 1 / m.taps); playSfx('tap'); if (m.fill >= 1) mgEnd(1); }
+}
+function mgTick(dt) {
+  const m = V.mg; if (!m) return;
+  if (!XC.sheetOpen()) { mgEnd(0); return; } // 창을 닫으면 그만두기(실패)
+  if (m.kind === 'timing') {
+    m.pos += m.dir * m.speed * dt; if (m.pos > 1) { m.pos = 1; m.dir = -1; } if (m.pos < 0) { m.pos = 0; m.dir = 1; }
+    const n = $('mgNeedle'); if (n) n.style.left = (m.pos * 100).toFixed(1) + '%';
+  } else {
+    m.t -= dt; m.fill = Math.max(0, m.fill - dt * 0.06);
+    const f = $('mgFill'), t = $('mgTime');
+    if (f) f.style.width = (m.fill * 100).toFixed(1) + '%';
+    if (t) t.textContent = `남은 시간 ${Math.max(0, m.t).toFixed(1)}초`;
+    if (m.t <= 0) mgEnd(0);
+  }
+}
+function mgEnd(score) { V.mg = null; runCmd('exFinish', { score }); }
 function exSheetClick(k, b) {
   if (k === 'exGo') { playSfx('page'); exGo(); return true; }
   if (k === 'exPick') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i }); return true; }
   if (k === 'exDrop') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i, drop: +b.dataset.d }); return true; }
+  if (k === 'exDropF') { runCmd('exFinish', { drop: +b.dataset.d }); return true; }
+  if (k === 'exSkipF') { runCmd('exFinish', { drop: -1 }); return true; }
+  if (k === 'exMg') { mgPress(); return true; }
   if (k === 'exLeave') { playSfx('page'); exHome(); return true; }
   return false;
 }
@@ -7910,7 +8079,14 @@ function initExplore() {
       const F = arg.give && FINDS[arg.give];
       XC.sheet(`${exHead(arg.title || '', true)}<p class="ex-txt">${arg.say || ''}</p>${F ? `<div class="ex-row got">${icon(F.icon, 'ex-ric')}<span><b>가방에 담았습니다: ${F.name}</b><small>${F.text}</small></span></div>` : ''}${arg.memo ? `<p class="ex-memo">동네 메모 · ${MEMOS[arg.memo]}</p>` : ''}`, 'ex');
       XC.refresh();
-    } else if (what === 'full') XC.sheet(fullHTML(arg.spot, arg.i), 'ex');
+    } else if (what === 'full') XC.sheet(fullHTML(arg.spot, arg.i, arg.finish), 'ex');
+    else if (what === 'task') {
+      const T = arg.task;
+      V.trail = [];
+      XC.sheet(`${exHead(arg.title)}<p class="ex-txt">${T.kind === 'escort' ? `아이가 손을 꼭 잡고 따라옵니다. 할머니는 ${T.hint ? `「${T.hint}」 근처에 ` : ''}계실 거래요. 찾으면 상호작용 버튼으로 「${T.verb}」.` : `${josa(T.item, '을/를')} 들었습니다. 「${T.label}」에 가서 상호작용 버튼으로 「${T.verb}」. 짐을 들고 걸으면 체력이 ${EX_CARRY}배로 줄어요.`}</p>`, 'ex');
+      XC.refresh();
+    } else if (what === 'mini') mgStart(arg.title, arg.mini);
+    else if (what === 'done') XC.refreshBar();
     else if (what === 'faint') {
       if (V) { V.me.path = []; }
       XC.sheet(faintHTML(), 'ex faint');
@@ -7985,10 +8161,13 @@ function openSpot(i) { V.me.path = []; V.me.moving = false; playSfx('tap'); XC.s
 // 상호작용 버튼 (v0.80 — ui/town.js updateActBtn): 사람 옆이면 「살펴보기」, 정류장 옆이면 「돌아가기」
 function exActTarget() {
   const X = exRun(); if (!V || !X || X.fainted) return null;
+  const T = X.task;
+  if (X.pend && !T) return { label: '가방 정리', run: () => runCmd('exFinish') }; // 손기술 뒤 가방이 가득 찼을 때 창을 닫아 버렸으면
+  if (T && Math.abs(exPx(T.tx) - V.me.x) < EX_NEAR.x && Math.abs(exPy(T.ty) - V.me.y) < EX_NEAR.y) return { label: T.verb, run: () => { V.me.path = []; runCmd('exFinish'); } };
   const i = spotNear();
-  if (i >= 0) return { label: '살펴보기', run: () => openSpot(i) };
+  if (i >= 0) return { label: '살펴보기', run: () => (T ? toast(T.kind === 'escort' ? '먼저 아이를 할머니께 모셔다드려요' : `먼저 ${josa(T.item, '을/를')} 전해 줘요`, 'info') : openSpot(i)) };
   const [tx, ty] = exMeTile(), bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 4) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
+  if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 5) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
   return null;
 }
 
@@ -8024,7 +8203,17 @@ function exUpdate(dt) {
   const M = X.map;
   V.cam.x = Math.max(0, Math.min(M.W * TILE - vw, me.x - vw / 2));
   V.cam.y = Math.max(0, Math.min(M.H * TILE - vh, me.y - 16 - vh / 2));
-  drawExplore($('townCv'), { map: M, cam: V.cam, vw, vh, me, time: V.time, marks: X.spots.filter(s => !s.done) });
+  if (V.mg) mgTick(dt);
+  // 따라오는 아이 (심부름 escort): 내가 지나온 자리를 조금 늦게 밟아요
+  let follow = null;
+  if (X.task && X.task.follow) {
+    V.trail = V.trail || [];
+    const last = V.trail[V.trail.length - 1];
+    if (!last || Math.hypot(last.x - me.x, last.y - me.y) > 1.5) { V.trail.push({ x: me.x, y: me.y, dir: me.dir }); if (V.trail.length > 40) V.trail.shift(); }
+    const p = V.trail[Math.max(0, V.trail.length - 10)] || { x: me.x, y: me.y + 8, dir: me.dir };
+    follow = { char: X.task.follow, x: p.x, y: p.y, dir: p.dir, moving: me.moving };
+  }
+  drawExplore($('townCv'), { map: M, cam: V.cam, vw, vh, me, time: V.time, marks: X.task ? [] : X.spots.filter(s => !s.done), follow, carry: !!(X.task && X.task.carry), target: X.task ? { tx: X.task.tx, ty: X.task.ty } : null });
 }
 // 짧게 누르기: 사람·정류장 → 그 옆까지 걸어가기만 (창은 상호작용 버튼으로) · 바닥 → 그곳까지
 function exTap(e) {
@@ -8033,10 +8222,12 @@ function exTap(e) {
   const wx = V.cam.x + (e.clientX - r.left) / r.width * vw, wy = V.cam.y + (e.clientY - r.top) / r.height * vh;
   const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
   playSfx('tap');
+  const T = X.task;
+  if (T && wx >= exPx(T.tx) - 8 && wx < exPx(T.tx) + 8 && wy >= exPy(T.ty) - 30 && wy < exPy(T.ty) + 4) { const at = exBeside(T.tx, T.ty); if (at) exWalkTo(at, () => { V.me.dir = T.ty < at[1] ? 1 : T.ty > at[1] ? 3 : T.tx > at[0] ? 0 : 2; }); return; }
   const si = X.spots.findIndex(s => !s.done && wx >= exPx(s.tx) - 8 && wx < exPx(s.tx) + 8 && wy >= exPy(s.ty) - 30 && wy < exPy(s.ty) + 4);
   if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; }); return; } // 걸어가기만 (v0.80)
   const bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo([3, 22]); return; }
+  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(MK.START); return; }
   if (tx < 0 || ty < 0 || tx >= X.map.W || ty >= X.map.H || exWalls()[ty * X.map.W + tx]) return;
   exWalkTo([tx, ty]);
 }
@@ -8505,7 +8696,7 @@ function townActTarget() {
   const t = talkTarget();
   if (t) return { label: '대화', run: () => { T.talkT = t; talkPress(); } };
   const place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) return { label: place === 'shop' ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
+  if (place) return { label: place === 'shop' || placeActs(place).length > 1 ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => adj(a, b, tx, ty)));
   if (prop) return { label: USE_LABEL[prop.use] || '살펴보기', run: () => { T.me.path = []; openUse(prop); } };
   const look = LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
@@ -8533,6 +8724,7 @@ function updateActBtn() {
   const busy = talking() || T.fading || T.sheet || !!chatQ;
   const t = busy ? null : exOn() ? exActTarget() : T.inside ? insideActTarget() : townActTarget();
   T.act = t;
+  if (b.hidden !== busy) b.hidden = busy; // 창·대화가 열려 있으면 숨겨요 — 창을 가리지 않게 (v0.81 사용자 요청)
   const label = t ? t.label : '…';
   if (b.textContent !== label) b.textContent = label;
   if (b.disabled !== !t) b.disabled = !t;
@@ -8604,9 +8796,11 @@ function sheet(html, cls) {
 function closeSheet() { const s = $('townSheet'); if (!s) return; s.hidden = true; s.innerHTML = ''; if (T) T.sheet = false; }
 
 const NEIGHBOR = { miso: '미소 사장님', choi: '최 사장님' };
+const TALK_WHO = { furnTalk: '미소 사장님', guildTalk: '문 회장님', jungTalk: '정 사장님' }; // 가게 주인과 대화 · 가게 메뉴는 따로 (v0.81 사용자 요청)
 function actLabel(place, act) {
   const A = ACTS[act];
-  if (act === 'talk') return `${josa(NEIGHBOR[PLACES[place].who], '과/와')} 이야기하기`;
+  if (act === 'talk') return `${josa(NEIGHBOR[PLACES[place].who], '과/와')} 대화하기`;
+  if (TALK_WHO[act]) return `${josa(TALK_WHO[act], '과/와')} 대화하기`;
   return A.name;
 }
 function openPlace(id) {
@@ -8684,10 +8878,10 @@ function actRow(id, a) {
     const sub = a === 'clean' ? (Tn.hygiene >= 100 ? '이미 깨끗합니다' : `위생 ${Tn.hygiene} → ${Math.min(100, Tn.hygiene + 60)}`) : a === 'talk' ? (ok ? '내일 소개 손님이 옵니다' : '오늘은 이미 이야기했습니다')
       : a === 'setup' ? (ok ? '오늘 11시까지 손이 빠릅니다' : '이미 준비했습니다') : a === 'market' ? (Tn.marketIn ? '다시 들어가기' : marketCost() ? '특가 · 단골가 · 처음 들어갈 때 1시간' : '배달 · 시간이 들지 않습니다')
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
-      : a === 'guild' ? (Tn.guildIn ? '다시 들어가기' : '문 회장님과 이야기 · 설비 손보기 (내일 소개 손님)')
-      : a === 'furn' ? (Tn.furnIn ? '다시 들어가기' : '미소 사장님과 이야기 · 가구 보기 (내일 소개 손님)')
+      : a === 'guild' ? '장사 도구 · 설비 손보기' : a === 'furn' ? '탁자 · 의자 · 장식 사기'
+      : TALK_WHO[a] ? (ok ? (a === 'jungTalk' ? '친밀도 +2 · 시간이 들지 않습니다' : '친밀도 · 내일 소개 손님') : '오늘은 이미 대화했습니다')
       : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
-    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(a === 'furn' && Tn.furnIn) && !(a === 'guild' && Tn.guildIn) ? `<i>${cost}</i>` : ''}</button>`;
+    return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(TALK_WHO[a] && !ok) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
 
@@ -8876,6 +9070,7 @@ function initTown() {
   onEvent('town', (what, arg) => {
     if (!T) return;
     if (what === 'chat') { showChat(arg); return; }
+    if (what === 'shopTalk') { const id = T.sheetPlace; if (chatQ) chatQ.after = () => openPlace(id); return; } // 가게 주인과 대화 뒤엔 그 가게 창으로
     if (what === 'market') { T.sheetPlace = 'market'; mkPhone = false; cart = {}; planDefault(); if (chatQ) chatQ.after = () => sheet(marketHTML(), 'market'); else sheet(marketHTML(), 'market'); return; } // 정 사장 인사 뒤에는 시장 창
     if (what === 'furn') { T.sheetPlace = 'flower'; furnCartReset(); if (chatQ) chatQ.after = () => showFurn(); else showFurn(); return; } // 미소 사장님 이야기 뒤에는 가구 창
     if (what === 'guild') { T.sheetPlace = 'laundry'; if (chatQ) chatQ.after = () => sheet(guildHTML(), 'guild'); else sheet(guildHTML(), 'guild'); return; } // 문 회장님 이야기 뒤에 상인회 창
@@ -9932,7 +10127,7 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk, trashAt: () => STATIONS.trash.tiles[0], regAt: () => REGISTER.tiles[0] }; // trashAt: 시험 봇이 퇴식대를 찾아요
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk, exRun, exView, trashAt: () => STATIONS.trash.tiles[0], regAt: () => REGISTER.tiles[0] }; // trashAt: 시험 봇이 퇴식대를 찾아요
 }
 boot();
 })();

@@ -117,7 +117,7 @@ export const FATIGUE_SLOW = 0.08;
 //  insta 인스타 올리기: 다음 날 학생 손님이 더 들어와요 · blogger 파워블로거 섭외: 다음 날 블로거가 와서 먹고, 만족하면 며칠 동안 직장인·어르신이 더 (아니면 덜) 들어와요
 //  market 장보기: 정 사장 가게 (그날 처음 들어갈 때 한 시간 · 특가·단골가·친밀도) — 휴대폰 「식자재 주문」은 정가로 시간 없이 (PHONE_ORDER) · 원재료 낱개(묶음 단위, data/menu.js INGREDIENTS), 그날 신선 재료 특가 한 가지
 //  setup 오픈 준비(진열): 오늘 11시까지 사장 걸음 +15%
-//  furn 미소 가구(2장부터): 그날 처음 들어갈 때 한 칸 — 미소 사장님과 이야기(친밀도·소개 손님)와 가구 창이 한 번에 (sim/furniture.js)
+//  furn 미소 가구(2장부터): 가구 보기는 시간 안 씀 · 미소 사장님과 대화(furnTalk)는 한 시간(친밀도·소개 손님) — v0.81부터 따로 (sim/furniture.js)
 //  우리 가게는 골목에서 누르면 안으로 들어가요 (ui/town.js 가게 안) — 물건을 누르거나 아래 버튼으로: 냉장고 = 오늘의 메뉴·가격 · 메뉴판 = 메뉴 연구 칠판
 //   · 계산대 = 판매 장부·손님 수첩 · 퇴식대 = 청소 · 화구 = 오픈 준비 · 문 = 골목으로 (SHOP_SPOTS)
 //  sales 판매 장부: 날마다 매출·남은 돈·손님 (G.history)
@@ -133,8 +133,11 @@ export const ACTS = {
   book: { name: '손님 수첩', cost: 0, when: 'any' },
   insta: { name: '인스타 올리기', cost: 1, when: 'any' },   // 효과는 다가오는 영업일
   blogger: { name: '파워블로거 섭외', cost: 1, when: 'any', money: 50000 },
-  furn: { name: '가구 둘러보기', cost: 1, when: 'any' },
-  guild: { name: '철물점 · 상인회', cost: 1, when: 'any' },
+  furn: { name: '가구 보기', cost: 0, when: 'any' },
+  guild: { name: '상인회 · 설비', cost: 0, when: 'any' },
+  furnTalk: { name: '대화하기', cost: 1, when: 'any' }, // 가게 주인과 대화는 가게 메뉴와 따로 (v0.81 사용자 요청)
+  guildTalk: { name: '대화하기', cost: 1, when: 'any' },
+  jungTalk: { name: '대화하기', cost: 0, when: 'any' }, // 정 사장님: 전처럼 시간 안 씀
   sleep: { name: '자고 가게 열기', cost: 0, when: 'any' }, // 집: 남은 시간은 쉬고 「가게 열기」 화면으로 (v0.59)
   market: { name: '장보기', cost: 1, when: 'any' },
   setup: { name: '오픈 준비 (진열)', cost: 1, when: 'any' },
@@ -147,7 +150,7 @@ export const PLACE_ACTS = {
   shop: ['pantry', 'ledger', 'recipe', 'book', 'sales', 'counter', 'insta', 'blogger', 'clean', 'setup', 'open'],
   laundry: ['talk'],
   board: [],
-  market: ['market'],
+  market: ['jungTalk', 'market'],
 };
 // 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
 export const SHOP_SPOTS = [
@@ -159,7 +162,7 @@ export const SHOP_SPOTS = [
   { act: 'exit', name: '문 · 골목으로', door: true },
 ];
 // 2장부터 바뀌는 곳: 미소 꽃집 → 미소 가구·인테리어 (sim/town.js placeName · placeActs)
-export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furn'] }, laundry: { name: '문 철물 · 상인회', short: '철물점', acts: ['guild'] } }; // laundry는 문 회장님이 온 뒤(sim/guild.js guildOpen)
+export const PLACE_CH2 = { flower: { name: '미소 가구·인테리어', short: '가구점', acts: ['furnTalk', 'furn'] }, laundry: { name: '문 철물 · 상인회', short: '철물점', acts: ['guildTalk', 'guild'] } }; // laundry는 문 회장님이 온 뒤(sim/guild.js guildOpen)
 export const HYGIENE_DECAY = 25;
 export const CLEAN_GAIN = 60;
 export const HYGIENE_LOW = 40;

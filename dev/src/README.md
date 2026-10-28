@@ -24,7 +24,7 @@
 | ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
 | | `hud.js` `phone.js` `reviews.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 전화 받기(울리는 폰 · 「받기」) · 위 막대 ★ → 리뷰 기록 · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
 | | `board.js` `book.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
-| | `explore.js` | 동네 탐방 화면 (골목 화면을 빌려 써요: 체력·가방 막대, 「살펴보기」, 사건·돌아오기 창) |
+| | `explore.js` | 동네 탐방 화면 (골목 화면을 빌려 써요: 체력·가방 막대, 「살펴보기」, 사건·돌아오기 창, 심부름 표시 · 손기술 미니게임 v0.81) |
 | | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼·휴대폰: 인스타·블로그 홍보·최근 통화·상권 지도 자물쇠) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |
 
