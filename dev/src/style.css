@@ -144,6 +144,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .btn:disabled { cursor: default; }
 .btn:disabled:active { transform: none; }
 .btn:disabled { opacity: .45; }
+.btn.lockb:disabled { opacity: 1; } /* 「♥ 필요」 버튼은 예전 모습 그대로 */
 .btn:disabled:active { box-shadow: 0 4px 0 var(--ink); }
 .slot.buy[disabled] { opacity: .5; cursor: default; }
 

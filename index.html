@@ -149,6 +149,7 @@ h2 { font-size: 32px; line-height: 1.25; color: var(--paper); text-shadow: 0 3px
 .btn:disabled { cursor: default; }
 .btn:disabled:active { transform: none; }
 .btn:disabled { opacity: .45; }
+.btn.lockb:disabled { opacity: 1; } /* 「♥ 필요」 버튼은 예전 모습 그대로 */
 .btn:disabled:active { box-shadow: 0 4px 0 var(--ink); }
 .slot.buy[disabled] { opacity: .5; cursor: default; }
 
@@ -1669,7 +1670,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.74';
+const GAME_VERSION = '0.75';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -7278,7 +7279,7 @@ function specialTab() {
     <div class="fu-grid two">${Object.keys(FURN_SPECIAL).map(k => tile(FURN_SPECIAL[k].cat, k)).join('')}</div>
     <div class="fu-set${own ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}"><div class="fu-set-pics">${pics}</div>
       <b>${MISO_SET.name}</b><small>${MISO_SET.note}</small><small>${FURN_ORDER.length}가지 한 번에 · 분위기 ${MISO_SET.mood} · 테마 보너스 넷 다</small>
-      <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
+      <button type="button" class="btn ${own || lock ? 'lockb' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
 }
 
 // 위: 가게 미리보기(창 너비를 꽉 채워요, 늘 위에 붙어 있음) · 그 아래 가진 물건(아이콘 한 줄) · 효과 한 줄
@@ -7348,13 +7349,13 @@ function eqRow(id) {
   const lock = !max && bondLv('moon') < L.heart, price = max ? 0 : eqPrice(id);
   return `<div class="gd-row${max ? ' max' : ''}">${icon(E.spr, 'gd-ic')}
     <div class="gd-tx"><b>${E.name} <i class="lv">Lv${lv}</i></b><small>${max ? E.lv[2].text : `Lv${lv + 1} · ${L.text}`}</small></div>
-    ${max ? '<span class="gd-done">최고</span>' : `<button type="button" class="btn small ${lock ? '' : 'primary'}" data-ts="eqUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(L.heart)} 필요` : wonShort(price)}</button>`}</div>`;
+    ${max ? '<span class="gd-done">최고</span>' : `<button type="button" class="btn small ${lock ? 'lockb' : 'primary'}" data-ts="eqUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(L.heart)} 필요` : wonShort(price)}</button>`}</div>`;
 }
 function toolRow(id) {
   const T = TOOL_UP[id], own = (G.story.tools || []).includes(id), up = toolUp(id), lock = bondLv('moon') < T.heart, price = toolUpPrice(id);
   if (!own) return '';
   return `<div class="gd-row${up ? ' max' : ''}"><div class="gd-tx"><b>${TOOLS[id].name} → ${T.name}</b><small>${T.text}</small></div>
-    ${up ? '<span class="gd-done">바꿈</span>' : `<button type="button" class="btn small ${lock ? '' : 'primary'}" data-ts="toolUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(T.heart)} 필요` : wonShort(price)}</button>`}</div>`;
+    ${up ? '<span class="gd-done">바꿈</span>' : `<button type="button" class="btn small ${lock ? 'lockb' : 'primary'}" data-ts="toolUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(T.heart)} 필요` : wonShort(price)}</button>`}</div>`;
 }
 
 function guildHTML() {

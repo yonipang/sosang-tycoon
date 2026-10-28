@@ -66,7 +66,7 @@ function specialTab() {
     <div class="fu-grid two">${Object.keys(FURN_SPECIAL).map(k => tile(FURN_SPECIAL[k].cat, k)).join('')}</div>
     <div class="fu-set${own ? ' mine' : ''}${lock ? ' lock' : ''}${inCart ? ' pick' : ''}"><div class="fu-set-pics">${pics}</div>
       <b>${MISO_SET.name}</b><small>${MISO_SET.note}</small><small>${FURN_ORDER.length}가지 한 번에 · 분위기 ${MISO_SET.mood} · 테마 보너스 넷 다</small>
-      <button type="button" class="btn ${own || lock ? '' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
+      <button type="button" class="btn ${own || lock ? 'lockb' : 'primary'}" data-ts="fbuy" data-c="wall" data-k="miso" ${own || lock ? 'disabled' : ''}>${own ? '설치됨' : lock ? `${hearts(MISO_SET.heart)} 필요` : inCart ? '담음 · 빼기' : `담기 · ${won(misoPrice())}`}</button></div>`;
 }
 
 // 위: 가게 미리보기(창 너비를 꽉 채워요, 늘 위에 붙어 있음) · 그 아래 가진 물건(아이콘 한 줄) · 효과 한 줄

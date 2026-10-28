@@ -17,13 +17,13 @@ function eqRow(id) {
   const lock = !max && bondLv('moon') < L.heart, price = max ? 0 : eqPrice(id);
   return `<div class="gd-row${max ? ' max' : ''}">${icon(E.spr, 'gd-ic')}
     <div class="gd-tx"><b>${E.name} <i class="lv">Lv${lv}</i></b><small>${max ? E.lv[2].text : `Lv${lv + 1} · ${L.text}`}</small></div>
-    ${max ? '<span class="gd-done">최고</span>' : `<button type="button" class="btn small ${lock ? '' : 'primary'}" data-ts="eqUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(L.heart)} 필요` : wonShort(price)}</button>`}</div>`;
+    ${max ? '<span class="gd-done">최고</span>' : `<button type="button" class="btn small ${lock ? 'lockb' : 'primary'}" data-ts="eqUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(L.heart)} 필요` : wonShort(price)}</button>`}</div>`;
 }
 function toolRow(id) {
   const T = TOOL_UP[id], own = (G.story.tools || []).includes(id), up = toolUp(id), lock = bondLv('moon') < T.heart, price = toolUpPrice(id);
   if (!own) return '';
   return `<div class="gd-row${up ? ' max' : ''}"><div class="gd-tx"><b>${TOOLS[id].name} → ${T.name}</b><small>${T.text}</small></div>
-    ${up ? '<span class="gd-done">바꿈</span>' : `<button type="button" class="btn small ${lock ? '' : 'primary'}" data-ts="toolUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(T.heart)} 필요` : wonShort(price)}</button>`}</div>`;
+    ${up ? '<span class="gd-done">바꿈</span>' : `<button type="button" class="btn small ${lock ? 'lockb' : 'primary'}" data-ts="toolUp" data-id="${id}" ${lock || price > G.cash ? 'disabled' : ''}>${lock ? `${hh(T.heart)} 필요` : wonShort(price)}</button>`}</div>`;
 }
 
 export function guildHTML() {
