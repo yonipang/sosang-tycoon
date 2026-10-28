@@ -614,6 +614,11 @@ body.in-town #bar { display: none; }
 .town-sheet.chat { background: transparent; border: 0; box-shadow: none; padding: 0; cursor: pointer; top: 104px; bottom: auto; }  /* 골목 이웃 대화도 위에 */
 .ts-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; border-bottom: 2px dashed var(--line); }
 .ts-head b { font-weight: normal; font-size: 20px; }
+/* 창을 스크롤해도 머리(이름 · ✕)는 위에 붙어 있어요 (v0.70 사용자 요청) · 계산대는 가게 열기 · 탭까지 */
+.town-sheet .ts-head, .town-sheet .ct-top { position: sticky; top: -6px; z-index: 3; background: var(--paper); margin-top: -6px; padding-top: 6px; }
+.town-sheet .ct-top .ts-head { position: static; margin-top: 0; padding-top: 0; }
+.town-sheet .ct-top { padding-bottom: 4px; }
+.town-sheet.chalk .ts-head { background: #2f4a3c; }
 .ts-x { width: 36px; height: 36px; background: var(--paper); border: 3px solid var(--ink); font: inherit; cursor: pointer; }
 .ts-note { margin: 6px 0; color: var(--ink-soft); word-break: keep-all; }
 .ts-act { display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%; text-align: left; margin-top: 8px; padding: 6px 10px; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }

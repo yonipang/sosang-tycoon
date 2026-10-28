@@ -619,6 +619,11 @@ body.in-town #bar { display: none; }
 .town-sheet.chat { background: transparent; border: 0; box-shadow: none; padding: 0; cursor: pointer; top: 104px; bottom: auto; }  /* 골목 이웃 대화도 위에 */
 .ts-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; border-bottom: 2px dashed var(--line); }
 .ts-head b { font-weight: normal; font-size: 20px; }
+/* 창을 스크롤해도 머리(이름 · ✕)는 위에 붙어 있어요 (v0.70 사용자 요청) · 계산대는 가게 열기 · 탭까지 */
+.town-sheet .ts-head, .town-sheet .ct-top { position: sticky; top: -6px; z-index: 3; background: var(--paper); margin-top: -6px; padding-top: 6px; }
+.town-sheet .ct-top .ts-head { position: static; margin-top: 0; padding-top: 0; }
+.town-sheet .ct-top { padding-bottom: 4px; }
+.town-sheet.chalk .ts-head { background: #2f4a3c; }
 .ts-x { width: 36px; height: 36px; background: var(--paper); border: 3px solid var(--ink); font: inherit; cursor: pointer; }
 .ts-note { margin: 6px 0; color: var(--ink-soft); word-break: keep-all; }
 .ts-act { display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%; text-align: left; margin-top: 8px; padding: 6px 10px; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }
@@ -1659,7 +1664,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.69';
+const GAME_VERSION = '0.70';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -7874,9 +7879,9 @@ const noHead = h => h.replace(/^<div class="ts-head">[\s\S]*?<\/button><\/div>/,
 function openCounter(tab) {
   if (tab) counterTab = tab;
   const tabs = [['sales', '영수증'], ['book', '손님 수첩']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}</button>`).join('');
-  sheet(`<div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
+  sheet(`<div class="ct-top"><div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     <button type="button" class="btn primary ct-open" data-ts="act" data-a="open">가게 열기</button>
-    <div class="ct-tabs">${tabs}</div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
+    <div class="ct-tabs">${tabs}</div></div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
   T.sheetPlace = 'shop';
 }
 
