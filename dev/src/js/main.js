@@ -22,7 +22,7 @@ import { initCutscene, updateCut } from './ui/cutscene.js';
 import { initMusic, updateMusic, musicState } from './ui/music.js';
 import { tutAsk } from './sim/tutorial.js';
 import { syncLayout } from './sim/furniture.js';
-import { layoutLv, STATIONS } from './data/layout.js';
+import { layoutLv, STATIONS, REGISTER } from './data/layout.js';
 
 function layout() {
   const st = $('stage');
@@ -75,6 +75,6 @@ async function boot() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) cloudFlush(); else cloudCheck(); }); // 앱을 내리면 기다리던 업로드를 바로, 돌아오면 다른 기기에서 더 했는지 확인
   cloudInit();
   // 시험용 손잡이 (dev/qa 스크립트가 써요)
-  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk, trashAt: () => STATIONS.trash.tiles[0] }; // trashAt: 시험 봇이 퇴식대를 찾아요
+  window.__T = { G, runCmd, runFor, targetAt, viewReady, musicState, CLOUD, town: () => ({ ...G.town }), townView, tutAsk, trashAt: () => STATIONS.trash.tiles[0], regAt: () => REGISTER.tiles[0] }; // trashAt: 시험 봇이 퇴식대를 찾아요
 }
 boot();

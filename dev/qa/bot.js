@@ -3,6 +3,7 @@
 window.__bot = (() => {
   const ST = { tteok: [1, 1], kimbap: [2, 1], twigim: [4, 1] };
   const tap = (x, y) => window.__T.runCmd('tap', { x: x + 0.5, y: y + 0.5 });
+  const reg = () => { const [x, y] = window.__T.regAt(); tap(x, y); }; // 계산대 (v0.72부터 주방 앞)
   const problems = [];
   const games = { stir: 0, roll: 0, fry: 0 };
   function cook(r) {
@@ -31,11 +32,11 @@ window.__bot = (() => {
     if (atReg && front) return;
     const base = m => m.split('_')[0]; // 새 메뉴(tteok_rose …)는 기본 메뉴의 조리대에서
     const need = [...new Set(r.tickets.map(t => t.menu))].filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length).map(base);
-    if (front && front.patience / front.patMax < 0.6) { tap(8, 9); return; }
+    if (front && front.patience / front.patMax < 0.6) { reg(); return; }
     if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
-    if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) tap(8, 9); return; } // 포장은 계산대로
+    if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) reg(); return; } // 포장은 계산대로
     if (r.hands.some(d => !d.ahead) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { const [tx, ty] = window.__T.trashAt(); tap(tx, ty); return; } // 미리 만든 몫은 들고 있어요 (퇴식대 — v0.67부터 홀 왼쪽 아래)
-    if (!atReg) tap(8, 9);
+    if (!atReg) reg();
   }
   function check() {
     const r = window.__T.G.run; if (!r) return;

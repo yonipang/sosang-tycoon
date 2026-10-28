@@ -24,7 +24,7 @@ export const TUTORIAL = [
   { id: 'd3_phone', day: 3, on: 'open', scene: 'tut_d3' },
 ];
 // 오 사장님이 서 있는 칸 (1장부터 화분이 놓이는 자리 — 처음부터 막힌 칸이라 길이 바뀌지 않아요)
-export const TUT_SPOT = { x: 9, y: 4 };
+export const TUT_SPOT = { x: 11, y: 7 }; // v0.72: 계산대 아래 (화분 자리)
 // 오 사장님이 가게에 있는 날 (프롤로그)
 export const TUT_DAYS = 2;
 // 손님이 「지쳐 간다」고 보는 때: 기다릴 수 있는 시간이 이만큼 남았을 때
