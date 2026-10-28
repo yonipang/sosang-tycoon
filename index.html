@@ -1155,14 +1155,20 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .week-big.neg { color: #ffb3a6; }
 .ln .neg { color: var(--red); }
 /* 동네 탐방 (v0.78): 위 막대 체력 · 가방 · 사건 창 */
-.ex-sp { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; }
-.ex-sp b { font-weight: normal; font-size: 14px; }
-.ex-sp > i { display: block; width: 84px; height: 12px; border: 2px solid var(--paper); background: rgba(0,0,0,.35); }
-.ex-sp > i > i { display: block; height: 100%; background: #7fd6a0; transition: width .2s; }
+/* 맨 위 HUD 둘째 줄: 체력 · 가방 (v0.79) — 탐방 중에는 할 일 버튼 대신 */
+body.in-ex #questTrack { display: none !important; }
+#exHud { flex: 1 1 100%; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; color: var(--ink); }
+.ex-sp { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.ex-sp b, .ex-bag b { font-weight: normal; font-size: 15px; white-space: nowrap; }
+.ex-sp > i { display: block; flex: none; width: 112px; height: 18px; border: 3px solid var(--ink); background: var(--paper-2); }
+.ex-sp > i > i { display: block; height: 100%; background: var(--green); transition: width .2s; }
 .ex-sp.low > i > i { background: var(--red); }
-.ex-bag { display: inline-flex; gap: 3px; }
-.ex-slot { width: 22px; height: 22px; border: 2px solid var(--paper); background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; }
-.ex-ic { width: 16px; height: 16px; object-fit: contain; }
+.ex-sp em { font-style: normal; min-width: 2.2em; }
+.ex-sp.low em { color: var(--red); }
+.ex-bag { display: inline-flex; align-items: center; gap: 4px; }
+.ex-slot { width: 30px; height: 30px; border: 3px solid var(--ink); background: var(--paper-2); display: flex; align-items: center; justify-content: center; }
+.ex-ic { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
+.ex-place { padding: 2px 8px; border: 2px solid var(--paper); margin-right: auto; }
 .ex-txt { margin: 4px 0 8px; line-height: 1.45; }
 .ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
 .ex-row span { display: flex; flex-direction: column; }
@@ -1187,6 +1193,7 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
     <div class="hud-row2">
       <div id="tickets" aria-label="주문표"></div>
       <div id="questTrack" hidden aria-label="할 일"></div>
+      <div id="exHud" hidden aria-label="체력 · 가방"></div>
     </div>
   </header>
   <main id="stage">
@@ -1735,7 +1742,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.78';
+const GAME_VERSION = '0.79';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -7830,13 +7837,20 @@ function exGo() {
 }
 
 // ── 위 막대 · 아래 버튼 ──
-function exBar() {
-  const X = exRun(); if (!X) return '';
+// 체력 · 가방은 맨 위 HUD 둘째 줄에 (v0.79 사용자 요청) — 골목 막대에는 시각과 동네 이름만
+function exHud() {
+  const X = exRun(), el = $('exHud');
+  document.body.classList.toggle('in-ex', !!X);
+  if (!X) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } return; }
   const p = Math.max(0, X.sp / EX_STAMINA), low = p < 0.25;
   const bag = Array.from({ length: EX_BAG }, (_, i) => `<i class="ex-slot">${X.bag[i] ? icon(FINDS[X.bag[i]].icon, 'ex-ic') : ''}</i>`).join('');
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>
-    <span class="ex-sp${low ? ' low' : ''}" title="체력"><b>체력</b><i><i style="width:${Math.round(p * 100)}%"></i></i></span>
-    <span class="ex-bag" title="가방">${bag}</span>`;
+  el.innerHTML = `<span class="ex-sp${low ? ' low' : ''}"><b>체력</b><i><i style="width:${Math.round(p * 100)}%"></i></i><em>${Math.ceil(X.sp)}</em></span>
+    <span class="ex-bag"><b>가방</b>${bag}</span>`;
+  el.hidden = false;
+}
+function exBar() {
+  const X = exRun(); if (!X) return '';
+  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span><span class="ex-place">재래시장</span>`;
 }
 const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 function exNavClick(k) {
@@ -8323,6 +8337,7 @@ function layoutTown() {
 
 // 위: 밤/새벽 · 시각 · 남은 일 칸 · 피로 · 위생
 function renderBar() {
+  exHud(); // 탐방 중이면 맨 위 HUD에 체력·가방 (아니면 숨겨요)
   if (exOn()) { $('townBar').innerHTML = exBar(); return; } // 동네 탐방: 체력 · 가방
   const Tn = G.town, dawn = Tn.part === 'dawn', max = slotsMax();
   const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;

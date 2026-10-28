@@ -33,7 +33,7 @@ let bookSel = 0; // 손님 수첩에서 고른 사람
 import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
-import { exOn, exHook, exUpdate, exTap, exBar, exNav, exNavClick, exSheetClick, exTalk, busHTML, initExplore, exMapH } from './explore.js';
+import { exOn, exHook, exUpdate, exTap, exBar, exHud, exNav, exNavClick, exSheetClick, exTalk, busHTML, initExplore, exMapH } from './explore.js';
 import { exploreOpen } from '../sim/explore.js';
 
 const WALK = 96;     // 걷는 빠르기 (지도 픽셀/초) — v0.35 사용자 요청으로 60 → 96
@@ -319,6 +319,7 @@ function layoutTown() {
 
 // 위: 밤/새벽 · 시각 · 남은 일 칸 · 피로 · 위생
 function renderBar() {
+  exHud(); // 탐방 중이면 맨 위 HUD에 체력·가방 (아니면 숨겨요)
   if (exOn()) { $('townBar').innerHTML = exBar(); return; } // 동네 탐방: 체력 · 가방
   const Tn = G.town, dawn = Tn.part === 'dawn', max = slotsMax();
   const min = townClock(), hh = Math.floor(min / 60) % 24, mm = min % 60;

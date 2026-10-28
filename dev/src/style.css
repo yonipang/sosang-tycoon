@@ -1150,14 +1150,20 @@ body.in-town #toasts { bottom: auto; top: 110px; } /* 마을에서는 알림을 
 .week-big.neg { color: #ffb3a6; }
 .ln .neg { color: var(--red); }
 /* 동네 탐방 (v0.78): 위 막대 체력 · 가방 · 사건 창 */
-.ex-sp { display: inline-flex; align-items: center; gap: 4px; margin-right: auto; }
-.ex-sp b { font-weight: normal; font-size: 14px; }
-.ex-sp > i { display: block; width: 84px; height: 12px; border: 2px solid var(--paper); background: rgba(0,0,0,.35); }
-.ex-sp > i > i { display: block; height: 100%; background: #7fd6a0; transition: width .2s; }
+/* 맨 위 HUD 둘째 줄: 체력 · 가방 (v0.79) — 탐방 중에는 할 일 버튼 대신 */
+body.in-ex #questTrack { display: none !important; }
+#exHud { flex: 1 1 100%; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; color: var(--ink); }
+.ex-sp { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.ex-sp b, .ex-bag b { font-weight: normal; font-size: 15px; white-space: nowrap; }
+.ex-sp > i { display: block; flex: none; width: 112px; height: 18px; border: 3px solid var(--ink); background: var(--paper-2); }
+.ex-sp > i > i { display: block; height: 100%; background: var(--green); transition: width .2s; }
 .ex-sp.low > i > i { background: var(--red); }
-.ex-bag { display: inline-flex; gap: 3px; }
-.ex-slot { width: 22px; height: 22px; border: 2px solid var(--paper); background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; }
-.ex-ic { width: 16px; height: 16px; object-fit: contain; }
+.ex-sp em { font-style: normal; min-width: 2.2em; }
+.ex-sp.low em { color: var(--red); }
+.ex-bag { display: inline-flex; align-items: center; gap: 4px; }
+.ex-slot { width: 30px; height: 30px; border: 3px solid var(--ink); background: var(--paper-2); display: flex; align-items: center; justify-content: center; }
+.ex-ic { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
+.ex-place { padding: 2px 8px; border: 2px solid var(--paper); margin-right: auto; }
 .ex-txt { margin: 4px 0 8px; line-height: 1.45; }
 .ex-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 2px dashed var(--line); }
 .ex-row span { display: flex; flex-direction: column; }

@@ -43,13 +43,20 @@ export function exGo() {
 }
 
 // ── 위 막대 · 아래 버튼 ──
-export function exBar() {
-  const X = exRun(); if (!X) return '';
+// 체력 · 가방은 맨 위 HUD 둘째 줄에 (v0.79 사용자 요청) — 골목 막대에는 시각과 동네 이름만
+export function exHud() {
+  const X = exRun(), el = $('exHud');
+  document.body.classList.toggle('in-ex', !!X);
+  if (!X) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } return; }
   const p = Math.max(0, X.sp / EX_STAMINA), low = p < 0.25;
   const bag = Array.from({ length: EX_BAG }, (_, i) => `<i class="ex-slot">${X.bag[i] ? icon(FINDS[X.bag[i]].icon, 'ex-ic') : ''}</i>`).join('');
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>
-    <span class="ex-sp${low ? ' low' : ''}" title="체력"><b>체력</b><i><i style="width:${Math.round(p * 100)}%"></i></i></span>
-    <span class="ex-bag" title="가방">${bag}</span>`;
+  el.innerHTML = `<span class="ex-sp${low ? ' low' : ''}"><b>체력</b><i><i style="width:${Math.round(p * 100)}%"></i></i><em>${Math.ceil(X.sp)}</em></span>
+    <span class="ex-bag"><b>가방</b>${bag}</span>`;
+  el.hidden = false;
+}
+export function exBar() {
+  const X = exRun(); if (!X) return '';
+  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span><span class="ex-place">재래시장</span>`;
 }
 export const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 export function exNavClick(k) {
