@@ -46,6 +46,22 @@ function xGlow(x, y, r, a) {
   g.addColorStop(0, `rgba(255,200,110,${a})`); g.addColorStop(1, 'rgba(255,200,110,0)');
   xc.fillStyle = g; xc.fillRect(x - r, y - r, r * 2, r * 2);
 }
+// 아파트 단지 바닥 (sim/explore.js genApt ground): 0 보도 · 1 잔디 · 2 모래 · 3 아스팔트(주차 칸 흰 선) · 4 울타리
+function aptGround(M, x0, x1, y0, y1) {
+  const pv = SPR.pave, gr = SPR.grass, sd = SPR.ap_sand;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const g = M.ground[ty * M.W + tx], px = tx * TILE, py = ty * TILE;
+    if (g === 1 && gr) xc.drawImage(XA, gr[0], gr[1], 16, 16, px, py, 16, 16);
+    else if (g === 2 && sd) xc.drawImage(XA, sd[0] + (tx % 2) * 16, sd[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+    else if (g === 3) { xc.fillStyle = (tx + ty) % 2 ? '#55565f' : '#52535c'; xc.fillRect(px, py, 16, 16); }
+    else if (g === 4) { xc.fillStyle = '#3f6b3a'; xc.fillRect(px, py, 16, 16); xc.fillStyle = '#4f8446'; xc.fillRect(px + 1, py + 2, 6, 6); xc.fillRect(px + 9, py + 7, 6, 6); }
+    else xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+  }
+  // 주차 칸 선 (1~12칸 · 18~21줄)
+  xc.fillStyle = 'rgba(235,235,225,.75)';
+  for (let k = 0; k <= 6; k++) xc.fillRect((1 + k * 2) * TILE - 1, 18 * TILE + 2, 2, 4 * TILE - 4);
+  xc.fillRect(TILE, 22 * TILE - 1, 12 * TILE, 2);
+}
 const CARTS = ['mk_cart1', 'mk_cart2', 'mk_cart3', 'mk_cart6'], UMBS = ['mk_umb2', 'mk_umb3', 'mk_umb4', 'mk_umb3'];
 
 // S: { map, cam, vw, vh, me, time, marks: [{tx,ty}], follow: 따라오는 사람, carry: 짐을 들었나, target: {tx,ty} 심부름 목적지 }
@@ -58,15 +74,18 @@ export function drawExplore(canvas, S) {
   xc.setTransform(1, 0, 0, 1, 0, 0);
   xc.fillStyle = '#1b1c2a'; xc.fillRect(0, 0, S.vw, S.vh);
   xc.translate(-cx, -cy);
-  // 바닥: 시장 보도 (위 가게 줄 뒤는 어두운 골목)
   const pv = SPR.pave, x0 = Math.max(0, Math.floor(cx / TILE)), x1 = Math.min(M.W - 1, Math.floor((cx + S.vw) / TILE));
   const y0 = Math.max(0, Math.floor(cy / TILE)), y1 = Math.min(M.H - 1, Math.floor((cy + S.vh) / TILE));
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const px = tx * TILE, py = ty * TILE;
-    if (ty < 6) { xc.fillStyle = '#2b2733'; xc.fillRect(px, py, TILE, TILE); continue; }
-    xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+  const apt = M.kind === 'apt';
+  if (apt) aptGround(M, x0, x1, y0, y1);
+  else { // 바닥: 시장 보도 (위 가게 줄 뒤는 어두운 골목)
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      const px = tx * TILE, py = ty * TILE;
+      if (ty < 6) { xc.fillStyle = '#2b2733'; xc.fillRect(px, py, TILE, TILE); continue; }
+      xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+    }
+    xc.fillStyle = 'rgba(140,100,60,.10)'; xc.fillRect(0, 96, M.W * TILE, (M.H - 6) * TILE); // 시장 바닥은 조금 따뜻하게
   }
-  xc.fillStyle = 'rgba(140,100,60,.10)'; xc.fillRect(0, 96, M.W * TILE, (M.H - 6) * TILE); // 시장 바닥은 조금 따뜻하게
   // 물건 · 사람: 발끝(바닥 y) 순서
   const items = [];
   for (const s of M.shops) {
@@ -76,7 +95,7 @@ export function drawExplore(canvas, S) {
       if (s.closed) { xSpr('mk_shut', s.x + 6, top + 50); xc.fillStyle = 'rgba(20,20,40,.18)'; xc.fillRect(s.x, top, 80, 87); }
       xSpr('mk_s_' + s.type, s.x + 4, top + 29);
     } });
-    if (!s.closed) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
+    if (!s.closed && !s.apt) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
   }
   for (const p of M.props) {
     const bx = p.tx * TILE, bot = (p.ty + 1) * TILE;
@@ -88,11 +107,14 @@ export function drawExplore(canvas, S) {
     else if (p.kind === 'board') items.push({ y: bot, d: () => xSpr('board', bx + 6, bot - xh('board')) });
     else if (p.kind === 'crate') items.push({ y: bot, d: () => xSpr('mk_crate', bx + 1, bot - xh('mk_crate')) });
     else if (p.kind === 'bus') items.push({ y: bot, d: () => xSpr('busstop', bx, bot - xh('busstop')) });
+    else if (p.kind === 'spr') items.push({ y: p.bot, d: () => xSpr(p.n, p.x, p.bot - xh(p.n)) }); // 아파트 단지 물건 (발끝 = bot)
   }
   for (const a of M.actors) if (!a.hidden) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
   if (S.follow) items.push({ y: S.follow.y + 0.4, d: () => xPerson(S.follow, t + 0.3) });
   items.push({ y: S.me.y + 0.5, d: () => { xPerson(S.me, t); if (S.carry) xCarry(S.me.x, S.me.y, t); } });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  if (apt) { xc.fillStyle = 'rgba(255,214,150,.10)'; xc.fillRect(cx, cy, S.vw, S.vh); } // 아침 햇살
+  else {
   // 새벽빛 + 가게 불빛
   xc.fillStyle = 'rgba(60,80,145,.28)'; xc.fillRect(cx, cy, S.vw, S.vh);
   xc.globalCompositeOperation = 'lighter';
@@ -100,6 +122,7 @@ export function drawExplore(canvas, S) {
   for (const s of M.shops) if (!s.closed) xGlow(s.x + 54, s.bot - 24, 30, 0.16 * fl);
   for (const p of M.props) if (p.kind === 'cart') xGlow(p.tx * TILE + 24, p.ty * TILE - 6, 26, 0.14 * fl);
   xc.globalCompositeOperation = 'source-over';
+  }
   for (const m of S.marks || []) xMark(m.tx * TILE + 8, m.ty * TILE - 34, t);
   if (S.target) xTarget(S.target.tx * TILE + 8, S.target.ty * TILE + 13, t, cx, cy, S.vw, S.vh);
   xc.setTransform(1, 0, 0, 1, 0, 0);

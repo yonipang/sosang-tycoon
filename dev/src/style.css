@@ -609,6 +609,7 @@ body.in-town #bar { display: none; }
 .tb-time { padding: 2px 8px; border: 2px solid var(--paper); }
 .tb-time.night { background: var(--night); }
 .tb-time.dawn { background: #5d6b9e; }
+.tb-time.morning { background: #d98a3a; }
 .tb-slots { display: inline-flex; gap: 3px; margin-right: auto; }
 .tb-slots i { width: 12px; height: 12px; border: 2px solid var(--paper); background: var(--mustard); }
 .tb-slots i.n { background: #8fa3e8; }

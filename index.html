@@ -614,6 +614,7 @@ body.in-town #bar { display: none; }
 .tb-time { padding: 2px 8px; border: 2px solid var(--paper); }
 .tb-time.night { background: var(--night); }
 .tb-time.dawn { background: #5d6b9e; }
+.tb-time.morning { background: #d98a3a; }
 .tb-slots { display: inline-flex; gap: 3px; margin-right: auto; }
 .tb-slots i { width: 12px; height: 12px; border: 2px solid var(--paper); background: var(--mustard); }
 .tb-slots i.n { background: #8fa3e8; }
@@ -1758,7 +1759,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.81';
+const GAME_VERSION = '0.82';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3047,6 +3048,13 @@ const EX_STEP = 0.4;      // 한 칸 걸을 때 드는 체력
 const EX_BAG = 4;         // 가방 칸
 const EX_EVENTS = 7;      // 한 번 갈 때 생기는 사건 수 (다 하려면 체력이 모자라요 — 고르는 게 재미)
 const EX_CLOCK = '05:30'; // 새벽 첫차
+// 갈 수 있는 동네 (v0.82: 아파트 단지) — 버스 정류장에서 하루 한 곳
+//  when·clock 위 막대 시각 · bus 정류장 버튼 · sub 그 동네에 많은 사람 · intro 처음 내렸을 때 한 줄
+const EX_AREAS = {
+  market: { name: '재래시장', when: '새벽', clock: '05:30', bus: '새벽 첫차로 재래시장 가기', sub: '상인 · 어르신 · 갓 나온 재료', intro: '새벽 시장이 막 문을 엽니다.' },
+  apt: { name: '아파트 단지', when: '아침', clock: '07:30', bus: '아침 버스로 아파트 단지 가기', sub: '학생 · 직장인 · 집이 많은 동네', intro: '출근하고 등교하는 사람들로 단지가 북적입니다.' },
+};
+const EX_AREA_IDS = Object.keys(EX_AREAS);
 
 // 재래시장 지도 (16px 칸): 위 가게 줄(0~5줄) · 길 A(6~11줄, 6줄은 가게 앞 진열) · 아래 가게 줄(12~17줄, 가게 사이 1칸 골목으로 지나가요) · 길 B(18~23줄)
 //  가게 한 자리 = 너비 80px(5칸) + 사이 16px. 왼쪽 2칸 · 오른쪽 2칸은 위아래로 이어진 길. 버스 정류장은 왼쪽 아래
@@ -3067,6 +3075,20 @@ const SHOP_TYPES = {
   goods: { name: '만물잡화', owner: 4, w: 58 },
 };
 const SHOP_IDS = Object.keys(SHOP_TYPES);
+// 아파트 단지 지도 (16px 칸, v0.82): 0줄 울타리 · 1~11줄 아파트 4동(사이 잔디) · 12~13줄 현관 앞 길 · 14~15줄 화단 · 16~17줄 큰길
+//  18~25줄: 왼쪽 주차장 · 가운데 놀이터 · 오른쪽 상가 3칸 · 26~29줄 단지 앞길(경비실 · 차단기 · 버스 정류장)
+const AP = { W: 44, H: 30, TOWERS: [2, 13, 24, 35], TOWER_BOT: 192, SHOP_X: [432, 528, 624], SHOP_BOT: 400 };
+// 상가 가게 (간판 mk_s_ · 건물은 시장과 같은 mk_b) — 편의점은 늘, 나머지 둘은 그날 씨앗으로
+const APT_SHOPS = {
+  cvs: { name: '편의점', owner: 16 },
+  tkd: { name: '태권도', owner: 3 },
+  piano: { name: '피아노 학원', owner: 9 },
+  math: { name: '수학학원', owner: 7 },
+  hair: { name: '미용실', owner: 17 },
+  estate: { name: '부동산', owner: 19 },
+};
+// 단지 사람들 (캐릭터 번호): 경비 아저씨 · 택배 기사 · 부녀회장 · 등교 학생 둘 · 분리수거 아주머니 · 장 본 할머니 · 놀이터 엄마
+const AP_CHARS = { guard: 20, courier: 6, chair: 5, student: 4, student2: 16, recycle: 10, shopper: 13, mom: 1 };
 const EX_CLOSED = 3;      // 날마다 문 닫은 가게 수 (14자리 중)
 const EX_CHARS = { cart: 15, stall: 14, kid: 15, grandma: 13 }; // 노점 아주머니 · 파라솔 할머니 · 길 잃은 아이 · 아이 할머니 (캐릭터 번호)
 const EX_CARRY = 2;       // 짐을 들고 걸으면 체력이 이만큼 배로 들어요
@@ -3086,6 +3108,13 @@ const FINDS = {
   refElder: { name: '시장 어르신들의 약속', icon: 'face_happy', kind: 'ref', type: 'elder', text: '다음 영업에 어르신 손님 2명' },
   refWorker: { name: '새벽 기사님들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
   flyerElder: { name: '시장 게시판 전단 자리', icon: 'board', kind: 'flyer', type: 'elder', mul: 1.3, days: 3, text: '3일 동안 어르신 손님 ↑' },
+  // 아파트 단지 (v0.82)
+  carrot: { name: '텃밭 당근', icon: 'ing_carrot', kind: 'ing', ing: 'carrot', n: 10, text: '당근 10개 → 냉장고' },
+  refStudent: { name: '학생들의 약속', icon: 'face_happy', kind: 'ref', type: 'student', text: '다음 영업에 학생 손님 2명' },
+  refApt: { name: '단지 어르신들의 약속', icon: 'face_happy', kind: 'ref', type: 'elder', text: '다음 영업에 어르신 손님 2명' },
+  refCourier: { name: '택배 기사님들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
+  flyerStudent: { name: '부녀회 단톡방 소개', icon: 'board', kind: 'flyer', type: 'student', mul: 1.3, days: 3, text: '3일 동안 학생 손님 ↑' },
+  flyerWorker: { name: '단지 게시판 전단 자리', icon: 'board', kind: 'flyer', type: 'worker', mul: 1.3, days: 3, text: '3일 동안 직장인 손님 ↑' },
 };
 
 // 동네 메모: 눈으로 본 것 한 줄 — 수첩에 쌓이고, 3장 상권 지도(나이스비즈맵)가 열리면 숫자로 다시 나와요
@@ -3096,6 +3125,14 @@ const MEMOS = {
   mkPrice: '시장 사람들은 값에 밝다. 100원 차이도 따진다',
   mkWeekend: '주말이면 시장에 사람이 두 배로 는다고 한다',
   mkDeliver: '새벽 배송 기사들이 시장 앞에서 잠깐 쉬어 간다',
+  // 아파트 단지: 주거 상권 (v0.82)
+  apMorning: '아침 7~8시, 학생과 직장인이 한꺼번에 단지를 빠져나간다',
+  apAfter: '학원·도장이 끝나는 오후 4~7시엔 아이들이 몰려나온다',
+  apHouse: '한 동에 100가구, 단지 전체 400가구쯤. 집이 많은 동네는 손님이 날마다 꾸준하다',
+  apDeliver: '단지엔 택배·배달이 하루 종일 드나든다. 포장·배달로 먹는 집이 많다',
+  apPrice: '편의점 삼각김밥 1,500원 · 컵떡볶이 2,500원. 단지 사람들은 값보다 가까운 곳을 고른다',
+  apMoms: '부녀회 단톡방 한 마디가 단지 소문이 된다. 단골 한 명이 손님을 데려온다',
+  apRent: '단지 상가 1층은 골목보다 임대료가 비싸다. 대신 날마다 같은 사람들이 지나간다',
 };
 
 // 사건: at 'shop:종류'(그 가게가 열린 날만 · 사장님) · 'cart'(길 가운데 노점) · 'stall'(할머니 노점 파라솔) · 'board'(시장 게시판) · 'kid'(길 잃은 아이)
@@ -3105,6 +3142,7 @@ const MEMOS = {
 //                 escort: 아이가 따라와요. 시장 어딘가에 나타난 할머니를 찾아 「모셔다드리기」(근처 가게 이름이 힌트)
 //   mini 손기술 — timing: 움직이는 바늘이 초록 칸에 올 때 누르기(rounds번 중 need번) · mash: 시간 안에 빠르게 눌러 막대 채우기(taps번)
 //   fail: 손기술을 놓쳤을 때 한 줄 (체력은 들고 가방엔 안 담겨요)
+//  area: 'market'(없으면) · 'apt' · 'any'(어느 동네든 — 길 잃은 아이)
 //  memo: 이 사건을 한 번이라도 하면 남는 동네 메모
 const EX_EVENTS_POOL = [
   { id: 'fishIce', at: 'shop:fish', title: '바다수산 사장님', text: '얼음 상자를 나르느라 정신이 없습니다. 「거기, 이 상자 좀 갖다줄 수 있어요? 손이 모자라서요.」',
@@ -3131,8 +3169,37 @@ const EX_EVENTS_POOL = [
     choices: [{ label: '국물 한 잔 (1,000원)', pay: 1000, heal: 12, say: '뜨끈한 국물이 목을 타고 내려갑니다.' }, { label: '꼬치 끼우기 돕기', cost: 8, mini: { kind: 'mash', name: '꼬치 끼우기', act: '끼우기!', taps: 16, time: 5 }, fail: '「아이고, 다 흘렸네. 괜찮아요, 국물이나 마시고 가요.」', give: 'fishcake', say: '「손 빠르네! 남는 거 가져가요.」' }] },
   { id: 'stallEgg', at: 'stall', title: '파라솔 할머니', text: '나물을 다듬던 할머니가 손짓합니다. 「이거 좀 같이 다듬어 줄 텨?」',
     choices: [{ label: '나물 다듬기 돕기', cost: 8, mini: { kind: 'mash', name: '나물 다듬기', act: '다듬기!', taps: 14, time: 5 }, fail: '「허허, 손이 아직 서툴구먼.」', give: 'egg', say: '「집에서 키운 닭이 낳은 거여. 가져가.」' }], memo: 'mkDawn' },
-  { id: 'lostKid', at: 'kid', title: '길 잃은 아이', text: '아이 하나가 울먹이며 두리번거립니다. 「할머니가 없어졌어요…」',
+  { id: 'lostKid', at: 'kid', area: 'any', title: '길 잃은 아이', text: '아이 하나가 울먹이며 두리번거립니다. 「할머니가 없어졌어요…」',
     choices: [{ label: '할머니 찾아 주기', task: { kind: 'escort', verb: '모셔 드리기' }, give: 'refElder', say: '「아이고, 고마워라! 내 친구들이랑 꼭 먹으러 갈게.」' }] },
+  // ── 아파트 단지 (v0.82): area 'apt' ── at 'guard'·'courier'·'chair'·'students'·'recycle'·'shopper'·'bench'(벤치) · 'shop:종류'(상가) · 'board'(단지 게시판)
+  { id: 'apGuard', area: 'apt', at: 'guard', title: '경비 아저씨', text: '경비실 앞에 택배 상자가 산더미입니다. 「아이고, 이걸 언제 다 올려 보내나…」',
+    choices: [{ label: '택배 상자 배달하기', task: { kind: 'deliver', item: '택배 상자', to: ['door'], verb: '전해 주기' }, give: 'refApt', say: '「고마워요! 경로당 어르신들한테 분식집 얘기 해 둘게.」' }], memo: 'apHouse' },
+  { id: 'apShopper', area: 'apt', at: 'shopper', title: '장 본 할머니', text: '양손 가득 장바구니를 든 할머니가 숨을 고릅니다. 「아이고, 우리 집이 저 끝 동인데…」',
+    choices: [{ label: '장바구니 들어 드리기', task: { kind: 'deliver', item: '장바구니', to: ['door'], verb: '전해 주기' }, give: 'refApt', say: '「착하기도 하지. 친구들 데리고 꼭 갈게.」' }], memo: 'apHouse' },
+  { id: 'apCourier', area: 'apt', at: 'courier', title: '택배 기사님', text: '현관 앞에 상자를 내리던 기사님이 땀을 닦습니다. 「오늘 물량이 장난 아니네요.」',
+    choices: [{ label: '상자 쌓기 돕기', cost: 8, mini: { kind: 'timing', name: '상자 쌓기', act: '쌓기!', rounds: 3, need: 2, speed: 1.2 }, fail: '「으앗, 와르르! 괜찮아요, 제가 할게요.」', give: 'refCourier', say: '「덕분에 빨리 끝났네요! 기사님들이랑 점심 먹으러 갈게요.」' }], memo: 'apDeliver' },
+  { id: 'apRecycle', area: 'apt', at: 'recycle', title: '분리수거 아주머니', text: '분리수거함 앞에 상자와 병이 잔뜩 쌓여 있습니다. 「오늘이 분리수거 날이라…」',
+    choices: [{ label: '분리수거 돕기', cost: 8, mini: { kind: 'mash', name: '분리수거', act: '나르기!', taps: 15, time: 5 }, fail: '「어머, 병 깨질라. 괜찮아요, 마음만 받을게요.」', give: 'carrot', say: '「손이 빠르네! 텃밭에서 키운 건데 가져가요.」' }], memo: 'apHouse' },
+  { id: 'apStudents', area: 'apt', at: 'students', title: '등교하는 학생들', text: '가방을 멘 학생들이 수다를 떨며 지나갑니다. 「학원 끝나고 뭐 먹지?」',
+    choices: [{ label: '가게 이야기 해 주기', cost: 5, give: 'refStudent', say: '「떡볶이요? 오늘 학원 끝나고 가 볼게요!」' }], memo: 'apMorning' },
+  { id: 'apChair', area: 'apt', at: 'chair', title: '부녀회장님', text: '벤치에 앉은 부녀회장님이 휴대폰을 들여다봅니다. 「우리 단톡방에 새 가게 소식 올라오면 다들 가 보거든요.」',
+    choices: [{ label: '가게 소개 부탁드리기', cost: 4, give: 'flyerStudent', say: '「애들 학원 끝나고 들르기 좋겠네. 올려 줄게요.」' }], memo: 'apMoms' },
+  { id: 'apBoard', area: 'apt', at: 'board', title: '단지 게시판', text: '관리사무소 공지 옆에 빈자리가 조금 있습니다. 출근길 사람들이 힐끗 보고 지나갑니다.',
+    choices: [{ label: '전단 붙이기', cost: 8, give: 'flyerWorker', say: '출근길에 잘 보이는 자리에 붙였습니다.' }], memo: 'apMorning' },
+  { id: 'apBench', area: 'apt', at: 'bench', title: '단지 벤치', text: '나무 그늘 아래 벤치가 비어 있습니다.',
+    choices: [{ label: '잠깐 앉아 쉬기', heal: 12, say: '아침 바람이 시원합니다. 다리가 조금 풀렸습니다.' }] },
+  { id: 'apCvs', area: 'apt', at: 'shop:cvs', title: '편의점', text: '진열대에 삼각김밥과 컵떡볶이가 줄지어 있습니다. 아침 손님이 줄을 섭니다.',
+    choices: [{ label: '커피 한 잔 (1,500원)', pay: 1500, heal: 20, say: '따뜻한 커피에 정신이 듭니다.' }, { label: '값 둘러보기', cost: 3, say: '삼각김밥 1,500원, 컵떡볶이 2,500원. 아침엔 다들 바쁘게 집어 갑니다.' }], memo: 'apPrice' },
+  { id: 'apTkd', area: 'apt', at: 'shop:tkd', title: '태권도 관장님', text: '「태권!」 소리가 쩌렁쩌렁합니다. 관장님이 문 앞을 쓸고 있습니다.',
+    choices: [{ label: '아이들 간식 이야기', cost: 5, give: 'refStudent', say: '「운동 끝나면 애들이 배고파해요. 분식집 알려 줄게요!」' }], memo: 'apAfter' },
+  { id: 'apPiano', area: 'apt', at: 'shop:piano', title: '피아노 학원 원장님', text: '창문 너머로 연습곡이 들립니다. 원장님이 화분에 물을 줍니다.',
+    choices: [{ label: '학원 끝나는 시간 묻기', cost: 4, give: 'refStudent', say: '「여섯 시에 끝나요. 애들 보내 볼게요.」' }], memo: 'apAfter' },
+  { id: 'apMath', area: 'apt', at: 'shop:math', title: '수학학원 원장님', text: '칠판에 오늘 진도가 빼곡합니다. 「저녁 수업 전에 애들이 꼭 뭘 먹고 와요.」',
+    choices: [{ label: '간식 이야기 나누기', cost: 4, give: 'refStudent', say: '「분식집 생겼어요? 쉬는 시간에 보내 볼게요.」' }], memo: 'apAfter' },
+  { id: 'apHair', area: 'apt', at: 'shop:hair', title: '미용실 원장님', text: '「어서 와요~」 드라이기 소리 사이로 동네 소식이 오갑니다.',
+    choices: [{ label: '동네 이야기 듣기', cost: 5, give: 'noteTteok', say: '「요즘 애들은 매운 거 좋아해요. 떡볶이는 소스가 생명이지!」' }], memo: 'apMoms' },
+  { id: 'apEstate', area: 'apt', at: 'shop:estate', title: '부동산 사장님', text: '유리문에 매물 종이가 빼곡합니다. 사장님이 커피를 들고 나옵니다.',
+    choices: [{ label: '동네 이야기 듣기', cost: 4, say: '「여기 상가 1층은 비싸요. 그래도 단지 사람들이 매일 지나가니까.」' }], memo: 'apRent' },
 ];
 // ── js/save/migrations.js ──
 // 옛 세이브 보정은 모두 여기에 둬요. 세이브 구조를 바꾸면 기본값을 채우는 줄을 아래에 더해요.
@@ -4686,23 +4753,92 @@ function genMarket(r) {
   put('board', 9, 2); put('crate', 10, 2); put('crate', 21, 2);
   // 버스 정류장 (왼쪽 아래) — 여기서 시작하고 여기서 돌아가요
   props.push({ kind: 'bus', tx: 2, ty: 23 }); for (let d = 0; d < 4; d++) block(2 + d, 23);
-  return { W, H, walls, shops, actors, props };
+  const marks = shops.filter(s => !s.closed).map(s => ({ name: SHOP_TYPES[s.type].name, tx: s.x / 16 + 2, ty: s.bot / 16 }));
+  return { kind: 'market', W, H, walls, shops, actors, props, marks, start: MK.START, kidRows: [8, 20], spawnY: [7, H - 2] };
+}
+
+// ── 아파트 단지 지도 (v0.82): 아파트 4동 · 화단 · 큰길 · 주차장 · 놀이터 · 상가 3칸 · 경비실 · 정류장 ──
+//  ground: 0 보도 · 1 잔디 · 2 모래 · 3 아스팔트 · 4 울타리 (render/explore.js)
+function genApt(r) {
+  const { W, H } = AP, walls = new Uint8Array(W * H), ground = new Uint8Array(W * H);
+  const block = (tx, ty) => { if (tx >= 0 && ty >= 0 && tx < W && ty < H) walls[ty * W + tx] = 1; };
+  const fill = (x0, y0, x1, y1, g) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) ground[ty * W + tx] = g; };
+  const rect = (x0, y0, x1, y1) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) block(tx, ty); };
+  const shops = [], actors = [], props = [], npcs = {}, doors = [], marks = [];
+  const spr = (n, x, bot) => props.push({ kind: 'spr', n, x, bot });
+  const npc = (key, char, tx, ty) => { const A = { char, tx, ty }; actors.push(A); block(tx, ty); if (key) npcs[key] = A; return A; };
+  const pick = a => a[Math.floor(r() * a.length)];
+  fill(0, 0, W - 1, 0, 4); rect(0, 0, W - 1, 0);          // 울타리
+  fill(0, 1, W - 1, 11, 1); fill(0, 14, W - 1, 15, 1);     // 잔디 · 화단
+  fill(1, 18, 12, 25, 3); fill(15, 18, 24, 24, 2);         // 주차장 · 놀이터
+  // 아파트 4동 (현관 앞은 보도)
+  AP.TOWERS.forEach((tx, i) => {
+    spr('ap_t' + (i + 1), tx * 16, AP.TOWER_BOT); rect(tx, 1, tx + 6, 11);
+    doors.push({ key: 'door', tx: tx + 3, ty: 12, label: `${101 + i}동 현관` });
+    marks.push({ name: `${101 + i}동`, tx: tx + 3, ty: 12 });
+  });
+  // 동 사이 나무 (102·103동 사이 아래는 분리수거장)
+  const tree = (c, row, n) => { spr(n || (r() < 0.5 ? 'tree' : 'tree2'), c * 16 - 5, (row + 1) * 16); block(c, row); };
+  [10, 21, 32].forEach(c => tree(c, 5)); [10, 32].forEach(c => tree(c, 10)); tree(42, 7);
+  spr('ap_bin_blue', 20 * 16 + 2, 12 * 16); spr('ap_bin_green', 20 * 16 + 31, 12 * 16); rect(20, 11, 23, 11);
+  npc('recycle', AP_CHARS.recycle, 22, 12); marks.push({ name: '분리수거장', tx: 21, ty: 12 });
+  // 택배: 그날 한 동 현관 옆에 상자 · 기사님
+  const cd = pick(doors); spr('ap_box', (cd.tx + 2) * 16 + 1, 14 * 16); spr('ap_box', (cd.tx + 2) * 16 + 1, 14 * 16 - 9); block(cd.tx + 2, 13);
+  npc('courier', AP_CHARS.courier, cd.tx + 3, 13);
+  // 단지 게시판 (103·104동 사이)
+  props.push({ kind: 'board', tx: 32, ty: 13, v: 0 }); rect(32, 13, 33, 13);
+  // 화단: 가로등 · 꽃 · 나무 · 벤치 둘(하나는 부녀회장님)
+  [4, 15, 26, 37].forEach(c => { spr('ap_lamp', c * 16 + 1, 16 * 16); block(c, 15); });
+  [[6, 14], [18, 14], [29, 14], [40, 14]].forEach(([c, row]) => { spr('ap_flowers', c * 16 - 6, (row + 1) * 16); rect(c, row, c + 1, row); });
+  [1, 12, 23, 34].forEach(c => tree(c, 15));
+  const bc = r() < 0.5 ? [8, 30] : [30, 8];
+  spr('ap_bench', bc[0] * 16 + 3, 16 * 16); rect(bc[0], 15, bc[0] + 2, 15); npc('chair', AP_CHARS.chair, bc[0] + 3, 15);
+  spr('ap_bench', bc[1] * 16 + 3, 16 * 16); rect(bc[1], 15, bc[1] + 2, 15); npcs.bench = { tx: bc[1] + 1, ty: 15, prop: true };
+  // 큰길: 등교하는 학생 둘 · 장 본 할머니
+  const sx = 14 + Math.floor(r() * 14); npc('students', AP_CHARS.student, sx, 16); npc(null, AP_CHARS.student2, sx + 1, 16);
+  npc('shopper', AP_CHARS.shopper, 30 + Math.floor(r() * 10), 17);
+  // 주차장: 차 여섯 자리 (그날 빈자리도 있어요) · 차단기
+  for (let k = 0; k < 6; k++) if (r() < 0.75) { const tx = 1 + k * 2; spr('ap_car' + (1 + Math.floor(r() * 6)), tx * 16, 22 * 16); rect(tx, 19, tx + 1, 21); }
+  spr('ap_gate', 16, 26 * 16); block(1, 25);
+  marks.push({ name: '주차장', tx: 6, ty: 22 });
+  // 놀이터: 미끄럼틀 · 그네 · 엄마
+  spr('slide', 16 * 16, 24 * 16); rect(16, 21, 17, 23);
+  spr('swing', 19 * 16 + 4, 22 * 16); rect(19, 21, 23, 21);
+  npc(null, AP_CHARS.mom, 21, 23); marks.push({ name: '놀이터', tx: 20, ty: 21 });
+  // 상가: 편의점 + 그날 두 가게
+  const others = Object.keys(APT_SHOPS).filter(k => k !== 'cvs');
+  for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
+  const row3 = ['cvs', others[0], others[1]], ci = Math.floor(r() * 3); [row3[0], row3[ci]] = [row3[ci], row3[0]]; // 편의점 자리도 그날그날
+  row3.forEach((type, i) => {
+    const x = AP.SHOP_X[i], bot = AP.SHOP_BOT, S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: false, apt: true };
+    shops.push(S); rect(x / 16, Math.floor((bot - 87) / 16), x / 16 + 4, Math.floor((bot - 1) / 16));
+    S.owner = npc(null, APT_SHOPS[type].owner, x / 16 + 4, bot / 16);
+    marks.push({ name: APT_SHOPS[type].name, tx: x / 16 + 2, ty: bot / 16 });
+  });
+  // 단지 앞: 경비실 · 화분 · 버스 정류장
+  spr('ap_booth', 11 * 16, 28 * 16); rect(11, 26, 13, 27); npc('guard', AP_CHARS.guard, 14, 27);
+  marks.push({ name: '경비실', tx: 12, ty: 27 });
+  spr('ap_planter', 22 * 16, 28 * 16); rect(22, 27, 24, 27);
+  spr('ap_planter', 34 * 16, 28 * 16); rect(34, 27, 36, 27);
+  props.push({ kind: 'bus', tx: 2, ty: H - 1 }); for (let d = 0; d < 4; d++) block(2 + d, H - 1);
+  return { kind: 'apt', W, H, walls, ground, shops, actors, props, npcs, doors, marks, start: [7, H - 2], kidRows: [13, 17, 26], spawnY: [12, H - 3] };
 }
 
 // 사건 자리: 열린 가게 사장님 · 노점 · 할머니 · 게시판 · 길 잃은 아이
-function placeEvents(map, r) {
-  const pool = EX_EVENTS_POOL.slice();
+function placeEvents(map, r, area) {
+  const pool = EX_EVENTS_POOL.filter(e => (e.area || 'market') === area || e.area === 'any');
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
   const spots = [], used = new Set();
   for (const ev of pool) {
     if (spots.length >= EX_EVENTS) break;
     let at = null;
     if (ev.at.startsWith('shop:')) { const S = map.shops.find(s => !s.closed && s.type === ev.at.slice(5) && !used.has(s)); if (S) { used.add(S); at = S.owner; } }
+    else if (map.npcs && map.npcs[ev.at]) { const N = map.npcs[ev.at]; if (!used.has(N)) { used.add(N); at = N; } } // 아파트 단지 사람들
     else if (ev.at === 'cart' || ev.at === 'stall') { const P = map.props.find(p => p.kind === ev.at && p.npc && !used.has(p)); if (P) { used.add(P); at = P.npc; } }
     else if (ev.at === 'board') { const P = map.props.find(p => p.kind === 'board'); if (P) at = { tx: P.tx, ty: P.ty, prop: true }; }
     else if (ev.at === 'kid') {
       for (let t = 0; t < 40 && !at; t++) {
-        const tx = 3 + Math.floor(r() * (map.W - 6)), ty = r() < 0.5 ? 8 : 20;
+        const tx = 3 + Math.floor(r() * (map.W - 6)), ty = map.kidRows[Math.floor(r() * map.kidRows.length)];
         if (!map.walls[ty * map.W + tx] && !map.walls[(ty + 1) * map.W + tx]) { at = { char: EX_CHARS.kid, tx, ty }; map.actors.push(at); map.walls[ty * map.W + tx] = 1; }
       }
     }
@@ -4713,11 +4849,12 @@ function placeEvents(map, r) {
 const evOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 
 // 떠나기: 버스 정류장 (골목 준비 시간과 따로, 하루 한 번)
-defineCmd('exStart', () => {
-  if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 새벽에 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
-  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243);
-  const map = genMarket(r);
-  X = { area: 'market', map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r), memos: [], did: 0, walked: 0 };
+defineCmd('exStart', ({ area } = {}) => {
+  if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
+  if (!EX_AREAS[area]) area = 'market';
+  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : 0));
+  const map = area === 'apt' ? genApt(r) : genMarket(r);
+  X = { area, map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r, area), memos: [], did: 0, walked: 0 };
   emit('sfx', 'door');
   emit('explore', 'start');
   return true;
@@ -4787,18 +4924,20 @@ function exDone(S, ev, C, drop, pay) {
   const give = C.give && !(drop === -1) ? C.give : null;
   if (give) X.bag.push(give);
   if (C.bond) addBond(C.bond[0], C.bond[1], '시장에서 받은 꽃', true);
-  if (ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo)) X.memos.push(ev.memo);
+  const fresh = ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo); // 처음 본 메모만 알려요
+  if (fresh) X.memos.push(ev.memo);
   S.done = true; X.did++;
   emit('sfx', give ? 'coin' : 'page');
-  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
+  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: fresh ? ev.memo : null });
   if (X.sp <= 0) faint();
   return true;
 }
 // 심부름 만들기: deliver = 받을 사람(멀리 있는 곳 먼저) · escort = 시장 어딘가에 할머니가 나타나요
 function exAnchors() {
   const M = X.map, out = [];
-  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: SHOP_TYPES[s.type].name });
+  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: (SHOP_TYPES[s.type] || APT_SHOPS[s.type]).name });
   for (const p of M.props) if (p.npc) out.push({ key: p.kind, tx: p.npc.tx, ty: p.npc.ty, label: p.kind === 'cart' ? '어묵 노점' : '파라솔 할머니' });
+  for (const d of M.doors || []) out.push(d); // 아파트 현관
   return out;
 }
 const exFar = (a, S) => Math.abs(a.tx - S.tx) + Math.abs(a.ty - S.ty);
@@ -4814,13 +4953,13 @@ function exMakeTask(S, T) {
   if (T.kind === 'escort') { // 멀리 떨어진 빈 칸에 할머니 (옆 칸도 비어 있어야 다가갈 수 있어요)
     const r = makeRand((G.baseSeed || 1) + G.day * 31 + S.tx * 7 + S.ty);
     for (let t = 0; t < 200; t++) {
-      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = 7 + Math.floor(r() * (M.H - 8)), k = ty * M.W + tx;
+      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = M.spawnY[0] + Math.floor(r() * (M.spawnY[1] - M.spawnY[0] + 1)), k = ty * M.W + tx;
       if (M.walls[k] || M.walls[k + M.W] || exFar({ tx, ty }, S) < 14) continue;
-      const near = M.shops.filter(s => !s.closed).sort((a, b) => Math.abs(a.x / 16 + 2 - tx) + Math.abs(a.bot / 16 - ty) - (Math.abs(b.x / 16 + 2 - tx) + Math.abs(b.bot / 16 - ty)))[0];
+      const near = M.marks.slice().sort((a, b) => Math.abs(a.tx - tx) + Math.abs(a.ty - ty) - (Math.abs(b.tx - tx) + Math.abs(b.ty - ty)))[0]; // 가까운 곳 이름이 힌트
       const g = { char: EX_CHARS.grandma, tx, ty, key: 'grandma' };
       M.actors.push(g); M.walls[k] = 1;
       const kid = M.actors.find(a => a.tx === S.tx && a.ty === S.ty); if (kid) { kid.hidden = true; M.walls[S.ty * M.W + S.tx] = 0; } // 아이는 나를 따라와요
-      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? SHOP_TYPES[near.type].name : '', follow: EX_CHARS.kid };
+      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? near.name : '', follow: EX_CHARS.kid };
     }
     return null;
   }
@@ -6126,7 +6265,7 @@ const DEV_JUMPS = [
   { id: 'c1t', name: '1장 6일차 전날 밤 · 마을 첫 밤 (준비 시간·시장)', day: 6, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer'], active: ['c1_stock'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true },
   { id: 'c1w', name: '1장 7일차 · 첫 주 정리', day: 7, ch: 1, title: '사장 지망생', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock'], active: ['c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
   { id: 'c2u', name: '9일차 전날 밤 · 메뉴 연구 칠판 (숙련도 넉넉히, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, mastery: { tteok: 160, kimbap: 70, twigim: 28 } },
-  { id: 'c2x', name: '9일차 전날 밤 · 동네 탐방 (버스 정류장 → 재래시장)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, cash: 1000000 },
+  { id: 'c2x', name: '9일차 전날 밤 · 동네 탐방 (버스 정류장 → 재래시장 · 아파트 단지)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, cash: 1000000 },
   { id: 'c2f', name: '9일차 전날 밤 · 미소 가구 개업 (돈 60만 원, 마을)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 600000 },
   { id: 'c2f5', name: '9일차 전날 밤 · 미소 가구 ♥♥♥♥♥ (고급·특별·확장공사, 돈 400만 원)', day: 9, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, cash: 4000000, bond: { miso: 80, jung: 30 } },
   { id: 'c2m', name: '10일차 전날 밤 · 문 철물 개업 (상인회 부탁부터)', day: 10, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { due: 10 }, cash: 1500000 },
@@ -6871,6 +7010,22 @@ function xGlow(x, y, r, a) {
   g.addColorStop(0, `rgba(255,200,110,${a})`); g.addColorStop(1, 'rgba(255,200,110,0)');
   xc.fillStyle = g; xc.fillRect(x - r, y - r, r * 2, r * 2);
 }
+// 아파트 단지 바닥 (sim/explore.js genApt ground): 0 보도 · 1 잔디 · 2 모래 · 3 아스팔트(주차 칸 흰 선) · 4 울타리
+function aptGround(M, x0, x1, y0, y1) {
+  const pv = SPR.pave, gr = SPR.grass, sd = SPR.ap_sand;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const g = M.ground[ty * M.W + tx], px = tx * TILE, py = ty * TILE;
+    if (g === 1 && gr) xc.drawImage(XA, gr[0], gr[1], 16, 16, px, py, 16, 16);
+    else if (g === 2 && sd) xc.drawImage(XA, sd[0] + (tx % 2) * 16, sd[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+    else if (g === 3) { xc.fillStyle = (tx + ty) % 2 ? '#55565f' : '#52535c'; xc.fillRect(px, py, 16, 16); }
+    else if (g === 4) { xc.fillStyle = '#3f6b3a'; xc.fillRect(px, py, 16, 16); xc.fillStyle = '#4f8446'; xc.fillRect(px + 1, py + 2, 6, 6); xc.fillRect(px + 9, py + 7, 6, 6); }
+    else xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+  }
+  // 주차 칸 선 (1~12칸 · 18~21줄)
+  xc.fillStyle = 'rgba(235,235,225,.75)';
+  for (let k = 0; k <= 6; k++) xc.fillRect((1 + k * 2) * TILE - 1, 18 * TILE + 2, 2, 4 * TILE - 4);
+  xc.fillRect(TILE, 22 * TILE - 1, 12 * TILE, 2);
+}
 const CARTS = ['mk_cart1', 'mk_cart2', 'mk_cart3', 'mk_cart6'], UMBS = ['mk_umb2', 'mk_umb3', 'mk_umb4', 'mk_umb3'];
 
 // S: { map, cam, vw, vh, me, time, marks: [{tx,ty}], follow: 따라오는 사람, carry: 짐을 들었나, target: {tx,ty} 심부름 목적지 }
@@ -6883,15 +7038,18 @@ function drawExplore(canvas, S) {
   xc.setTransform(1, 0, 0, 1, 0, 0);
   xc.fillStyle = '#1b1c2a'; xc.fillRect(0, 0, S.vw, S.vh);
   xc.translate(-cx, -cy);
-  // 바닥: 시장 보도 (위 가게 줄 뒤는 어두운 골목)
   const pv = SPR.pave, x0 = Math.max(0, Math.floor(cx / TILE)), x1 = Math.min(M.W - 1, Math.floor((cx + S.vw) / TILE));
   const y0 = Math.max(0, Math.floor(cy / TILE)), y1 = Math.min(M.H - 1, Math.floor((cy + S.vh) / TILE));
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const px = tx * TILE, py = ty * TILE;
-    if (ty < 6) { xc.fillStyle = '#2b2733'; xc.fillRect(px, py, TILE, TILE); continue; }
-    xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+  const apt = M.kind === 'apt';
+  if (apt) aptGround(M, x0, x1, y0, y1);
+  else { // 바닥: 시장 보도 (위 가게 줄 뒤는 어두운 골목)
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      const px = tx * TILE, py = ty * TILE;
+      if (ty < 6) { xc.fillStyle = '#2b2733'; xc.fillRect(px, py, TILE, TILE); continue; }
+      xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+    }
+    xc.fillStyle = 'rgba(140,100,60,.10)'; xc.fillRect(0, 96, M.W * TILE, (M.H - 6) * TILE); // 시장 바닥은 조금 따뜻하게
   }
-  xc.fillStyle = 'rgba(140,100,60,.10)'; xc.fillRect(0, 96, M.W * TILE, (M.H - 6) * TILE); // 시장 바닥은 조금 따뜻하게
   // 물건 · 사람: 발끝(바닥 y) 순서
   const items = [];
   for (const s of M.shops) {
@@ -6901,7 +7059,7 @@ function drawExplore(canvas, S) {
       if (s.closed) { xSpr('mk_shut', s.x + 6, top + 50); xc.fillStyle = 'rgba(20,20,40,.18)'; xc.fillRect(s.x, top, 80, 87); }
       xSpr('mk_s_' + s.type, s.x + 4, top + 29);
     } });
-    if (!s.closed) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
+    if (!s.closed && !s.apt) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
   }
   for (const p of M.props) {
     const bx = p.tx * TILE, bot = (p.ty + 1) * TILE;
@@ -6913,11 +7071,14 @@ function drawExplore(canvas, S) {
     else if (p.kind === 'board') items.push({ y: bot, d: () => xSpr('board', bx + 6, bot - xh('board')) });
     else if (p.kind === 'crate') items.push({ y: bot, d: () => xSpr('mk_crate', bx + 1, bot - xh('mk_crate')) });
     else if (p.kind === 'bus') items.push({ y: bot, d: () => xSpr('busstop', bx, bot - xh('busstop')) });
+    else if (p.kind === 'spr') items.push({ y: p.bot, d: () => xSpr(p.n, p.x, p.bot - xh(p.n)) }); // 아파트 단지 물건 (발끝 = bot)
   }
   for (const a of M.actors) if (!a.hidden) items.push({ y: a.ty * TILE + 13.5, d: () => xPerson({ char: a.char, x: a.tx * TILE + 8, y: a.ty * TILE + 13, dir: 3 }, t + a.char) });
   if (S.follow) items.push({ y: S.follow.y + 0.4, d: () => xPerson(S.follow, t + 0.3) });
   items.push({ y: S.me.y + 0.5, d: () => { xPerson(S.me, t); if (S.carry) xCarry(S.me.x, S.me.y, t); } });
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  if (apt) { xc.fillStyle = 'rgba(255,214,150,.10)'; xc.fillRect(cx, cy, S.vw, S.vh); } // 아침 햇살
+  else {
   // 새벽빛 + 가게 불빛
   xc.fillStyle = 'rgba(60,80,145,.28)'; xc.fillRect(cx, cy, S.vw, S.vh);
   xc.globalCompositeOperation = 'lighter';
@@ -6925,6 +7086,7 @@ function drawExplore(canvas, S) {
   for (const s of M.shops) if (!s.closed) xGlow(s.x + 54, s.bot - 24, 30, 0.16 * fl);
   for (const p of M.props) if (p.kind === 'cart') xGlow(p.tx * TILE + 24, p.ty * TILE - 6, 26, 0.14 * fl);
   xc.globalCompositeOperation = 'source-over';
+  }
   for (const m of S.marks || []) xMark(m.tx * TILE + 8, m.ty * TILE - 34, t);
   if (S.target) xTarget(S.target.tx * TILE + 8, S.target.ty * TILE + 13, t, cx, cy, S.vw, S.vh);
   xc.setTransform(1, 0, 0, 1, 0, 0);
@@ -7946,20 +8108,23 @@ const exEvOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 const exPx = tx => tx * TILE + TILE / 2, exPy = ty => ty * TILE + TILE - 3;
 
 // ── 버스 정류장 창 (골목) ──
+// 동네 고르기 (v0.82 아파트 단지): 하루 한 곳
 function busHTML() {
-  if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘 새벽엔 이미 재래시장에 다녀왔습니다. 내일 또 가 보세요.</p>`;
-  return `${exHead('버스 정류장')}<p class="ts-note">첫차를 타면 재래시장까지 금방입니다. 하루 한 번, 준비 시간은 쓰지 않습니다.</p>
-    <button type="button" class="ts-act" data-ts="exGo"><b>새벽 첫차로 재래시장 가기</b><small>걸으면 체력이 줄어요 · 가방 ${EX_BAG}칸</small></button>`;
+  if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘은 이미 동네에 다녀왔습니다. 내일 또 가 보세요.</p>`;
+  const rows = EX_AREA_IDS.map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
+  return `${exHead('버스 정류장')}<p class="ts-note">하루 한 곳, 준비 시간은 쓰지 않습니다. 걸으면 체력이 줄고 가방은 ${EX_BAG}칸입니다.</p>${rows}`;
 }
-function exGo() {
+const exArea = () => EX_AREAS[(exRun() || {}).area] || EX_AREAS.market;
+function exGo(area) {
   if (!exploreReady()) return;
   XC.closeSheet();
   XC.fade(() => {
-    if (!runCmd('exStart')) return;
-    const [sx, sy] = MK.START;
+    if (!runCmd('exStart', { area })) return;
+    const [sx, sy] = exRun().map.start;
     V = { me: { char: 0, x: exPx(sx), y: exPy(sy), dir: 1, path: [], moving: false }, cam: { x: 0, y: 0 }, time: 0, acc: 0, bumped: null };
     XC.refresh();
-    XC.sheet(`${exHead('재래시장')}<p class="ts-note">새벽 시장이 막 문을 엽니다. 가게 앞 사람들에게 다가가 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
+    const A = exArea();
+    XC.sheet(`${exHead(A.name)}<p class="ts-note">${A.intro} 사람들 앞에서 상호작용 버튼 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
   });
 }
 
@@ -7978,14 +8143,15 @@ function exHud() {
 function exBar() {
   const X = exRun(); if (!X) return '';
   const T = X.task;
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : '<span class="ex-place">재래시장</span>'}`;
+  const A = exArea();
+  return `<span class="tb-time ${X.area === 'apt' ? 'morning' : 'dawn'}">${A.when} ${A.clock}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : `<span class="ex-place">${A.name}</span>`}`;
 }
 const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 function exNavClick(k) {
   if (!V) return;
   playSfx('tap');
   if (k === 'bag') { XC.sheet(bagHTML(), 'ex'); return; }
-  if (k === 'bus') { XC.closeSheet(); exWalkTo(MK.START, () => XC.sheet(leaveHTML(), 'ex')); }
+  if (k === 'bus') { XC.closeSheet(); exWalkTo(exRun().map.start, () => XC.sheet(leaveHTML(), 'ex')); }
 }
 function bagHTML() {
   const X = exRun();
@@ -7995,7 +8161,7 @@ function bagHTML() {
 function leaveHTML() {
   const X = exRun();
   return `${exHead('버스 정류장')}<p class="ts-note">가방 ${X.bag.length}/${EX_BAG} · 남은 체력 ${Math.round(X.sp)}</p>
-    <button type="button" class="ts-act" data-ts="exLeave"><b>첫차 타고 돌아가기</b><small>담은 것을 가게로 가져가요</small></button>`;
+    <button type="button" class="ts-act" data-ts="exLeave"><b>버스 타고 돌아가기</b><small>담은 것을 가게로 가져가요</small></button>`;
 }
 
 // ── 사건 창 ──
@@ -8057,7 +8223,7 @@ function mgTick(dt) {
 }
 function mgEnd(score) { V.mg = null; runCmd('exFinish', { score }); }
 function exSheetClick(k, b) {
-  if (k === 'exGo') { playSfx('page'); exGo(); return true; }
+  if (k === 'exGo') { playSfx('page'); exGo(b.dataset.area); return true; }
   if (k === 'exPick') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i }); return true; }
   if (k === 'exDrop') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i, drop: +b.dataset.d }); return true; }
   if (k === 'exDropF') { runCmd('exFinish', { drop: +b.dataset.d }); return true; }
@@ -8103,7 +8269,7 @@ function faintHTML() {
 function showSummary(S) {
   const got = S.got.map(id => { const F = FINDS[id]; return `<div class="ex-row">${icon(F.icon, 'ex-ric')}<span><b>${F.name}</b><small>${F.text}</small></span></div>`; }).join('') || '<p class="ts-note">이번엔 빈손으로 돌아왔습니다.</p>';
   const memos = S.memos.map(m => `<p class="ex-memo">${MEMOS[m]}</p>`).join('');
-  XC.sheet(`${exHead('재래시장에서 돌아왔습니다')}${got}${S.lost.length ? `<p class="ts-note">떨어뜨린 것: ${S.lost.map(id => FINDS[id].name).join(', ')}</p>` : ''}${memos ? `<small class="ex-h">새 동네 메모</small>${memos}` : ''}`, 'ex');
+  XC.sheet(`${exHead(`${(EX_AREAS[S.area] || EX_AREAS.market).name}에서 돌아왔습니다`)}${got}${S.lost.length ? `<p class="ts-note">떨어뜨린 것: ${S.lost.map(id => FINDS[id].name).join(', ')}</p>` : ''}${memos ? `<small class="ex-h">새 동네 메모</small>${memos}` : ''}`, 'ex');
 }
 
 // ── 걷기 ──
@@ -8227,7 +8393,7 @@ function exTap(e) {
   const si = X.spots.findIndex(s => !s.done && wx >= exPx(s.tx) - 8 && wx < exPx(s.tx) + 8 && wy >= exPy(s.ty) - 30 && wy < exPy(s.ty) + 4);
   if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; }); return; } // 걸어가기만 (v0.80)
   const bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(MK.START); return; }
+  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(X.map.start); return; }
   if (tx < 0 || ty < 0 || tx >= X.map.W || ty >= X.map.H || exWalls()[ty * X.map.W + tx]) return;
   exWalkTo([tx, ty]);
 }

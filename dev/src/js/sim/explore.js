@@ -4,7 +4,7 @@
 import { G } from '../save/state.js';
 import { emit, defineCmd } from './events.js';
 import { makeRand } from '../engine/random.js';
-import { MK, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
+import { MK, AP, APT_SHOPS, AP_CHARS, EX_AREAS, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
 import { townMode } from './town.js';
 import { stockIn } from './pantry.js';
 import { addBond } from './bond.js';
@@ -57,23 +57,92 @@ function genMarket(r) {
   put('board', 9, 2); put('crate', 10, 2); put('crate', 21, 2);
   // 버스 정류장 (왼쪽 아래) — 여기서 시작하고 여기서 돌아가요
   props.push({ kind: 'bus', tx: 2, ty: 23 }); for (let d = 0; d < 4; d++) block(2 + d, 23);
-  return { W, H, walls, shops, actors, props };
+  const marks = shops.filter(s => !s.closed).map(s => ({ name: SHOP_TYPES[s.type].name, tx: s.x / 16 + 2, ty: s.bot / 16 }));
+  return { kind: 'market', W, H, walls, shops, actors, props, marks, start: MK.START, kidRows: [8, 20], spawnY: [7, H - 2] };
+}
+
+// ── 아파트 단지 지도 (v0.82): 아파트 4동 · 화단 · 큰길 · 주차장 · 놀이터 · 상가 3칸 · 경비실 · 정류장 ──
+//  ground: 0 보도 · 1 잔디 · 2 모래 · 3 아스팔트 · 4 울타리 (render/explore.js)
+function genApt(r) {
+  const { W, H } = AP, walls = new Uint8Array(W * H), ground = new Uint8Array(W * H);
+  const block = (tx, ty) => { if (tx >= 0 && ty >= 0 && tx < W && ty < H) walls[ty * W + tx] = 1; };
+  const fill = (x0, y0, x1, y1, g) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) ground[ty * W + tx] = g; };
+  const rect = (x0, y0, x1, y1) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) block(tx, ty); };
+  const shops = [], actors = [], props = [], npcs = {}, doors = [], marks = [];
+  const spr = (n, x, bot) => props.push({ kind: 'spr', n, x, bot });
+  const npc = (key, char, tx, ty) => { const A = { char, tx, ty }; actors.push(A); block(tx, ty); if (key) npcs[key] = A; return A; };
+  const pick = a => a[Math.floor(r() * a.length)];
+  fill(0, 0, W - 1, 0, 4); rect(0, 0, W - 1, 0);          // 울타리
+  fill(0, 1, W - 1, 11, 1); fill(0, 14, W - 1, 15, 1);     // 잔디 · 화단
+  fill(1, 18, 12, 25, 3); fill(15, 18, 24, 24, 2);         // 주차장 · 놀이터
+  // 아파트 4동 (현관 앞은 보도)
+  AP.TOWERS.forEach((tx, i) => {
+    spr('ap_t' + (i + 1), tx * 16, AP.TOWER_BOT); rect(tx, 1, tx + 6, 11);
+    doors.push({ key: 'door', tx: tx + 3, ty: 12, label: `${101 + i}동 현관` });
+    marks.push({ name: `${101 + i}동`, tx: tx + 3, ty: 12 });
+  });
+  // 동 사이 나무 (102·103동 사이 아래는 분리수거장)
+  const tree = (c, row, n) => { spr(n || (r() < 0.5 ? 'tree' : 'tree2'), c * 16 - 5, (row + 1) * 16); block(c, row); };
+  [10, 21, 32].forEach(c => tree(c, 5)); [10, 32].forEach(c => tree(c, 10)); tree(42, 7);
+  spr('ap_bin_blue', 20 * 16 + 2, 12 * 16); spr('ap_bin_green', 20 * 16 + 31, 12 * 16); rect(20, 11, 23, 11);
+  npc('recycle', AP_CHARS.recycle, 22, 12); marks.push({ name: '분리수거장', tx: 21, ty: 12 });
+  // 택배: 그날 한 동 현관 옆에 상자 · 기사님
+  const cd = pick(doors); spr('ap_box', (cd.tx + 2) * 16 + 1, 14 * 16); spr('ap_box', (cd.tx + 2) * 16 + 1, 14 * 16 - 9); block(cd.tx + 2, 13);
+  npc('courier', AP_CHARS.courier, cd.tx + 3, 13);
+  // 단지 게시판 (103·104동 사이)
+  props.push({ kind: 'board', tx: 32, ty: 13, v: 0 }); rect(32, 13, 33, 13);
+  // 화단: 가로등 · 꽃 · 나무 · 벤치 둘(하나는 부녀회장님)
+  [4, 15, 26, 37].forEach(c => { spr('ap_lamp', c * 16 + 1, 16 * 16); block(c, 15); });
+  [[6, 14], [18, 14], [29, 14], [40, 14]].forEach(([c, row]) => { spr('ap_flowers', c * 16 - 6, (row + 1) * 16); rect(c, row, c + 1, row); });
+  [1, 12, 23, 34].forEach(c => tree(c, 15));
+  const bc = r() < 0.5 ? [8, 30] : [30, 8];
+  spr('ap_bench', bc[0] * 16 + 3, 16 * 16); rect(bc[0], 15, bc[0] + 2, 15); npc('chair', AP_CHARS.chair, bc[0] + 3, 15);
+  spr('ap_bench', bc[1] * 16 + 3, 16 * 16); rect(bc[1], 15, bc[1] + 2, 15); npcs.bench = { tx: bc[1] + 1, ty: 15, prop: true };
+  // 큰길: 등교하는 학생 둘 · 장 본 할머니
+  const sx = 14 + Math.floor(r() * 14); npc('students', AP_CHARS.student, sx, 16); npc(null, AP_CHARS.student2, sx + 1, 16);
+  npc('shopper', AP_CHARS.shopper, 30 + Math.floor(r() * 10), 17);
+  // 주차장: 차 여섯 자리 (그날 빈자리도 있어요) · 차단기
+  for (let k = 0; k < 6; k++) if (r() < 0.75) { const tx = 1 + k * 2; spr('ap_car' + (1 + Math.floor(r() * 6)), tx * 16, 22 * 16); rect(tx, 19, tx + 1, 21); }
+  spr('ap_gate', 16, 26 * 16); block(1, 25);
+  marks.push({ name: '주차장', tx: 6, ty: 22 });
+  // 놀이터: 미끄럼틀 · 그네 · 엄마
+  spr('slide', 16 * 16, 24 * 16); rect(16, 21, 17, 23);
+  spr('swing', 19 * 16 + 4, 22 * 16); rect(19, 21, 23, 21);
+  npc(null, AP_CHARS.mom, 21, 23); marks.push({ name: '놀이터', tx: 20, ty: 21 });
+  // 상가: 편의점 + 그날 두 가게
+  const others = Object.keys(APT_SHOPS).filter(k => k !== 'cvs');
+  for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
+  const row3 = ['cvs', others[0], others[1]], ci = Math.floor(r() * 3); [row3[0], row3[ci]] = [row3[ci], row3[0]]; // 편의점 자리도 그날그날
+  row3.forEach((type, i) => {
+    const x = AP.SHOP_X[i], bot = AP.SHOP_BOT, S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: false, apt: true };
+    shops.push(S); rect(x / 16, Math.floor((bot - 87) / 16), x / 16 + 4, Math.floor((bot - 1) / 16));
+    S.owner = npc(null, APT_SHOPS[type].owner, x / 16 + 4, bot / 16);
+    marks.push({ name: APT_SHOPS[type].name, tx: x / 16 + 2, ty: bot / 16 });
+  });
+  // 단지 앞: 경비실 · 화분 · 버스 정류장
+  spr('ap_booth', 11 * 16, 28 * 16); rect(11, 26, 13, 27); npc('guard', AP_CHARS.guard, 14, 27);
+  marks.push({ name: '경비실', tx: 12, ty: 27 });
+  spr('ap_planter', 22 * 16, 28 * 16); rect(22, 27, 24, 27);
+  spr('ap_planter', 34 * 16, 28 * 16); rect(34, 27, 36, 27);
+  props.push({ kind: 'bus', tx: 2, ty: H - 1 }); for (let d = 0; d < 4; d++) block(2 + d, H - 1);
+  return { kind: 'apt', W, H, walls, ground, shops, actors, props, npcs, doors, marks, start: [7, H - 2], kidRows: [13, 17, 26], spawnY: [12, H - 3] };
 }
 
 // 사건 자리: 열린 가게 사장님 · 노점 · 할머니 · 게시판 · 길 잃은 아이
-function placeEvents(map, r) {
-  const pool = EX_EVENTS_POOL.slice();
+function placeEvents(map, r, area) {
+  const pool = EX_EVENTS_POOL.filter(e => (e.area || 'market') === area || e.area === 'any');
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
   const spots = [], used = new Set();
   for (const ev of pool) {
     if (spots.length >= EX_EVENTS) break;
     let at = null;
     if (ev.at.startsWith('shop:')) { const S = map.shops.find(s => !s.closed && s.type === ev.at.slice(5) && !used.has(s)); if (S) { used.add(S); at = S.owner; } }
+    else if (map.npcs && map.npcs[ev.at]) { const N = map.npcs[ev.at]; if (!used.has(N)) { used.add(N); at = N; } } // 아파트 단지 사람들
     else if (ev.at === 'cart' || ev.at === 'stall') { const P = map.props.find(p => p.kind === ev.at && p.npc && !used.has(p)); if (P) { used.add(P); at = P.npc; } }
     else if (ev.at === 'board') { const P = map.props.find(p => p.kind === 'board'); if (P) at = { tx: P.tx, ty: P.ty, prop: true }; }
     else if (ev.at === 'kid') {
       for (let t = 0; t < 40 && !at; t++) {
-        const tx = 3 + Math.floor(r() * (map.W - 6)), ty = r() < 0.5 ? 8 : 20;
+        const tx = 3 + Math.floor(r() * (map.W - 6)), ty = map.kidRows[Math.floor(r() * map.kidRows.length)];
         if (!map.walls[ty * map.W + tx] && !map.walls[(ty + 1) * map.W + tx]) { at = { char: EX_CHARS.kid, tx, ty }; map.actors.push(at); map.walls[ty * map.W + tx] = 1; }
       }
     }
@@ -84,11 +153,12 @@ function placeEvents(map, r) {
 const evOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 
 // 떠나기: 버스 정류장 (골목 준비 시간과 따로, 하루 한 번)
-defineCmd('exStart', () => {
-  if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 새벽에 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
-  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243);
-  const map = genMarket(r);
-  X = { area: 'market', map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r), memos: [], did: 0, walked: 0 };
+defineCmd('exStart', ({ area } = {}) => {
+  if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
+  if (!EX_AREAS[area]) area = 'market';
+  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : 0));
+  const map = area === 'apt' ? genApt(r) : genMarket(r);
+  X = { area, map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r, area), memos: [], did: 0, walked: 0 };
   emit('sfx', 'door');
   emit('explore', 'start');
   return true;
@@ -158,18 +228,20 @@ function exDone(S, ev, C, drop, pay) {
   const give = C.give && !(drop === -1) ? C.give : null;
   if (give) X.bag.push(give);
   if (C.bond) addBond(C.bond[0], C.bond[1], '시장에서 받은 꽃', true);
-  if (ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo)) X.memos.push(ev.memo);
+  const fresh = ev.memo && !EXP().memos.includes(ev.memo) && !X.memos.includes(ev.memo); // 처음 본 메모만 알려요
+  if (fresh) X.memos.push(ev.memo);
   S.done = true; X.did++;
   emit('sfx', give ? 'coin' : 'page');
-  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: ev.memo && X.memos.includes(ev.memo) ? ev.memo : null });
+  emit('explore', 'picked', { title: ev.title, say: C.say, give, memo: fresh ? ev.memo : null });
   if (X.sp <= 0) faint();
   return true;
 }
 // 심부름 만들기: deliver = 받을 사람(멀리 있는 곳 먼저) · escort = 시장 어딘가에 할머니가 나타나요
 function exAnchors() {
   const M = X.map, out = [];
-  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: SHOP_TYPES[s.type].name });
+  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: (SHOP_TYPES[s.type] || APT_SHOPS[s.type]).name });
   for (const p of M.props) if (p.npc) out.push({ key: p.kind, tx: p.npc.tx, ty: p.npc.ty, label: p.kind === 'cart' ? '어묵 노점' : '파라솔 할머니' });
+  for (const d of M.doors || []) out.push(d); // 아파트 현관
   return out;
 }
 const exFar = (a, S) => Math.abs(a.tx - S.tx) + Math.abs(a.ty - S.ty);
@@ -185,13 +257,13 @@ function exMakeTask(S, T) {
   if (T.kind === 'escort') { // 멀리 떨어진 빈 칸에 할머니 (옆 칸도 비어 있어야 다가갈 수 있어요)
     const r = makeRand((G.baseSeed || 1) + G.day * 31 + S.tx * 7 + S.ty);
     for (let t = 0; t < 200; t++) {
-      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = 7 + Math.floor(r() * (M.H - 8)), k = ty * M.W + tx;
+      const tx = 2 + Math.floor(r() * (M.W - 4)), ty = M.spawnY[0] + Math.floor(r() * (M.spawnY[1] - M.spawnY[0] + 1)), k = ty * M.W + tx;
       if (M.walls[k] || M.walls[k + M.W] || exFar({ tx, ty }, S) < 14) continue;
-      const near = M.shops.filter(s => !s.closed).sort((a, b) => Math.abs(a.x / 16 + 2 - tx) + Math.abs(a.bot / 16 - ty) - (Math.abs(b.x / 16 + 2 - tx) + Math.abs(b.bot / 16 - ty)))[0];
+      const near = M.marks.slice().sort((a, b) => Math.abs(a.tx - tx) + Math.abs(a.ty - ty) - (Math.abs(b.tx - tx) + Math.abs(b.ty - ty)))[0]; // 가까운 곳 이름이 힌트
       const g = { char: EX_CHARS.grandma, tx, ty, key: 'grandma' };
       M.actors.push(g); M.walls[k] = 1;
       const kid = M.actors.find(a => a.tx === S.tx && a.ty === S.ty); if (kid) { kid.hidden = true; M.walls[S.ty * M.W + S.tx] = 0; } // 아이는 나를 따라와요
-      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? SHOP_TYPES[near.type].name : '', follow: EX_CHARS.kid };
+      return { kind: 'escort', verb: T.verb, tx, ty, label: '할머니', hint: near ? near.name : '', follow: EX_CHARS.kid };
     }
     return null;
   }

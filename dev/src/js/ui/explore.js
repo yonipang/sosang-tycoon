@@ -9,7 +9,7 @@ import { fxRand } from '../engine/random.js';
 import { toast } from './feedback.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { TILE } from '../data/layout.js';
-import { MK, EX_STAMINA, EX_BAG, EX_CLOCK, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL } from '../data/explore.js';
+import { EX_AREAS, EX_AREA_IDS, EX_STAMINA, EX_BAG, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL } from '../data/explore.js';
 import { exRun, exploreReady, exploredToday } from '../sim/explore.js';
 import { drawExplore } from '../render/explore.js';
 import { icon } from './icons.js';
@@ -29,20 +29,23 @@ const exEvOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 const exPx = tx => tx * TILE + TILE / 2, exPy = ty => ty * TILE + TILE - 3;
 
 // ── 버스 정류장 창 (골목) ──
+// 동네 고르기 (v0.82 아파트 단지): 하루 한 곳
 export function busHTML() {
-  if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘 새벽엔 이미 재래시장에 다녀왔습니다. 내일 또 가 보세요.</p>`;
-  return `${exHead('버스 정류장')}<p class="ts-note">첫차를 타면 재래시장까지 금방입니다. 하루 한 번, 준비 시간은 쓰지 않습니다.</p>
-    <button type="button" class="ts-act" data-ts="exGo"><b>새벽 첫차로 재래시장 가기</b><small>걸으면 체력이 줄어요 · 가방 ${EX_BAG}칸</small></button>`;
+  if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘은 이미 동네에 다녀왔습니다. 내일 또 가 보세요.</p>`;
+  const rows = EX_AREA_IDS.map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
+  return `${exHead('버스 정류장')}<p class="ts-note">하루 한 곳, 준비 시간은 쓰지 않습니다. 걸으면 체력이 줄고 가방은 ${EX_BAG}칸입니다.</p>${rows}`;
 }
-export function exGo() {
+const exArea = () => EX_AREAS[(exRun() || {}).area] || EX_AREAS.market;
+export function exGo(area) {
   if (!exploreReady()) return;
   XC.closeSheet();
   XC.fade(() => {
-    if (!runCmd('exStart')) return;
-    const [sx, sy] = MK.START;
+    if (!runCmd('exStart', { area })) return;
+    const [sx, sy] = exRun().map.start;
     V = { me: { char: 0, x: exPx(sx), y: exPy(sy), dir: 1, path: [], moving: false }, cam: { x: 0, y: 0 }, time: 0, acc: 0, bumped: null };
     XC.refresh();
-    XC.sheet(`${exHead('재래시장')}<p class="ts-note">새벽 시장이 막 문을 엽니다. 가게 앞 사람들에게 다가가 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
+    const A = exArea();
+    XC.sheet(`${exHead(A.name)}<p class="ts-note">${A.intro} 사람들 앞에서 상호작용 버튼 「살펴보기」를 눌러 보세요. 체력이 다 떨어지기 전에 정류장으로 돌아오세요.</p>`, 'ex');
   });
 }
 
@@ -61,14 +64,15 @@ export function exHud() {
 export function exBar() {
   const X = exRun(); if (!X) return '';
   const T = X.task;
-  return `<span class="tb-time dawn">새벽 ${EX_CLOCK}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : '<span class="ex-place">재래시장</span>'}`;
+  const A = exArea();
+  return `<span class="tb-time ${X.area === 'apt' ? 'morning' : 'dawn'}">${A.when} ${A.clock}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : `<span class="ex-place">${A.name}</span>`}`;
 }
 export const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 export function exNavClick(k) {
   if (!V) return;
   playSfx('tap');
   if (k === 'bag') { XC.sheet(bagHTML(), 'ex'); return; }
-  if (k === 'bus') { XC.closeSheet(); exWalkTo(MK.START, () => XC.sheet(leaveHTML(), 'ex')); }
+  if (k === 'bus') { XC.closeSheet(); exWalkTo(exRun().map.start, () => XC.sheet(leaveHTML(), 'ex')); }
 }
 function bagHTML() {
   const X = exRun();
@@ -78,7 +82,7 @@ function bagHTML() {
 function leaveHTML() {
   const X = exRun();
   return `${exHead('버스 정류장')}<p class="ts-note">가방 ${X.bag.length}/${EX_BAG} · 남은 체력 ${Math.round(X.sp)}</p>
-    <button type="button" class="ts-act" data-ts="exLeave"><b>첫차 타고 돌아가기</b><small>담은 것을 가게로 가져가요</small></button>`;
+    <button type="button" class="ts-act" data-ts="exLeave"><b>버스 타고 돌아가기</b><small>담은 것을 가게로 가져가요</small></button>`;
 }
 
 // ── 사건 창 ──
@@ -140,7 +144,7 @@ function mgTick(dt) {
 }
 function mgEnd(score) { V.mg = null; runCmd('exFinish', { score }); }
 export function exSheetClick(k, b) {
-  if (k === 'exGo') { playSfx('page'); exGo(); return true; }
+  if (k === 'exGo') { playSfx('page'); exGo(b.dataset.area); return true; }
   if (k === 'exPick') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i }); return true; }
   if (k === 'exDrop') { runCmd('exPick', { spot: +b.dataset.s, i: +b.dataset.i, drop: +b.dataset.d }); return true; }
   if (k === 'exDropF') { runCmd('exFinish', { drop: +b.dataset.d }); return true; }
@@ -186,7 +190,7 @@ function faintHTML() {
 function showSummary(S) {
   const got = S.got.map(id => { const F = FINDS[id]; return `<div class="ex-row">${icon(F.icon, 'ex-ric')}<span><b>${F.name}</b><small>${F.text}</small></span></div>`; }).join('') || '<p class="ts-note">이번엔 빈손으로 돌아왔습니다.</p>';
   const memos = S.memos.map(m => `<p class="ex-memo">${MEMOS[m]}</p>`).join('');
-  XC.sheet(`${exHead('재래시장에서 돌아왔습니다')}${got}${S.lost.length ? `<p class="ts-note">떨어뜨린 것: ${S.lost.map(id => FINDS[id].name).join(', ')}</p>` : ''}${memos ? `<small class="ex-h">새 동네 메모</small>${memos}` : ''}`, 'ex');
+  XC.sheet(`${exHead(`${(EX_AREAS[S.area] || EX_AREAS.market).name}에서 돌아왔습니다`)}${got}${S.lost.length ? `<p class="ts-note">떨어뜨린 것: ${S.lost.map(id => FINDS[id].name).join(', ')}</p>` : ''}${memos ? `<small class="ex-h">새 동네 메모</small>${memos}` : ''}`, 'ex');
 }
 
 // ── 걷기 ──
@@ -310,7 +314,7 @@ export function exTap(e) {
   const si = X.spots.findIndex(s => !s.done && wx >= exPx(s.tx) - 8 && wx < exPx(s.tx) + 8 && wy >= exPy(s.ty) - 30 && wy < exPy(s.ty) + 4);
   if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; }); return; } // 걸어가기만 (v0.80)
   const bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(MK.START); return; }
+  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo(X.map.start); return; }
   if (tx < 0 || ty < 0 || tx >= X.map.W || ty >= X.map.H || exWalls()[ty * X.map.W + tx]) return;
   exWalkTo([tx, ty]);
 }

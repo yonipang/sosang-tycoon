@@ -10,14 +10,14 @@
 | data | `menu.js` | 메뉴 18종(기본 3 + 2장 변형 15: `base`·`lv`)·레시피·원재료(유통기한)·메뉴 레벨·오늘의 메뉴 칸 |
 | | `customers.js` `people.js` | 손님층·시간대 흐름·좋아하는 메뉴 · 손님 수첩 인물(이름·소개·`fav`) |
 | | `economy.js` `layout.js` `reviews.js` `version.js` `credits.js` | 돈과 시간·별점 · 가게 배치(등급마다) · 리뷰 문구 · 게임 버전 · 크레딧(지우지 않기) |
-| | `market.js` `town.js` `explore.js` | 재료 시세 소식 · 마을(지도·장소·행동 칸·물건·걷는 손님·홍보) · 동네 탐방(재래시장 가게 종류·사건·가방에 담는 것·동네 메모, v0.78) |
+| | `market.js` `town.js` `explore.js` | 재료 시세 소식 · 마을(지도·장소·행동 칸·물건·걷는 손님·홍보) · 동네 탐방(재래시장·아파트 단지 — 가게 종류·사건·가방에 담는 것·동네 메모, v0.78·v0.82) |
 | | `bond.js` `furniture.js` `guild.js` | 친밀도(미소·정 사장·문 회장) · 미소 가구(테마·분위기·확장공사) · 상인회(설비·도구 등급) |
 | | `story.js` `tutorial.js` `cutscenes.js` | 인물·퀘스트·대화 장면(프롤로그~2장) · 오 사장님 가게 길잡이 · 연출 대본 |
 | | `tools.js` `incidents.js` `district.js` | 장사 도구 · 돌발 이벤트 · 상권(게임 속 데이터) |
 | save | `migrations.js` `state.js` `storage.js` `cloud.js` | 옛 세이브 보정 · 게임 상태 G(`SAVE_ORDER`) · 브라우저 저장 · 클라우드 저장 |
 | sim | `rating.js` `story.js` `pantry.js` `upgrade.js` | 별점(리뷰 수가 적으면 3점 쪽으로) · 이야기 규칙 · 재료 창고·오늘의 메뉴 · 메뉴 레벨·메뉴 개발 |
 | | `traffic.js` `book.js` `tutorial.js` `tools.js` | 유동인구 × 들어오는 비율(칠판·홍보·블로거) · 손님 수첩 기록 · 가게 길잡이 · 장사 도구 |
-| | `market.js` `bond.js` `furniture.js` `guild.js` `town.js` `explore.js` | 원가(`costOf`) · 친밀도 · 미소 가구 · 상인회 · 마을 규칙 · 동네 탐방(지도 만들기·체력·가방·돌아오면 반영) |
+| | `market.js` `bond.js` `furniture.js` `guild.js` `town.js` `explore.js` | 원가(`costOf`) · 친밀도 · 미소 가구 · 상인회 · 마을 규칙 · 동네 탐방(재래시장·아파트 지도 만들기·체력·가방·심부름·돌아오면 반영) |
 | | `path.js` `customers.js` `incidents.js` `day.js` `player.js` `loop.js` | 길찾기 · 손님 · 돌발 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | | `dev.js` | 개발자 모드 바로 가기(`DEV_JUMPS`) |
 | render | `view.js` `cut.js` `town.js` `explore.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 · 동네 탐방 지도 그리기 |

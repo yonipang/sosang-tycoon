@@ -9,6 +9,13 @@ export const EX_STEP = 0.4;      // 한 칸 걸을 때 드는 체력
 export const EX_BAG = 4;         // 가방 칸
 export const EX_EVENTS = 7;      // 한 번 갈 때 생기는 사건 수 (다 하려면 체력이 모자라요 — 고르는 게 재미)
 export const EX_CLOCK = '05:30'; // 새벽 첫차
+// 갈 수 있는 동네 (v0.82: 아파트 단지) — 버스 정류장에서 하루 한 곳
+//  when·clock 위 막대 시각 · bus 정류장 버튼 · sub 그 동네에 많은 사람 · intro 처음 내렸을 때 한 줄
+export const EX_AREAS = {
+  market: { name: '재래시장', when: '새벽', clock: '05:30', bus: '새벽 첫차로 재래시장 가기', sub: '상인 · 어르신 · 갓 나온 재료', intro: '새벽 시장이 막 문을 엽니다.' },
+  apt: { name: '아파트 단지', when: '아침', clock: '07:30', bus: '아침 버스로 아파트 단지 가기', sub: '학생 · 직장인 · 집이 많은 동네', intro: '출근하고 등교하는 사람들로 단지가 북적입니다.' },
+};
+export const EX_AREA_IDS = Object.keys(EX_AREAS);
 
 // 재래시장 지도 (16px 칸): 위 가게 줄(0~5줄) · 길 A(6~11줄, 6줄은 가게 앞 진열) · 아래 가게 줄(12~17줄, 가게 사이 1칸 골목으로 지나가요) · 길 B(18~23줄)
 //  가게 한 자리 = 너비 80px(5칸) + 사이 16px. 왼쪽 2칸 · 오른쪽 2칸은 위아래로 이어진 길. 버스 정류장은 왼쪽 아래
@@ -29,6 +36,20 @@ export const SHOP_TYPES = {
   goods: { name: '만물잡화', owner: 4, w: 58 },
 };
 export const SHOP_IDS = Object.keys(SHOP_TYPES);
+// 아파트 단지 지도 (16px 칸, v0.82): 0줄 울타리 · 1~11줄 아파트 4동(사이 잔디) · 12~13줄 현관 앞 길 · 14~15줄 화단 · 16~17줄 큰길
+//  18~25줄: 왼쪽 주차장 · 가운데 놀이터 · 오른쪽 상가 3칸 · 26~29줄 단지 앞길(경비실 · 차단기 · 버스 정류장)
+export const AP = { W: 44, H: 30, TOWERS: [2, 13, 24, 35], TOWER_BOT: 192, SHOP_X: [432, 528, 624], SHOP_BOT: 400 };
+// 상가 가게 (간판 mk_s_ · 건물은 시장과 같은 mk_b) — 편의점은 늘, 나머지 둘은 그날 씨앗으로
+export const APT_SHOPS = {
+  cvs: { name: '편의점', owner: 16 },
+  tkd: { name: '태권도', owner: 3 },
+  piano: { name: '피아노 학원', owner: 9 },
+  math: { name: '수학학원', owner: 7 },
+  hair: { name: '미용실', owner: 17 },
+  estate: { name: '부동산', owner: 19 },
+};
+// 단지 사람들 (캐릭터 번호): 경비 아저씨 · 택배 기사 · 부녀회장 · 등교 학생 둘 · 분리수거 아주머니 · 장 본 할머니 · 놀이터 엄마
+export const AP_CHARS = { guard: 20, courier: 6, chair: 5, student: 4, student2: 16, recycle: 10, shopper: 13, mom: 1 };
 export const EX_CLOSED = 3;      // 날마다 문 닫은 가게 수 (14자리 중)
 export const EX_CHARS = { cart: 15, stall: 14, kid: 15, grandma: 13 }; // 노점 아주머니 · 파라솔 할머니 · 길 잃은 아이 · 아이 할머니 (캐릭터 번호)
 export const EX_CARRY = 2;       // 짐을 들고 걸으면 체력이 이만큼 배로 들어요
@@ -48,6 +69,13 @@ export const FINDS = {
   refElder: { name: '시장 어르신들의 약속', icon: 'face_happy', kind: 'ref', type: 'elder', text: '다음 영업에 어르신 손님 2명' },
   refWorker: { name: '새벽 기사님들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
   flyerElder: { name: '시장 게시판 전단 자리', icon: 'board', kind: 'flyer', type: 'elder', mul: 1.3, days: 3, text: '3일 동안 어르신 손님 ↑' },
+  // 아파트 단지 (v0.82)
+  carrot: { name: '텃밭 당근', icon: 'ing_carrot', kind: 'ing', ing: 'carrot', n: 10, text: '당근 10개 → 냉장고' },
+  refStudent: { name: '학생들의 약속', icon: 'face_happy', kind: 'ref', type: 'student', text: '다음 영업에 학생 손님 2명' },
+  refApt: { name: '단지 어르신들의 약속', icon: 'face_happy', kind: 'ref', type: 'elder', text: '다음 영업에 어르신 손님 2명' },
+  refCourier: { name: '택배 기사님들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
+  flyerStudent: { name: '부녀회 단톡방 소개', icon: 'board', kind: 'flyer', type: 'student', mul: 1.3, days: 3, text: '3일 동안 학생 손님 ↑' },
+  flyerWorker: { name: '단지 게시판 전단 자리', icon: 'board', kind: 'flyer', type: 'worker', mul: 1.3, days: 3, text: '3일 동안 직장인 손님 ↑' },
 };
 
 // 동네 메모: 눈으로 본 것 한 줄 — 수첩에 쌓이고, 3장 상권 지도(나이스비즈맵)가 열리면 숫자로 다시 나와요
@@ -58,6 +86,14 @@ export const MEMOS = {
   mkPrice: '시장 사람들은 값에 밝다. 100원 차이도 따진다',
   mkWeekend: '주말이면 시장에 사람이 두 배로 는다고 한다',
   mkDeliver: '새벽 배송 기사들이 시장 앞에서 잠깐 쉬어 간다',
+  // 아파트 단지: 주거 상권 (v0.82)
+  apMorning: '아침 7~8시, 학생과 직장인이 한꺼번에 단지를 빠져나간다',
+  apAfter: '학원·도장이 끝나는 오후 4~7시엔 아이들이 몰려나온다',
+  apHouse: '한 동에 100가구, 단지 전체 400가구쯤. 집이 많은 동네는 손님이 날마다 꾸준하다',
+  apDeliver: '단지엔 택배·배달이 하루 종일 드나든다. 포장·배달로 먹는 집이 많다',
+  apPrice: '편의점 삼각김밥 1,500원 · 컵떡볶이 2,500원. 단지 사람들은 값보다 가까운 곳을 고른다',
+  apMoms: '부녀회 단톡방 한 마디가 단지 소문이 된다. 단골 한 명이 손님을 데려온다',
+  apRent: '단지 상가 1층은 골목보다 임대료가 비싸다. 대신 날마다 같은 사람들이 지나간다',
 };
 
 // 사건: at 'shop:종류'(그 가게가 열린 날만 · 사장님) · 'cart'(길 가운데 노점) · 'stall'(할머니 노점 파라솔) · 'board'(시장 게시판) · 'kid'(길 잃은 아이)
@@ -67,6 +103,7 @@ export const MEMOS = {
 //                 escort: 아이가 따라와요. 시장 어딘가에 나타난 할머니를 찾아 「모셔다드리기」(근처 가게 이름이 힌트)
 //   mini 손기술 — timing: 움직이는 바늘이 초록 칸에 올 때 누르기(rounds번 중 need번) · mash: 시간 안에 빠르게 눌러 막대 채우기(taps번)
 //   fail: 손기술을 놓쳤을 때 한 줄 (체력은 들고 가방엔 안 담겨요)
+//  area: 'market'(없으면) · 'apt' · 'any'(어느 동네든 — 길 잃은 아이)
 //  memo: 이 사건을 한 번이라도 하면 남는 동네 메모
 export const EX_EVENTS_POOL = [
   { id: 'fishIce', at: 'shop:fish', title: '바다수산 사장님', text: '얼음 상자를 나르느라 정신이 없습니다. 「거기, 이 상자 좀 갖다줄 수 있어요? 손이 모자라서요.」',
@@ -93,6 +130,35 @@ export const EX_EVENTS_POOL = [
     choices: [{ label: '국물 한 잔 (1,000원)', pay: 1000, heal: 12, say: '뜨끈한 국물이 목을 타고 내려갑니다.' }, { label: '꼬치 끼우기 돕기', cost: 8, mini: { kind: 'mash', name: '꼬치 끼우기', act: '끼우기!', taps: 16, time: 5 }, fail: '「아이고, 다 흘렸네. 괜찮아요, 국물이나 마시고 가요.」', give: 'fishcake', say: '「손 빠르네! 남는 거 가져가요.」' }] },
   { id: 'stallEgg', at: 'stall', title: '파라솔 할머니', text: '나물을 다듬던 할머니가 손짓합니다. 「이거 좀 같이 다듬어 줄 텨?」',
     choices: [{ label: '나물 다듬기 돕기', cost: 8, mini: { kind: 'mash', name: '나물 다듬기', act: '다듬기!', taps: 14, time: 5 }, fail: '「허허, 손이 아직 서툴구먼.」', give: 'egg', say: '「집에서 키운 닭이 낳은 거여. 가져가.」' }], memo: 'mkDawn' },
-  { id: 'lostKid', at: 'kid', title: '길 잃은 아이', text: '아이 하나가 울먹이며 두리번거립니다. 「할머니가 없어졌어요…」',
+  { id: 'lostKid', at: 'kid', area: 'any', title: '길 잃은 아이', text: '아이 하나가 울먹이며 두리번거립니다. 「할머니가 없어졌어요…」',
     choices: [{ label: '할머니 찾아 주기', task: { kind: 'escort', verb: '모셔 드리기' }, give: 'refElder', say: '「아이고, 고마워라! 내 친구들이랑 꼭 먹으러 갈게.」' }] },
+  // ── 아파트 단지 (v0.82): area 'apt' ── at 'guard'·'courier'·'chair'·'students'·'recycle'·'shopper'·'bench'(벤치) · 'shop:종류'(상가) · 'board'(단지 게시판)
+  { id: 'apGuard', area: 'apt', at: 'guard', title: '경비 아저씨', text: '경비실 앞에 택배 상자가 산더미입니다. 「아이고, 이걸 언제 다 올려 보내나…」',
+    choices: [{ label: '택배 상자 배달하기', task: { kind: 'deliver', item: '택배 상자', to: ['door'], verb: '전해 주기' }, give: 'refApt', say: '「고마워요! 경로당 어르신들한테 분식집 얘기 해 둘게.」' }], memo: 'apHouse' },
+  { id: 'apShopper', area: 'apt', at: 'shopper', title: '장 본 할머니', text: '양손 가득 장바구니를 든 할머니가 숨을 고릅니다. 「아이고, 우리 집이 저 끝 동인데…」',
+    choices: [{ label: '장바구니 들어 드리기', task: { kind: 'deliver', item: '장바구니', to: ['door'], verb: '전해 주기' }, give: 'refApt', say: '「착하기도 하지. 친구들 데리고 꼭 갈게.」' }], memo: 'apHouse' },
+  { id: 'apCourier', area: 'apt', at: 'courier', title: '택배 기사님', text: '현관 앞에 상자를 내리던 기사님이 땀을 닦습니다. 「오늘 물량이 장난 아니네요.」',
+    choices: [{ label: '상자 쌓기 돕기', cost: 8, mini: { kind: 'timing', name: '상자 쌓기', act: '쌓기!', rounds: 3, need: 2, speed: 1.2 }, fail: '「으앗, 와르르! 괜찮아요, 제가 할게요.」', give: 'refCourier', say: '「덕분에 빨리 끝났네요! 기사님들이랑 점심 먹으러 갈게요.」' }], memo: 'apDeliver' },
+  { id: 'apRecycle', area: 'apt', at: 'recycle', title: '분리수거 아주머니', text: '분리수거함 앞에 상자와 병이 잔뜩 쌓여 있습니다. 「오늘이 분리수거 날이라…」',
+    choices: [{ label: '분리수거 돕기', cost: 8, mini: { kind: 'mash', name: '분리수거', act: '나르기!', taps: 15, time: 5 }, fail: '「어머, 병 깨질라. 괜찮아요, 마음만 받을게요.」', give: 'carrot', say: '「손이 빠르네! 텃밭에서 키운 건데 가져가요.」' }], memo: 'apHouse' },
+  { id: 'apStudents', area: 'apt', at: 'students', title: '등교하는 학생들', text: '가방을 멘 학생들이 수다를 떨며 지나갑니다. 「학원 끝나고 뭐 먹지?」',
+    choices: [{ label: '가게 이야기 해 주기', cost: 5, give: 'refStudent', say: '「떡볶이요? 오늘 학원 끝나고 가 볼게요!」' }], memo: 'apMorning' },
+  { id: 'apChair', area: 'apt', at: 'chair', title: '부녀회장님', text: '벤치에 앉은 부녀회장님이 휴대폰을 들여다봅니다. 「우리 단톡방에 새 가게 소식 올라오면 다들 가 보거든요.」',
+    choices: [{ label: '가게 소개 부탁드리기', cost: 4, give: 'flyerStudent', say: '「애들 학원 끝나고 들르기 좋겠네. 올려 줄게요.」' }], memo: 'apMoms' },
+  { id: 'apBoard', area: 'apt', at: 'board', title: '단지 게시판', text: '관리사무소 공지 옆에 빈자리가 조금 있습니다. 출근길 사람들이 힐끗 보고 지나갑니다.',
+    choices: [{ label: '전단 붙이기', cost: 8, give: 'flyerWorker', say: '출근길에 잘 보이는 자리에 붙였습니다.' }], memo: 'apMorning' },
+  { id: 'apBench', area: 'apt', at: 'bench', title: '단지 벤치', text: '나무 그늘 아래 벤치가 비어 있습니다.',
+    choices: [{ label: '잠깐 앉아 쉬기', heal: 12, say: '아침 바람이 시원합니다. 다리가 조금 풀렸습니다.' }] },
+  { id: 'apCvs', area: 'apt', at: 'shop:cvs', title: '편의점', text: '진열대에 삼각김밥과 컵떡볶이가 줄지어 있습니다. 아침 손님이 줄을 섭니다.',
+    choices: [{ label: '커피 한 잔 (1,500원)', pay: 1500, heal: 20, say: '따뜻한 커피에 정신이 듭니다.' }, { label: '값 둘러보기', cost: 3, say: '삼각김밥 1,500원, 컵떡볶이 2,500원. 아침엔 다들 바쁘게 집어 갑니다.' }], memo: 'apPrice' },
+  { id: 'apTkd', area: 'apt', at: 'shop:tkd', title: '태권도 관장님', text: '「태권!」 소리가 쩌렁쩌렁합니다. 관장님이 문 앞을 쓸고 있습니다.',
+    choices: [{ label: '아이들 간식 이야기', cost: 5, give: 'refStudent', say: '「운동 끝나면 애들이 배고파해요. 분식집 알려 줄게요!」' }], memo: 'apAfter' },
+  { id: 'apPiano', area: 'apt', at: 'shop:piano', title: '피아노 학원 원장님', text: '창문 너머로 연습곡이 들립니다. 원장님이 화분에 물을 줍니다.',
+    choices: [{ label: '학원 끝나는 시간 묻기', cost: 4, give: 'refStudent', say: '「여섯 시에 끝나요. 애들 보내 볼게요.」' }], memo: 'apAfter' },
+  { id: 'apMath', area: 'apt', at: 'shop:math', title: '수학학원 원장님', text: '칠판에 오늘 진도가 빼곡합니다. 「저녁 수업 전에 애들이 꼭 뭘 먹고 와요.」',
+    choices: [{ label: '간식 이야기 나누기', cost: 4, give: 'refStudent', say: '「분식집 생겼어요? 쉬는 시간에 보내 볼게요.」' }], memo: 'apAfter' },
+  { id: 'apHair', area: 'apt', at: 'shop:hair', title: '미용실 원장님', text: '「어서 와요~」 드라이기 소리 사이로 동네 소식이 오갑니다.',
+    choices: [{ label: '동네 이야기 듣기', cost: 5, give: 'noteTteok', say: '「요즘 애들은 매운 거 좋아해요. 떡볶이는 소스가 생명이지!」' }], memo: 'apMoms' },
+  { id: 'apEstate', area: 'apt', at: 'shop:estate', title: '부동산 사장님', text: '유리문에 매물 종이가 빼곡합니다. 사장님이 커피를 들고 나옵니다.',
+    choices: [{ label: '동네 이야기 듣기', cost: 4, say: '「여기 상가 1층은 비싸요. 그래도 단지 사람들이 매일 지나가니까.」' }], memo: 'apRent' },
 ];
