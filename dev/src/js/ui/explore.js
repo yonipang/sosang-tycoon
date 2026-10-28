@@ -1,5 +1,5 @@
 // 동네 탐방 화면 (v0.78): 골목 화면(ui/town.js)의 캔버스·막대·아래 버튼·창을 빌려 써요
-//  걷기는 골목과 같아요(조이스틱 · 짧게 누르면 그곳까지). 사람 앞에 서면 머리 위 「살펴보기」 → 사건 창(고르기 하나)
+//  걷기는 골목과 같아요(조이스틱 · 짧게 누르면 그곳까지). 사람 옆에서 오른쪽 아래 상호작용 버튼 「살펴보기」 → 사건 창(고르기 하나)
 //  체력(위 막대)은 걸을 때 · 일을 도울 때 줄고, 국밥·어묵 국물로 조금 돌아와요. 버스 정류장으로 가면 돌아가요
 //  규칙은 sim/explore.js (runCmd 'exStart' · 'exWalk' · 'exPick' · 'exReturn'), 그리기 render/explore.js
 import { G } from '../save/state.js';
@@ -184,7 +184,15 @@ function spotNear() {
   return X.spots.findIndex(s => !s.done && Math.abs(exPx(s.tx) - V.me.x) < EX_NEAR.x && Math.abs(exPy(s.ty) - V.me.y) < EX_NEAR.y);
 }
 function openSpot(i) { V.me.path = []; V.me.moving = false; playSfx('tap'); XC.sheet(eventHTML(i), 'ex'); }
-export function exTalk() { const i = V && V.near; if (i >= 0) openSpot(i); }
+// 상호작용 버튼 (v0.80 — ui/town.js updateActBtn): 사람 옆이면 「살펴보기」, 정류장 옆이면 「돌아가기」
+export function exActTarget() {
+  const X = exRun(); if (!V || !X || X.fainted) return null;
+  const i = spotNear();
+  if (i >= 0) return { label: '살펴보기', run: () => openSpot(i) };
+  const [tx, ty] = exMeTile(), bus = X.map.props.find(p => p.kind === 'bus');
+  if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 4) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
+  return null;
+}
 
 export function exUpdate(dt) {
   const X = exRun(); if (!V || !X) return;
@@ -197,20 +205,10 @@ export function exUpdate(dt) {
     if (me.path.length) { me.path = []; V.then = null; }
     const sp = EX_WALK * Math.min(1, Math.hypot(vx, vy)) / Math.hypot(vx, vy);
     const nx = me.x + vx * sp * dt, ny = me.y + vy * sp * dt;
-    let hit = false;
-    if (!exBlocked(nx, me.y)) me.x = nx; else hit = true;
-    if (!exBlocked(me.x, ny)) me.y = ny; else hit = true;
+    if (!exBlocked(nx, me.y)) me.x = nx;
+    if (!exBlocked(me.x, ny)) me.y = ny;
     me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1); me.moving = true;
-    // 정류장에 부딪히면 돌아가기 창 · 사람에게 부딪히면 그 사건 (같은 칸에서는 한 번만)
-    const [tx, ty] = exMeTile(), key = tx + ',' + ty;
-    if (V.bumped && V.bumped !== key) V.bumped = null;
-    if (hit && !V.bumped) {
-      const fx = tx + (Math.abs(vx) >= Math.abs(vy) ? Math.sign(vx) : 0), fy = ty + (Math.abs(vy) > Math.abs(vx) ? Math.sign(vy) : 0);
-      const bus = X.map.props.find(p => p.kind === 'bus' && fy === p.ty && fx >= p.tx && fx < p.tx + 4);
-      const si = X.spots.findIndex(s => !s.done && s.tx === fx && s.ty === fy);
-      if (bus) { V.bumped = key; me.moving = false; XC.sheet(leaveHTML(), 'ex'); }
-      else if (si >= 0) { V.bumped = key; openSpot(si); }
-    }
+    // 부딪혀도 창은 안 열려요 — 상호작용 버튼으로 (v0.80)
   } else if (!me.path.length) me.moving = false;
   if (me.path.length && !busy) {
     let step = EX_WALK * dt;
@@ -228,20 +226,9 @@ export function exUpdate(dt) {
   const M = X.map;
   V.cam.x = Math.max(0, Math.min(M.W * TILE - vw, me.x - vw / 2));
   V.cam.y = Math.max(0, Math.min(M.H * TILE - vh, me.y - 16 - vh / 2));
-  // 머리 위 「살펴보기」
-  const b = $('townTalk'), i = busy ? -1 : spotNear();
-  V.near = i;
-  if (i < 0) { if (!b.hidden) b.hidden = true; }
-  else {
-    const s = X.spots[i], cv = $('townCv').getBoundingClientRect(), box = $('town').getBoundingClientRect();
-    b.textContent = '살펴보기';
-    b.style.left = (cv.left - box.left + (exPx(s.tx) - V.cam.x) / vw * cv.width) + 'px';
-    b.style.top = (cv.top - box.top + (exPy(s.ty) - 34 - V.cam.y) / vh * cv.height) + 'px';
-    b.hidden = false;
-  }
   drawExplore($('townCv'), { map: M, cam: V.cam, vw, vh, me, time: V.time, marks: X.spots.filter(s => !s.done) });
 }
-// 짧게 누르기: 사람 → 그 옆까지 걸어가 사건 · 정류장 → 돌아가기 · 바닥 → 그곳까지
+// 짧게 누르기: 사람·정류장 → 그 옆까지 걸어가기만 (창은 상호작용 버튼으로) · 바닥 → 그곳까지
 export function exTap(e) {
   const X = exRun(); if (!V || !X || X.fainted) return;
   const r = $('townCv').getBoundingClientRect(), { vw, vh } = XC.view();
@@ -249,9 +236,9 @@ export function exTap(e) {
   const tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
   playSfx('tap');
   const si = X.spots.findIndex(s => !s.done && wx >= exPx(s.tx) - 8 && wx < exPx(s.tx) + 8 && wy >= exPy(s.ty) - 30 && wy < exPy(s.ty) + 4);
-  if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; openSpot(si); }); return; }
+  if (si >= 0) { const s = X.spots[si], at = exBeside(s.tx, s.ty); if (at) exWalkTo(at, () => { V.me.dir = s.ty < at[1] ? 1 : s.ty > at[1] ? 3 : s.tx > at[0] ? 0 : 2; }); return; } // 걸어가기만 (v0.80)
   const bus = X.map.props.find(p => p.kind === 'bus');
-  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo([3, 22], () => XC.sheet(leaveHTML(), 'ex')); return; }
+  if (bus && wx >= bus.tx * TILE && wx < bus.tx * TILE + 72 && wy >= (bus.ty + 1) * TILE - 47 && wy < (bus.ty + 1) * TILE) { exWalkTo([3, 22]); return; }
   if (tx < 0 || ty < 0 || tx >= X.map.W || ty >= X.map.H || exWalls()[ty * X.map.W + tx]) return;
   exWalkTo([tx, ty]);
 }

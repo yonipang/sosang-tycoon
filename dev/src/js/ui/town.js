@@ -33,7 +33,7 @@ let bookSel = 0; // 손님 수첩에서 고른 사람
 import { lineHTML, talking } from './story.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
-import { exOn, exHook, exUpdate, exTap, exBar, exHud, exNav, exNavClick, exSheetClick, exTalk, busHTML, initExplore, exMapH } from './explore.js';
+import { exOn, exHook, exUpdate, exTap, exBar, exHud, exNav, exNavClick, exSheetClick, exActTarget, busHTML, initExplore, exMapH } from './explore.js';
 import { exploreOpen } from '../sim/explore.js';
 
 const WALK = 96;     // 걷는 빠르기 (지도 픽셀/초) — v0.35 사용자 요청으로 60 → 96
@@ -240,11 +240,7 @@ function inJoy(dt, vx, vy) {
   }
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
-  if (!hit) { I.bumped = null; return; }
-  const key = hit.join(',');
-  if (I.bumped === key || T.sheet) return;
-  const S = spotsNow().find(q => spotTiles(q).tiles.some(([a, b]) => a === hit[0] && b === hit[1]));
-  if (S) { I.bumped = key; me.moving = false; doShop(S.act); }
+  void hit; // 부딪혀도 창은 안 열려요 — 상호작용 버튼으로 (v0.80)
 }
 function updateInside(dt) {
   const I = T.inside, me = I.me;
@@ -267,8 +263,8 @@ function tapInside(e) {
   const x = Math.floor((e.clientX - r.left) / r.width * V.w / TILE), y = Math.floor((e.clientY - r.top) / r.height * V.h / TILE);
   playSfx('tap');
   const S = spotsNow().find(s => spotTiles(s).tiles.some(([a, b]) => a === x && b === y));
-  if (S) { closeSheet(); goSpot(S.act); return; }
   closeSheet();
+  if (S) { const { tiles, stand } = spotTiles(S); inWalk(stand, () => { const [tx, ty] = tiles[0], me = T.inside.me; me.dir = Math.abs(tx - me.x) > Math.abs(ty - me.y) ? (tx > me.x ? 0 : 2) : (ty > me.y ? 3 : 1); }); return; } // 걸어가기만 — 창은 상호작용 버튼으로 (v0.80)
   inWalk([[x, y]]);
 }
 
@@ -372,27 +368,14 @@ function joyMove(dt, vx, vy) {
   me.dir = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 0 : 2) : (vy > 0 ? 3 : 1);
   me.moving = true;
   T.sitUntil = 0;
-  // 부딪힌 곳: 문 앞에서 위로 밀면 그 가게 · 물건 (같은 칸에서는 한 번만). 사람은 「대화하기」 버튼으로 (v0.49)
-  const [tx, ty] = meTile();
-  const key = tx + ',' + ty;
-  if (T.bumped && T.bumped !== key) T.bumped = null;
-  if ((!hitX && !hitY) || T.bumped || T.sheet) return;
-  const bx = tx + (Math.abs(vx) >= Math.abs(vy) ? hitX : 0), by = ty + (Math.abs(vy) > Math.abs(vx) ? hitY : 0);
-  let place = null;
-  if (hitUp) place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) { T.bumped = key; me.moving = false; facePlace(place); if (place === 'shop') enterShop(); else { openPlace(place); playSfx('tap'); } return; } // 우리 가게 문은 걸어 들어가요
-  const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => a === bx && b === by));
-  if (prop) { T.bumped = key; me.moving = false; openUse(prop); return; }
-  const look = hitUp && LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
-  if (look) { T.bumped = key; me.moving = false; showLook(look); return; }
-  if (hitUp && vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) { T.bumped = key; me.moving = false; showVacant(); }
+  // 부딪혀도 창은 안 열려요 — 오른쪽 아래 상호작용 버튼으로 (v0.80 사용자 요청)
 }
 
 export function updateTown(dt) {
   if (!townShown()) return;
   T.time += dt;
-  if (exOn()) { exUpdate(dt); return; } // 동네 탐방 중 (v0.78)
-  if (T.inside) { if (!talking()) updateInside(dt); else drawShopTo($('townCv'), { me: T.inside.me, time: T.time, dawn: G.town.part === 'dawn' }); return; }
+  if (exOn()) { exUpdate(dt); updateActBtn(); return; } // 동네 탐방 중 (v0.78)
+  if (T.inside) { if (!talking()) updateInside(dt); else drawShopTo($('townCv'), { me: T.inside.me, time: T.time, dawn: G.town.part === 'dawn' }); updateActBtn(); return; }
   const me = T.me;
   const [vx, vy] = talking() ? [0, 0] : joyVec();
   if (Math.hypot(vx, vy) > 0.25) { if (me.path.length) { me.path = []; T.then = null; } joyMove(dt, vx, vy); }
@@ -411,7 +394,7 @@ export function updateTown(dt) {
   T.cam.x = Math.max(0, Math.min(MAP_W * TILE - T.vw, me.x - T.vw / 2));
   T.cam.y = Math.max(0, Math.min(MAP_H * TILE - T.vh, me.y - 16 - T.vh / 2));
   if (!talking()) updateWalkers(dt);
-  updateTalkBtn();
+  updateActBtn(); // 머리 위 「대화하기」 대신 오른쪽 아래 상호작용 버튼 (v0.80)
   me.sit = T.sitUntil > T.time; // 벤치에서 쉬는 동안 앉아 있어요
   const dawn = G.town.part === 'dawn';
   const actors = [me, ...(T.walkers || [])];
@@ -504,8 +487,60 @@ function updateTalkBtn() {
   b.style.top = (cv.top - box.top + (t.y - 34 - T.cam.y) / T.vh * cv.height) + 'px';
   b.hidden = false;
 }
+// ── 상호작용 버튼 (v0.80 사용자 요청): 다가가기만 해서는 창이 안 열려요. 오른쪽 아래 버튼을 눌러야 대화·문·물건 ──
+//  지금 할 수 있는 것을 하나 골라 버튼 글자로 보여 줘요 (사람 > 문 > 물건 > 둘러보기). 없으면 흐리게
+const USE_LABEL = { rest: '앉기', drink: '뽑기', bus: '정류장' };
+const adj = (ax, ay, bx, by) => Math.abs(ax - bx) + Math.abs(ay - by) <= 1;
+function townActTarget() {
+  const [tx, ty] = meTile();
+  const t = talkTarget();
+  if (t) return { label: '대화', run: () => { T.talkT = t; talkPress(); } };
+  const place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
+  if (place) return { label: place === 'shop' ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
+  const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => adj(a, b, tx, ty)));
+  if (prop) return { label: USE_LABEL[prop.use] || '살펴보기', run: () => { T.me.path = []; openUse(prop); } };
+  const look = LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
+  if (look) return { label: '살펴보기', run: () => { T.me.dir = 1; showLook(look); } };
+  if (vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) return { label: '살펴보기', run: () => { T.me.dir = 1; showVacant(); } };
+  return null;
+}
+// 가게 안: 서 있는 칸(또는 바로 옆)의 물건 — 여러 개면 바라보는 쪽
+const IN_LABEL = { pantry: '냉장고', recipe: '메뉴 연구', counter: '계산대', clean: '청소', exit: '나가기' };
+function insideActTarget() {
+  const me = T.inside.me, mx = Math.round(me.x), my = Math.round(me.y);
+  const [fx, fy] = [mx + (me.dir === 0 ? 1 : me.dir === 2 ? -1 : 0), my + (me.dir === 3 ? 1 : me.dir === 1 ? -1 : 0)];
+  let best = null, score = 0;
+  for (const S of spotsNow()) {
+    const { tiles, stand } = spotTiles(S);
+    const sc = tiles.some(([a, b]) => a === fx && b === fy) ? 3 : stand.some(([a, b]) => a === mx && b === my) ? 2 : tiles.some(([a, b]) => adj(a, b, mx, my)) ? 1 : 0;
+    if (sc > score) { score = sc; best = S; }
+  }
+  if (!best) return null;
+  const act = best.act;
+  return { label: act === 'setup' ? (prepMax() ? '조리대' : '오픈 준비') : IN_LABEL[act] || '살펴보기', run: () => { me.path = []; me.moving = false; doShop(act); } };
+}
+function updateActBtn() {
+  const b = $('townAct'); if (!b) return;
+  const busy = talking() || T.fading || T.sheet || !!chatQ;
+  const t = busy ? null : exOn() ? exActTarget() : T.inside ? insideActTarget() : townActTarget();
+  T.act = t;
+  const label = t ? t.label : '…';
+  if (b.textContent !== label) b.textContent = label;
+  if (b.disabled !== !t) b.disabled = !t;
+  if (!$('townTalk').hidden) $('townTalk').hidden = true;
+  // 캔버스 오른쪽 아래에 붙여요
+  const cv = $('townCv').getBoundingClientRect(), box = $('town').getBoundingClientRect();
+  const left = Math.round(cv.right - box.left - b.offsetWidth - 10) + 'px', top = Math.round(cv.bottom - box.top - b.offsetHeight - 10) + 'px';
+  if (b.style.left !== left) b.style.left = left;
+  if (b.style.top !== top) b.style.top = top;
+}
+function actPress() {
+  const t = T && T.act;
+  if (!t || talking() || T.fading) return;
+  playSfx('tap'); T.me.moving = false;
+  t.run();
+}
 function talkPress() {
-  if (exOn()) { exTalk(); return; }
   const t = T.talkT;
   if (!t) return;
   $('townTalk').hidden = true; playSfx('tap');
@@ -533,13 +568,13 @@ function tapTown(e) {
   const w = walkerAt(wx, wy);
   if (w) { const at = besideTile(Math.floor(w.x / TILE), Math.floor(w.y / TILE)); if (at) { w.wait = Math.max(w.wait, 2); w.path = []; walkTo(at, () => faceTo(w.x, w.y)); } return; }
   const place = Object.keys(PLACES).find(id => inRect(wx, wy, PLACES[id].rect));
-  if (place) { goPlace(place); return; }
+  if (place) { if (!walkTo(PLACES[place].door, () => facePlace(place))) facePlace(place); return; } // 걸어가기만 (v0.80)
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && inRect(wx, wy, propRect(q)));
-  if (prop) { goProp(prop); return; }
+  if (prop) { const [bx, by] = prop.block[0], at = nearestOpen(bx, by + 1); if (at) walkTo(at, () => { const [tx, ty] = meTile(); T.me.dir = Math.abs(bx - tx) > Math.abs(by - ty) ? (bx > tx ? 0 : 2) : (by > ty ? 3 : 1); }); return; }
   const look = LOOKS.find(L => inRect(wx, wy, L.rect));
-  if (look) { const [x, y, w2, h2] = look.rect; const at = nearestOpen(Math.floor((x + w2 / 2) / TILE), Math.floor((y + h2) / TILE)); if (!at || !walkTo(at, () => { T.me.dir = 1; showLook(look); })) showLook(look); return; }
+  if (look) { const [x, y, w2, h2] = look.rect; const at = nearestOpen(Math.floor((x + w2 / 2) / TILE), Math.floor((y + h2) / TILE)); if (at) walkTo(at, () => { T.me.dir = 1; }); return; }
   if (vacantB && inRect(wx, wy, [vacantB[1], vacantB[2] - SPR.tw_vacant[3], SPR.tw_vacant[2], SPR.tw_vacant[3]])) {
-    walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; showVacant(); });
+    walkTo(nearestOpen(Math.floor((vacantB[1] + 24) / TILE), Math.floor(vacantB[2] / TILE)), () => { T.me.dir = 1; });
     return;
   }
   // 갈 수 없는 곳(막힌 칸 · 닿지 않는 칸)을 누르면 그대로 서 있어요 (v0.40 사용자 요청)
@@ -778,10 +813,12 @@ export function initTown() {
   cv.addEventListener('pointerup', joyEnd);
   cv.addEventListener('pointercancel', joyEnd);
   const KEY = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
-  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } });
+  addEventListener('keydown', e => { if (townShown() && KEY[e.code] && !e.target.closest('input')) { keys.add(KEY[e.code]); e.preventDefault(); } if (townShown() && (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter') && !T.sheet && !e.target.closest('input, button')) { e.preventDefault(); actPress(); } }); // 상호작용: 스페이스·E·엔터
   addEventListener('keyup', e => { if (KEY[e.code]) { keys.delete(KEY[e.code]); if (T && !keys.size) T.bumped = null; } });
   addEventListener('blur', () => keys.clear());
   $('townTalk').addEventListener('click', e => { e.stopPropagation(); talkPress(); });
+  $('townAct').addEventListener('click', e => { e.stopPropagation(); actPress(); });
+  $('townAct').addEventListener('pointerdown', e => e.stopPropagation());
   $('townBar').addEventListener('click', e => { if (!talking() && e.target.closest('[data-tb=phone]')) { if (chatQ) return; openPhone(null); playSfx('page'); runCmd('phoneHelp'); } }); // 휴대폰 (v0.54) · 처음 열면 안내 카드 (v0.61)
   $('townNav').addEventListener('click', e => {
     if (talking()) return;

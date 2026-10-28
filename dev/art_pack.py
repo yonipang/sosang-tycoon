@@ -890,6 +890,7 @@ def collect():
     s['sign_hw'] = own_sign('철물', (88, 92, 104, 255), (130, 136, 150, 255))  # 세탁소 → 문 철물
     s.update(town2_sprites())  # 마을 동쪽 블록 · 가게 앞 꾸밈 · 상호작용 물건 (v0.48)
     s.update(market_sprites(s))  # 동네 탐방: 재래시장 (v0.78)
+    s.update(apt_sprites(s))  # 동네 탐방: 아파트 단지 (v0.80)
     return s
 
 
@@ -1069,6 +1070,100 @@ def market_sprites(s):
         o['mk_bask%d' % i] = tightb(crop(EXT, CAMP % ('Basket_%d' % i)))
     o['mk_crate'] = tightb(crop(EXT, CAMP % 'Pier_Crates_5'))
     o['mk_lamp'] = tightb(crop(EXT, CAMP % 'Lantern_2'))
+    return o
+
+
+# ── 동네 탐방: 아파트 단지 (v0.80) — 동마다 색과 번호가 다른 아파트 · 경비실 · 분리수거 · 단지 상가 ──
+CITYP = ME16 + '3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_%s.png'
+
+
+def ap_tower(accent, dong, seed=1):  # 아파트 한 동 (112x176): 평평한 지붕 · 6층 베란다 · 위에 동 번호 · 1층 공동현관
+    import random
+    rr = random.Random(seed)
+    W, H = 112, 176
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    acc = accent + (255,); dk = tuple(max(0, c - 60) for c in accent) + (255,)
+    wall = (238, 232, 218, 255); wall2 = (222, 214, 198, 255)
+    d.rectangle((0, 0, W - 1, 13), fill=(196, 198, 204, 255), outline=INK)  # 지붕
+    d.line((2, 2, W - 3, 2), fill=(222, 224, 228, 255))
+    d.rectangle((10, 3, 30, 10), fill=(160, 164, 172, 255), outline=INK)  # 물탱크 · 기계실
+    d.rectangle((84, 4, 98, 10), fill=(170, 174, 182, 255), outline=INK)
+    d.rectangle((0, 13, W - 1, H - 1), fill=wall, outline=INK)  # 벽
+    d.rectangle((1, 14, 6, H - 28), fill=acc); d.rectangle((W - 7, 14, W - 2, H - 28), fill=acc)  # 양옆 색 띠
+    # 동 번호 (게임 글꼴)
+    fn = kfont(16)
+    txt = Image.new('RGBA', (W, 24), (0, 0, 0, 0)); td = ImageDraw.Draw(txt)
+    tw = int(td.textlength(dong, font=fn)); td.text(((W - tw) // 2, 0), dong, font=fn, fill=acc)
+    a_ = txt.split()[3].point(lambda v: 255 if v > 110 else 0); solid = Image.new('RGBA', txt.size, acc); solid.putalpha(a_)
+    bb = a_.getbbox()
+    if bb:
+        g = solid.crop((0, bb[1], W, bb[3])); sh = Image.new('RGBA', g.size, dk); sh.putalpha(g.split()[3])
+        im.alpha_composite(sh, (1, 17)); im.alpha_composite(g, (0, 16))
+    # 6층 베란다 (층마다 4칸)
+    curt = [(236, 236, 240), (240, 220, 180), (200, 220, 236), (236, 200, 200), (210, 230, 200)]
+    for f in range(6):
+        y = 34 + f * 19
+        d.line((8, y + 16, W - 9, y + 16), fill=wall2)
+        for k in range(4):
+            x = 10 + k * 24
+            d.rectangle((x, y + 2, x + 20, y + 13), fill=(170, 196, 216, 255), outline=(120, 124, 136, 255))
+            if rr.random() < 0.45:  # 커튼
+                c = rr.choice(curt) + (255,); d.rectangle((x + 1, y + 3, x + 6, y + 12), fill=c)
+            d.line((x + 1, y + 4, x + 6, y + 4), fill=(214, 230, 240, 255))  # 반짝임
+            d.line((x, y + 11, x + 20, y + 11), fill=(150, 154, 164, 255))  # 난간
+            if rr.random() < 0.18: d.rectangle((x + 13, y + 7, x + 17, y + 10), fill=(110, 170, 90, 255))  # 화분
+    # 1층: 기둥 · 공동현관
+    d.rectangle((1, H - 28, W - 2, H - 2), fill=(196, 188, 176, 255))
+    d.line((1, H - 28, W - 2, H - 28), fill=INK)
+    for x in (16, 34, 76, 94): d.rectangle((x, H - 26, x + 4, H - 2), fill=(220, 214, 204, 255))
+    d.rectangle((W // 2 - 14, H - 27, W // 2 + 13, H - 24), fill=acc, outline=INK)  # 차양
+    d.rectangle((W // 2 - 11, H - 23, W // 2 + 10, H - 2), fill=(70, 90, 120, 255), outline=INK)  # 유리문
+    d.line((W // 2, H - 23, W // 2, H - 2), fill=INK); d.line((W // 2 - 9, H - 21, W // 2 - 4, H - 21), fill=(150, 180, 210, 255))
+    return im
+
+
+def ap_booth():  # 경비실 (48x38)
+    im = Image.new('RGBA', (48, 38), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.rectangle((2, 12, 45, 37), fill=(236, 236, 240, 255), outline=INK)
+    d.rectangle((0, 8, 47, 13), fill=(70, 96, 150, 255), outline=INK)  # 지붕
+    d.rectangle((6, 17, 26, 28), fill=(170, 196, 216, 255), outline=(120, 124, 136, 255))  # 창
+    d.rectangle((31, 17, 41, 36), fill=(120, 130, 150, 255), outline=INK)  # 문
+    sg = mk_signboard('경비실', (70, 96, 150, 255), w=48, h=18).resize((48, 18))
+    im.alpha_composite(tightb(sg).resize((40, 12), Image.NEAREST), (4, 0))
+    return im
+
+
+def ap_sand(w=32, h=32):  # 놀이터 모래 한 칸
+    import random
+    rr = random.Random(7)
+    im = Image.new('RGBA', (w, h), (226, 204, 156, 255)); d = ImageDraw.Draw(im)
+    for _ in range(26): x, y = rr.randrange(w), rr.randrange(h); d.point((x, y), fill=(206, 182, 132, 255))
+    for _ in range(10): x, y = rr.randrange(w), rr.randrange(h); d.point((x, y), fill=(240, 224, 186, 255))
+    return im
+
+
+def apt_sprites(s):
+    o = {}
+    for k, acc in enumerate(((84, 150, 104), (76, 116, 180), (222, 136, 56), (150, 96, 170))):
+        o['ap_t%d' % (k + 1)] = ap_tower(acc, '%d동' % (101 + k), seed=k + 3)
+    o['ap_booth'] = ap_booth()
+    o['ap_sand'] = ap_sand()
+    for k in (1, 2, 3, 4, 5, 6):
+        o['ap_car%d' % k] = tightb(crop(EXT, VEH % ('Car_Up_%d' % k)))
+    for c in ('Blue', 'Green', 'Black'):
+        o['ap_bin_' + c.lower()] = tightb(crop(EXT, CITYP % (c + '_Closed_Trash_Can')))
+    o['ap_box'] = tightb(crop(EXT, CITYP % 'Cardboard_Trash_3'))
+    o['ap_flowers'] = tightb(crop(EXT, CITYP % 'Flower_Bush_4'))
+    o['ap_planter'] = tightb(crop(EXT, CITYP % 'Shrub_11'))
+    o['ap_lamp'] = tightb(crop(EXT, CITYP % 'Street_Lamp_5'))
+    o['ap_bench'] = tightb(crop(EXT, CITYP % 'Bench_2'))
+    o['ap_gate'] = tightb(crop(EXT, CITYP % 'Stop_Barrier_Front'))
+    SIGNS = {  # 단지 상가 간판 (src/js/data/explore.js SHOP_TYPES)
+        'cvs': ('편의점', (40, 140, 90, 255)), 'tkd': ('태권도', (190, 50, 50, 255)), 'piano': ('피아노', (120, 80, 160, 255)),
+        'hair': ('미용실', (210, 90, 140, 255)), 'estate': ('부동산', (50, 70, 120, 255)), 'math': ('수학학원', (60, 110, 190, 255)),
+    }
+    for k, (t, bg) in SIGNS.items():
+        o['mk_s_' + k] = mk_signboard(t, bg)
     return o
 
 
