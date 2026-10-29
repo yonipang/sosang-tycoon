@@ -20,13 +20,13 @@ export const SAVE_V = 1;
 // meta = 세이브 꼬리표 { id: 이 가게(판) 번호, at: 마지막 저장 시각 } — 클라우드 저장에서 같은 판인지·어느 쪽이 최근인지 봐요
 // prep = 오늘 아침 도착할 재료 주문량(메뉴마다 인분 — 프롤로그·1장 첫날) · inv = 원재료 창고 { 재료: [{ n: 인분, exp: 이 날까지 쓸 수 있음 }] } (sim/pantry.js)
 // menuOff = 오늘의 메뉴에서 뺀 메뉴 (열린 메뉴 중 오늘 쉬는 것)
-// book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js)
+// book = 손님 수첩 { 그림 번호: { first, visits, sat } } (sim/book.js) · notebook = 손님층 수첩 { 손님층: 센 것 · 열린 칸 } (sim/notebook.js)
 // board = 가게 앞 칠판 · 오늘의 추천 { morning, lunch, after } (sim/traffic.js)
 // bond = 친밀도 { pts: { miso, jung, moon }, day, got } (sim/bond.js) · furn = 미소 가구 { have: { 카테고리: 테마 }, seen, visits } (sim/furniture.js)
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore', 'notebook'];
 
 export const G = { phase: 'title', run: null };
 
@@ -64,6 +64,7 @@ export function newGame(shopName) {
     menuSlots: SLOT_START, // 오늘의 메뉴 칸 수 (sim/pantry.js slotBuy)
     guild: newGuild(),
     explore: newExplore(), // 동네 탐방 (2장, v0.78)
+    notebook: {}, // 손님층 수첩 (1장부터, v0.90 — sim/notebook.js)
     phase: 'prep',
     run: null,
   });

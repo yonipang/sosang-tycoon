@@ -29,7 +29,11 @@ import { ingNews } from '../sim/market.js';
 import { toast } from './feedback.js';
 import { boardHTML, boardTab } from './board.js';
 import { bookHTML } from './book.js';
+import { notebookHTML } from './notebook.js';
+import { nbNew } from '../sim/notebook.js';
+import { NOTE_TYPES } from '../data/notebook.js';
 let bookSel = 0; // 손님 수첩에서 고른 사람
+let nbSel = ''; // 손님층 수첩에서 고른 손님층 ('' = 목록 · 'memo' = 동네 메모)
 import { lineHTML, talking } from './story.js';
 import { rivalHoard, rivalBuilt, rivalSale } from '../sim/rival.js';
 import { RIVAL, RIVAL_LOOK } from '../data/rival.js';
@@ -633,10 +637,10 @@ let counterTab = 'sales';
 const noHead = h => h.replace(/^<div class="ts-head">[\s\S]*?<\/button><\/div>/, '');
 function openCounter(tab) {
   if (tab) counterTab = tab;
-  const tabs = [['sales', '영수증'], ['book', '손님 수첩']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}</button>`).join('');
+  const tabs = [['sales', '영수증'], ['book', '손님 수첩'], ['types', '손님층']].map(([k, n]) => `<button type="button" class="fu-tab${counterTab === k ? ' sel' : ''}" data-ts="ctab" data-t="${k}">${n}${k === 'types' && NOTE_TYPES.some(nbNew) ? '<i>!</i>' : ''}</button>`).join(''); // 손님층 (v0.90)
   sheet(`<div class="ct-top"><div class="ts-head"><b>계산대</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>
     <button type="button" class="btn primary ct-open" data-ts="act" data-a="open">가게 열기</button>
-    <div class="ct-tabs">${tabs}</div></div>${noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
+    <div class="ct-tabs">${tabs}</div></div>${counterTab === 'types' ? notebookHTML(nbSel) : noHead(counterTab === 'book' ? bookHTML(bookSel) : salesHTML())}`, 'counter'); // 포스(계산대)에서도 가게 열기 (v0.68 사용자 요청)
   T.sheetPlace = 'shop';
 }
 
@@ -690,7 +694,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? '장사 도구 · 설비 손보기' : a === 'furn' ? '탁자 · 의자 · 장식 사기'
       : TALK_WHO[a] ? (ok ? (a === 'jungTalk' ? '친밀도 +2 · 시간이 들지 않습니다' : '친밀도 · 내일 소개 손님') : '오늘은 이미 대화했습니다')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩 · 손님층' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(TALK_WHO[a] && !ok) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -858,6 +862,7 @@ export function initTown() {
     else if (k === 'fill') { cart = cartFor(plan); playSfx(Object.keys(cart).length ? 'page' : 'tap'); if (!Object.keys(cart).length) toast('재료가 넉넉합니다. 더 살 것이 없습니다', 'info'); sheet(marketHTML(), 'market'); }
     else if (k === 'who') { bookSel = +b.dataset.c; playSfx('tap'); if ($('townSheet').classList.contains('counter')) openCounter(); else sheet(bookHTML(bookSel), 'book'); }
     else if (k === 'ctab') { openCounter(b.dataset.t); playSfx('tap'); }
+    else if (k === 'nbType') { nbSel = b.dataset.t; if (nbSel && nbSel !== 'memo') runCmd('nbSeen', { type: nbSel }); openCounter(); playSfx('tap'); } // 손님층 수첩
     else if (k === 'fth') { furnTheme(b.dataset.t); playSfx('tap'); showFurn(); }
     else if (k === 'fgr') { furnGrade(+b.dataset.g); playSfx('tap'); showFurn(); }
     else if (k === 'fbuy') { furnToggle(b.dataset.c, b.dataset.k); playSfx('tap'); showFurn(); }

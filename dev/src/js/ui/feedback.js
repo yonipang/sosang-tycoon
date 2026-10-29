@@ -18,6 +18,7 @@ import { townMode } from '../sim/town.js';
 import { SCENES } from '../data/story.js';
 import { setMusic } from './music.js';
 import { ohInShop } from '../sim/tutorial.js';
+import { typeBadgeHTML } from './notebook.js';
 
 export function toast(text, kind, who) {
   const box = $('toasts');
@@ -29,6 +30,19 @@ export function toast(text, kind, who) {
   while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.classList.add('out'), 2200);
   setTimeout(() => el.remove(), 2600);
+}
+
+// 손님층 수첩에 새 칸이 열렸을 때 (v0.90): 종이 카드 한 장 · 장사는 멈추지 않아요
+function noteToast(type, text) {
+  const box = $('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast nb';
+  el.innerHTML = `${typeBadgeHTML(type)}<span><small>손님층 수첩에 적었습니다</small><b>${text}</b></span>`;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  playSfx('page');
+  setTimeout(() => el.classList.add('out'), 3200);
+  setTimeout(() => el.remove(), 3600);
 }
 
 function float(x, y, text, kind) {
@@ -79,6 +93,7 @@ function hint(key, text, oh) {
 
 export function initFeedback() {
   onEvent('toast', toast);
+  onEvent('notebook', noteToast);
   onEvent('float', float);
   onEvent('say', say);
   onEvent('sfx', playSfx);

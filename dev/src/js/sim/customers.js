@@ -21,6 +21,7 @@ import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { kitMade } from './kitchen.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
 import { noteVisit, noteBookSat } from './book.js';
+import { nbFace, nbCame, nbServed } from './notebook.js';
 import { PEOPLE_INFO, FAV_CHANCE } from '../data/people.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
 import { rivalTake, rivalSale } from './rival.js';
@@ -210,6 +211,7 @@ function decide(c) {
   c.face = re.face; c.faceT = 1.6;
   r.log.faces[re.face] = (r.log.faces[re.face] || 0) + 1;
   const pf = r.log.priceFaces[m]; pf[re.face] = (pf[re.face] || 0) + 1; // 가격 장부: 이 메뉴·이 가격에 본 얼굴
+  nbFace(c.type); // 손님층 수첩 · 값 느낌
   const lead = c.lead ? c : r.customers.find(x => x.party === c.party && x.lead) || c; // 일행은 앞사람을 따라요
   if (re.leave && !c.tag && !lead.ref && rand() < re.leave) { partyLeaves(c, 'price', m); return; } // 돌발 손님 · 이웃 소개 손님은 비싸도 사 먹어요 (기분은 남아요 — v0.47)
   if (!canSell(m)) {
@@ -219,6 +221,7 @@ function decide(c) {
   }
   if (!spareOf(m)) takeMenu(m); // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
   c.menu = m; c.priceSat = re.sat;
+  nbCame(c.type, nowHour()); // 손님층 수첩 · 많이 오는 때
   r.tickets.push({ cid: c.id, menu: m, table: SEATS[c.seat].table });
   c.patMax = c.patience = PATIENCE.food * P(c);
   c.state = 'waitFood';
@@ -267,7 +270,7 @@ export function pay(c) {
     total += price;
     L.sales[m.menu].n++; L.sales[m.menu].rev += price; L.served++;
     L.sats.push(sat);
-    noteSat(m, sat); noteBookSat(m.char, sat);
+    noteSat(m, sat); noteBookSat(m.char, sat); nbServed(m.type, m.menu); // 손님층 수첩
     if (m.blog) { L.blogSat = sat; L.blogMenu = m.menu; emit('say', m.id, sat >= 4 ? '와, 이건 글 써야겠는데요?' : '음… 무난하네요.'); } // 파워블로거 (sim/traffic.js)
     const kind = m.reg ? 'regular' : m.quality === 2 ? 'perfect' : m.payWaited ? 'payWait' : m.priceSat >= 1 ? 'cheap' : 'normal';
     L.events.push({ kind, menu: m.menu, who: m.reg ? REGULARS[m.reg].name : T.name });
