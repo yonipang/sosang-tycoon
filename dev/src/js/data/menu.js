@@ -35,6 +35,22 @@ const VARIANTS = {
   ],
 };
 export const BASE_IDS = ['tteok', 'kimbap', 'twigim'];
+// 메뉴 변형 찾기 (v0.91 사용자 요청 — 칠판): 기본 레시피 네 칸 중 바꿀 수 있는 칸 하나를 다른 재료로 바꿔 「한 그릇 만들어 보기」
+//  fixed: 바꿀 수 없는 칸(핀) · swap: { 변형: [칸, 재료] } (칸 -1 = 바꿀 수 있는 아무 칸) · 재료 'none' = 빼기
+//  shelf: 바꿔 넣을 수 있는 재료 (변형 재료 + 헛짚는 재료) — 재료는 그걸 쓰는 변형 중 가장 낮은 레벨이 되면 열려요 (헛짚는 재료는 Lv2)
+//  찾은 변형만 개발(메뉴에 올리기)할 수 있어요 — 실제 레시피·원가는 위 VARIANTS 그대로 (찾는 길만 한 칸)
+export const VARIANT_FIND = {
+  tteok: { fixed: [0, 1], shelf: ['chili', 'cheese', 'milk', 'chunjang', 'onion', 'egg', 'gim', 'carrot'],
+    swap: { tteok_hot: [2, 'chili'], tteok_cheese: [2, 'cheese'], tteok_rose: [2, 'milk'], tteok_jjajang: [3, 'chunjang'], tteok_cream: [3, 'milk'] },
+    flop: { '3:chili': '고추장 대신 고추만 넣었더니 맵기만 하고 맛이 없습니다', '3:cheese': '고추장을 빼고 치즈를 넣었더니 다 타 버렸습니다', '2:chunjang': '고추장에 춘장까지 들어가 정신이 없는 맛입니다', '2:gim': '김가루를 뿌렸습니다. 나쁘진 않은데 새롭진 않습니다', '3:egg': '고추장 대신 계란… 이건 떡볶이가 아닙니다' } },
+  kimbap: { fixed: [0, 1], shelf: ['tuna', 'cheese', 'chili', 'katsu', 'none', 'milk', 'chunjang', 'fishcake', 'onion'],
+    swap: { kimbap_tuna: [3, 'tuna'], kimbap_mini: [2, 'none'], kimbap_cheese: [3, 'cheese'], kimbap_hot: [3, 'chili'], kimbap_katsu: [3, 'katsu'] },
+    flop: { '3:milk': '김밥에 우유를 넣었더니 밥이 질척합니다', '3:chunjang': '짜장 김밥… 손님이 고개를 갸웃할 것 같습니다', '3:none': '당근만 빠졌습니다. 그냥 김밥입니다', '2:milk': '계란 대신 우유… 밥이 질척합니다' } },
+  twigim: { fixed: [0, 3], shelf: ['sweetpotato', 'dangmyeon', 'squid', 'mandu', 'shrimp', 'cheese', 'milk', 'egg', 'chili'],
+    swap: { twigim_sweet: [-1, 'sweetpotato'], twigim_gim: [-1, 'dangmyeon'], twigim_squid: [-1, 'squid'], twigim_mandu: [-1, 'mandu'], twigim_shrimp: [-1, 'shrimp'] },
+    flop: { '-1:milk': '기름에 우유를…! 큰일 날 뻔했습니다', '-1:cheese': '치즈가 다 녹아 흘러내렸습니다', '-1:egg': '계란이 기름에서 터졌습니다' } },
+};
+export const FIND_FLOP = '별 차이가 없습니다. 그냥 {m} 맛입니다';
 export const VARIANT_IDS = {};
 for (const b of BASE_IDS) {
   VARIANT_IDS[b] = [];

@@ -16,6 +16,8 @@ import { setting } from './settings.js';
 import { playCut, cutActive, cutWaiting, cutTap } from './cutscene.js';
 import { tutAsk } from '../sim/tutorial.js';
 import { callStarts, callEnds, ringHTML, startRing, stopRing } from './phone.js';
+import { hideScreen } from './screens.js';
+import { showTown } from './town.js';
 
 let open = null; // 보고 있는 장면 { id, i: 몇 번째 줄, cont: 앞 장면에서 이어지는 전화 }
 let onCall = null; // 방금 끝난 장면이 전화로 끝났으면 그 사람 (바로 이어지는 같은 사람 전화는 다시 울리지 않아요 — v0.60 사용자 요청)
@@ -165,6 +167,8 @@ function finish(name) {
   onCall = sc && !sc.paper ? callEnds(sc.lines) : null;
   showNextScene();
   onCall = null;
+  // 장면 때문에 장부(준비 화면)를 먼저 열었으면, 장면을 다 본 뒤 가게 안으로 (v0.91 사용자 요청 — 장사 끝나고 「가게 열기」 화면이 바로 보이지 않게)
+  if (!open && document.body.dataset.sceneLedger && G.phase === 'prep') { delete document.body.dataset.sceneLedger; hideScreen(); showTown(); }
 }
 
 // 전화 받기

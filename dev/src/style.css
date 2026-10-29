@@ -1237,3 +1237,68 @@ body.in-ex #questTrack { display: none !important; }
 .toast.nb { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 8px 10px; }
 .toast.nb small { display: block; color: var(--red); font-size: 12px; }
 .toast.nb b { font-weight: normal; }
+
+/* 칠판 · 메뉴 변형 찾기 (v0.91 — ui/board.js findHTML): 핀 꽂힌 칸은 못 바꿈 · 노란 점선 ⇄ 칸만 바꿀 수 있음 (글 없이 그림으로) */
+.vf { display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 10px; }
+.vf-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 8px; }
+.vf-slot { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; font: inherit; font-size: 12px; color: #f1eee2; background: transparent; border: 0; cursor: pointer; }
+.vf-ic { width: 32px; height: 32px; }
+.vf-none { display: grid; place-items: center; font-size: 18px; }
+.vf-slot.fixed { cursor: default; }
+.vf-slot.fixed .vf-ic { filter: grayscale(1) brightness(1.7) contrast(.7); opacity: .7; }
+.vf-slot.fixed::before { content: ""; position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #c9d3c6; box-shadow: 0 2px 0 #1d2e24; }
+.vf-slot.can { border: 3px dashed #f5d76e; background: rgba(245,215,110,.12); animation: vfHop 1.4s ease-in-out infinite; }
+.vf-slot.can:nth-child(odd) { animation-delay: .25s; }
+.vf-sw { position: absolute; top: -10px; right: -8px; width: 22px; height: 22px; display: grid; place-items: center; font-style: normal; font-size: 13px; line-height: 1; background: #f5d76e; color: #2f4a3c; border: 2px solid #1d2e24; }
+.vf-slot.off { border: 3px dashed rgba(241,238,226,.25); }
+.vf-slot.off .vf-ic { opacity: .5; }
+.vf-slot.sel { border: 3px solid #f5d76e; background: rgba(245,215,110,.3); transform: translateY(-4px); }
+.vf-slot:disabled.sel, .vf-slot:disabled.off { cursor: default; }
+.vf-old { position: absolute; top: -10px; right: -6px; font-style: normal; font-size: 10px; background: #f1eee2; color: #2f4a3c; padding: 0 3px; text-decoration: line-through; }
+@keyframes vfHop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.vf-pick { position: relative; background: var(--paper); border: 3px solid var(--ink); padding: 8px; animation: vfIn .2s ease-out; }
+.vf-pick::before { content: ""; position: absolute; top: -12px; left: var(--ax, 50%); margin-left: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
+.vf-shelf { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vf-ing { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 0 2px; font: inherit; font-size: 11px; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; word-break: keep-all; }
+.vf-ing .vf-ic { width: 26px; height: 26px; }
+.vf-ing.on { background: var(--mustard); box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); }
+.vf-ing:disabled { opacity: .45; cursor: default; }
+.vf-lock { width: 14px; height: 12px; margin: 7px 0; background: var(--ink-soft); position: relative; }
+.vf-lock::before { content: ""; position: absolute; left: 3px; top: -7px; width: 4px; height: 6px; border: 2px solid var(--ink-soft); border-bottom: 0; }
+.vf-go { margin: 0; }
+.vf-res { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 12px 10px; animation: vfIn .35s cubic-bezier(.3,1.6,.5,1); }
+.vf-res b { font-weight: normal; font-size: 19px; word-break: keep-all; }
+.vf-res.flop b { font-size: 15px; }
+.vf-res small { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
+.vf-stamp { color: var(--red); border: 2px solid var(--red); padding: 0 8px; font-size: 13px; transform: rotate(-4deg); }
+.vf-dish { width: 56px; height: auto; }
+.vf-btns { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
+.vf-btns .ch-btn { flex: 1; }
+.vf-btns .ch-btn.pri { background: var(--red); color: #fff; }
+.town-sheet.chalk .vf-btns .ch-btn.pri, .town-sheet.chalk .vf-btns .ch-btn.pri small { color: #fff; }
+.town-sheet.chalk .vf-btns .ch-btn.pri:disabled { background: #b9a99a; }
+.town-sheet.chalk .vf-res small { color: var(--ink-soft); }
+.vf-found { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vf-found span { aspect-ratio: 1; display: grid; place-items: center; border: 2px dashed rgba(241,238,226,.4); color: #c9d3c6; font-size: 14px; }
+.vf-found span.got { border: 2px solid #f1eee2; background: rgba(241,238,226,.1); }
+.vf-found span.got.on { border-color: #f5d76e; }
+.vf-mini { width: 70%; height: auto; }
+@keyframes vfIn { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vf-slot.can, .vf-res, .vf-pick { animation: none; } }
+
+/* 칠판 추천 명패 (v0.91 — 「가게 열기」 화면 오늘의 메뉴 칸 아래): 끌어다 놓거나 누른 뒤 칸 누르기 */
+.plates { display: flex; align-items: center; gap: 6px; padding: 0 8px 10px; }
+.pl-h { flex: none; font-size: 13px; color: var(--ink-soft); writing-mode: horizontal-tb; }
+.plate { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 4px 6px; font: inherit; color: #f1eee2; background: #2f4a3c; border: 3px solid #8a5a32; box-shadow: 0 3px 0 #5e3b20; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.plate .pl-name { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+.plate b { font-weight: normal; font-size: 15px; }
+.plate small { font-size: 11px; opacity: .8; }
+.pl-dish { width: 26px; height: auto; flex: none; }
+.pl-empty { width: 22px; height: 22px; flex: none; border: 2px dashed rgba(241,238,226,.45); }
+.plate.held { transform: translateY(-4px); border-color: var(--mustard); box-shadow: 0 6px 0 #5e3b20; animation: plWob .5s ease-in-out infinite alternate; }
+.plate.lifted { opacity: .35; }
+.plate.ghost { position: fixed; z-index: 99; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg); width: 110px; box-shadow: 0 8px 0 rgba(0,0,0,.3); }
+.slot.drop { outline: 3px dashed #2f4a3c; outline-offset: -3px; }
+.slot.drop.over { outline: 3px solid var(--mustard); background: #fff3c4; }
+@keyframes plWob { from { transform: translateY(-4px) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .plate.held { animation: none; } }

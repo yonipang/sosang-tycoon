@@ -30,6 +30,7 @@ export function migrate(o) {
   if (!o.explore) o.explore = newExplore(); // 동네 탐방 이전 세이브 (v0.78)
   if (!o.explore.seen) o.explore.seen = []; // 임대 매물 (v0.84)
   if (!o.notebook) o.notebook = {}; // 손님층 수첩 (v0.90)
+  if (!o.varFound) o.varFound = ((o.story && o.story.menus) || []).filter(m => MENUS[m] && MENUS[m].base); // 메뉴 변형 찾기 (v0.91): 이미 개발한 변형은 찾은 것으로
   // v0.74: 처음 돈 150만 → 250만. 이미 1장을 시작한 세이브(가게 통장을 받은 뒤)는 한 번만 100만 원을 더해요
   if (o.story.ch >= 1 && !o.story.cash74) { o.cash = (o.cash || 0) + 1000000; o.story.cash74 = true; }
   if (o.story.ch < 1) o.story.cash74 = true; // 프롤로그 세이브는 1장에서 새 처음 돈(250만)을 받아요

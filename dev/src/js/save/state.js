@@ -26,7 +26,7 @@ export const SAVE_V = 1;
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore', 'notebook'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore', 'notebook', 'varFound'];
 
 export const G = { phase: 'title', run: null };
 
@@ -65,6 +65,7 @@ export function newGame(shopName) {
     guild: newGuild(),
     explore: newExplore(), // 동네 탐방 (2장, v0.78)
     notebook: {}, // 손님층 수첩 (1장부터, v0.90 — sim/notebook.js)
+    varFound: [], // 칠판에서 찾은 메뉴 변형 (v0.91 — sim/upgrade.js menuTry)
     phase: 'prep',
     run: null,
   });

@@ -1242,6 +1242,71 @@ body.in-ex #questTrack { display: none !important; }
 .toast.nb { display: flex; align-items: center; gap: 10px; text-align: left; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 8px 10px; }
 .toast.nb small { display: block; color: var(--red); font-size: 12px; }
 .toast.nb b { font-weight: normal; }
+
+/* 칠판 · 메뉴 변형 찾기 (v0.91 — ui/board.js findHTML): 핀 꽂힌 칸은 못 바꿈 · 노란 점선 ⇄ 칸만 바꿀 수 있음 (글 없이 그림으로) */
+.vf { display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 10px; }
+.vf-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 8px; }
+.vf-slot { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; font: inherit; font-size: 12px; color: #f1eee2; background: transparent; border: 0; cursor: pointer; }
+.vf-ic { width: 32px; height: 32px; }
+.vf-none { display: grid; place-items: center; font-size: 18px; }
+.vf-slot.fixed { cursor: default; }
+.vf-slot.fixed .vf-ic { filter: grayscale(1) brightness(1.7) contrast(.7); opacity: .7; }
+.vf-slot.fixed::before { content: ""; position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #c9d3c6; box-shadow: 0 2px 0 #1d2e24; }
+.vf-slot.can { border: 3px dashed #f5d76e; background: rgba(245,215,110,.12); animation: vfHop 1.4s ease-in-out infinite; }
+.vf-slot.can:nth-child(odd) { animation-delay: .25s; }
+.vf-sw { position: absolute; top: -10px; right: -8px; width: 22px; height: 22px; display: grid; place-items: center; font-style: normal; font-size: 13px; line-height: 1; background: #f5d76e; color: #2f4a3c; border: 2px solid #1d2e24; }
+.vf-slot.off { border: 3px dashed rgba(241,238,226,.25); }
+.vf-slot.off .vf-ic { opacity: .5; }
+.vf-slot.sel { border: 3px solid #f5d76e; background: rgba(245,215,110,.3); transform: translateY(-4px); }
+.vf-slot:disabled.sel, .vf-slot:disabled.off { cursor: default; }
+.vf-old { position: absolute; top: -10px; right: -6px; font-style: normal; font-size: 10px; background: #f1eee2; color: #2f4a3c; padding: 0 3px; text-decoration: line-through; }
+@keyframes vfHop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.vf-pick { position: relative; background: var(--paper); border: 3px solid var(--ink); padding: 8px; animation: vfIn .2s ease-out; }
+.vf-pick::before { content: ""; position: absolute; top: -12px; left: var(--ax, 50%); margin-left: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
+.vf-shelf { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vf-ing { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 0 2px; font: inherit; font-size: 11px; color: var(--ink); background: var(--paper-2); border: 2px solid var(--ink); cursor: pointer; word-break: keep-all; }
+.vf-ing .vf-ic { width: 26px; height: 26px; }
+.vf-ing.on { background: var(--mustard); box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); }
+.vf-ing:disabled { opacity: .45; cursor: default; }
+.vf-lock { width: 14px; height: 12px; margin: 7px 0; background: var(--ink-soft); position: relative; }
+.vf-lock::before { content: ""; position: absolute; left: 3px; top: -7px; width: 4px; height: 6px; border: 2px solid var(--ink-soft); border-bottom: 0; }
+.vf-go { margin: 0; }
+.vf-res { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(0,0,0,.35); padding: 12px 10px; animation: vfIn .35s cubic-bezier(.3,1.6,.5,1); }
+.vf-res b { font-weight: normal; font-size: 19px; word-break: keep-all; }
+.vf-res.flop b { font-size: 15px; }
+.vf-res small { font-size: 12.5px; color: var(--ink-soft); word-break: keep-all; }
+.vf-stamp { color: var(--red); border: 2px solid var(--red); padding: 0 8px; font-size: 13px; transform: rotate(-4deg); }
+.vf-dish { width: 56px; height: auto; }
+.vf-btns { display: flex; gap: 6px; width: 100%; margin-top: 4px; }
+.vf-btns .ch-btn { flex: 1; }
+.vf-btns .ch-btn.pri { background: var(--red); color: #fff; }
+.town-sheet.chalk .vf-btns .ch-btn.pri, .town-sheet.chalk .vf-btns .ch-btn.pri small { color: #fff; }
+.town-sheet.chalk .vf-btns .ch-btn.pri:disabled { background: #b9a99a; }
+.town-sheet.chalk .vf-res small { color: var(--ink-soft); }
+.vf-found { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.vf-found span { aspect-ratio: 1; display: grid; place-items: center; border: 2px dashed rgba(241,238,226,.4); color: #c9d3c6; font-size: 14px; }
+.vf-found span.got { border: 2px solid #f1eee2; background: rgba(241,238,226,.1); }
+.vf-found span.got.on { border-color: #f5d76e; }
+.vf-mini { width: 70%; height: auto; }
+@keyframes vfIn { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vf-slot.can, .vf-res, .vf-pick { animation: none; } }
+
+/* 칠판 추천 명패 (v0.91 — 「가게 열기」 화면 오늘의 메뉴 칸 아래): 끌어다 놓거나 누른 뒤 칸 누르기 */
+.plates { display: flex; align-items: center; gap: 6px; padding: 0 8px 10px; }
+.pl-h { flex: none; font-size: 13px; color: var(--ink-soft); writing-mode: horizontal-tb; }
+.plate { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 4px 6px; font: inherit; color: #f1eee2; background: #2f4a3c; border: 3px solid #8a5a32; box-shadow: 0 3px 0 #5e3b20; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.plate .pl-name { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+.plate b { font-weight: normal; font-size: 15px; }
+.plate small { font-size: 11px; opacity: .8; }
+.pl-dish { width: 26px; height: auto; flex: none; }
+.pl-empty { width: 22px; height: 22px; flex: none; border: 2px dashed rgba(241,238,226,.45); }
+.plate.held { transform: translateY(-4px); border-color: var(--mustard); box-shadow: 0 6px 0 #5e3b20; animation: plWob .5s ease-in-out infinite alternate; }
+.plate.lifted { opacity: .35; }
+.plate.ghost { position: fixed; z-index: 99; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg); width: 110px; box-shadow: 0 8px 0 rgba(0,0,0,.3); }
+.slot.drop { outline: 3px dashed #2f4a3c; outline-offset: -3px; }
+.slot.drop.over { outline: 3px solid var(--mustard); background: #fff3c4; }
+@keyframes plWob { from { transform: translateY(-4px) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .plate.held { animation: none; } }
 </style>
 
 <script>if('serviceWorker' in navigator&&location.protocol==='https:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></head><body><div id="app">
@@ -1434,6 +1499,22 @@ const VARIANTS = {
   ],
 };
 const BASE_IDS = ['tteok', 'kimbap', 'twigim'];
+// 메뉴 변형 찾기 (v0.91 사용자 요청 — 칠판): 기본 레시피 네 칸 중 바꿀 수 있는 칸 하나를 다른 재료로 바꿔 「한 그릇 만들어 보기」
+//  fixed: 바꿀 수 없는 칸(핀) · swap: { 변형: [칸, 재료] } (칸 -1 = 바꿀 수 있는 아무 칸) · 재료 'none' = 빼기
+//  shelf: 바꿔 넣을 수 있는 재료 (변형 재료 + 헛짚는 재료) — 재료는 그걸 쓰는 변형 중 가장 낮은 레벨이 되면 열려요 (헛짚는 재료는 Lv2)
+//  찾은 변형만 개발(메뉴에 올리기)할 수 있어요 — 실제 레시피·원가는 위 VARIANTS 그대로 (찾는 길만 한 칸)
+const VARIANT_FIND = {
+  tteok: { fixed: [0, 1], shelf: ['chili', 'cheese', 'milk', 'chunjang', 'onion', 'egg', 'gim', 'carrot'],
+    swap: { tteok_hot: [2, 'chili'], tteok_cheese: [2, 'cheese'], tteok_rose: [2, 'milk'], tteok_jjajang: [3, 'chunjang'], tteok_cream: [3, 'milk'] },
+    flop: { '3:chili': '고추장 대신 고추만 넣었더니 맵기만 하고 맛이 없습니다', '3:cheese': '고추장을 빼고 치즈를 넣었더니 다 타 버렸습니다', '2:chunjang': '고추장에 춘장까지 들어가 정신이 없는 맛입니다', '2:gim': '김가루를 뿌렸습니다. 나쁘진 않은데 새롭진 않습니다', '3:egg': '고추장 대신 계란… 이건 떡볶이가 아닙니다' } },
+  kimbap: { fixed: [0, 1], shelf: ['tuna', 'cheese', 'chili', 'katsu', 'none', 'milk', 'chunjang', 'fishcake', 'onion'],
+    swap: { kimbap_tuna: [3, 'tuna'], kimbap_mini: [2, 'none'], kimbap_cheese: [3, 'cheese'], kimbap_hot: [3, 'chili'], kimbap_katsu: [3, 'katsu'] },
+    flop: { '3:milk': '김밥에 우유를 넣었더니 밥이 질척합니다', '3:chunjang': '짜장 김밥… 손님이 고개를 갸웃할 것 같습니다', '3:none': '당근만 빠졌습니다. 그냥 김밥입니다', '2:milk': '계란 대신 우유… 밥이 질척합니다' } },
+  twigim: { fixed: [0, 3], shelf: ['sweetpotato', 'dangmyeon', 'squid', 'mandu', 'shrimp', 'cheese', 'milk', 'egg', 'chili'],
+    swap: { twigim_sweet: [-1, 'sweetpotato'], twigim_gim: [-1, 'dangmyeon'], twigim_squid: [-1, 'squid'], twigim_mandu: [-1, 'mandu'], twigim_shrimp: [-1, 'shrimp'] },
+    flop: { '-1:milk': '기름에 우유를…! 큰일 날 뻔했습니다', '-1:cheese': '치즈가 다 녹아 흘러내렸습니다', '-1:egg': '계란이 기름에서 터졌습니다' } },
+};
+const FIND_FLOP = '별 차이가 없습니다. 그냥 {m} 맛입니다';
 const VARIANT_IDS = {};
 for (const b of BASE_IDS) {
   VARIANT_IDS[b] = [];
@@ -1845,7 +1926,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.90';
+const GAME_VERSION = '0.91';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2023,7 +2104,7 @@ const ACTS = {
   ledger: { name: '오늘의 메뉴·가격', cost: 0, when: 'any' },
   pantry: { name: '냉장고', cost: 0, when: 'any' },          // 창고 재료 보기 (v0.46: 오늘의 메뉴는 「가게 열기」에서)
   sales: { name: '판매 장부', cost: 0, when: 'any' },
-  recipe: { name: '메뉴 연구 칠판', cost: 0, when: 'any' },
+  recipe: { name: '칠판', cost: 0, when: 'any' },
   clean: { name: '청소하기', cost: 1, when: 'any' },
   talk: { name: '이야기하기', cost: 1, when: 'any' },
   counter: { name: '계산대', cost: 0, when: 'any' }, // 판매 장부 · 손님 수첩 (홍보는 v0.54부터 휴대폰에서)
@@ -2052,7 +2133,7 @@ const PLACE_ACTS = {
 // 가게 안에서 누르는 물건: 할 일 · 이름 (칸은 data/layout.js — 냉장고·메뉴판·퇴식대·화구는 STATIONS, 계산대는 REGISTER)
 const SHOP_SPOTS = [
   { act: 'pantry', name: '냉장고 · 창고 재료', station: 'fridge' },
-  { act: 'recipe', name: '메뉴판 · 메뉴 연구', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
+  { act: 'recipe', name: '칠판', tiles: [[8, 0], [9, 0], [8, 1], [9, 1], [8, 2], [9, 2]], stand: [[8, 3], [9, 3]] }, // 메뉴판 · 그 아래 조리대까지 눌러도 돼요 (v0.45: 잘 안 눌린다는 말에 넓힘)
   { act: 'counter', name: '계산대', register: true },
   { act: 'clean', name: '퇴식대 · 청소', station: 'trash' },
   { act: 'setup', name: '화구 · 오픈 준비 (프렙 통이 있으면 조리대 창: 오픈 준비 + 프렙)', station: 'stove' },
@@ -2541,9 +2622,9 @@ const SCENES = {
   },
   // 새 메뉴를 처음 개발했을 때 (sim/upgrade.js menuDev, v0.64 사용자 요청) · 시스템 안내
   menudev1: {
-    tipTag: '새 메뉴',
+    tipTag: '메뉴 변형',
     lines: [
-      ['tip', '새 메뉴는 원래 메뉴와 같은 조리대에서 만듭니다. 떡볶이 갈래는 화구, 김밥 갈래는 김밥 자리, 튀김 갈래는 튀김기입니다. 주문이 들어온 메뉴부터 만들어집니다.', null, ['tteok', 'kimbap', 'twigim']],
+      ['tip', '메뉴 변형은 원래 메뉴와 같은 조리대에서 만듭니다. 떡볶이 갈래는 화구, 김밥 갈래는 김밥 자리, 튀김 갈래는 튀김기입니다. 주문이 들어온 메뉴부터 만들어집니다.', null, ['tteok', 'kimbap', 'twigim']],
       ['tip', '오늘의 메뉴 칸에 올려야 팝니다. 칸이 꽉 찼으면 「가게 열기」에서 칸을 눌러 바꿔 보세요. 새 재료는 정 사장 식자재에서 삽니다.', null, ['ing_cheese']],
     ],
   },
@@ -2636,8 +2717,8 @@ const SCENES = {
       ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
       ['ohPhone', '박 할머니가 그러더라. 요즘 떡볶이가 옛날 그 맛이 아니라고. 섭섭해하시더라.'],
       ['ohPhone', AUTO_COOK ? '떡볶이는 나오자마자 내는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.' : '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
-      ['ohPhone', '그리고 칠판. 메뉴가 손에 익으면 새 메뉴도 만들어 봐라. 요즘 애들은 로제니 크림이니 하더라.'],
-      [null, '메뉴 연구 칠판에서 새 메뉴를 개발할 수 있습니다. 기본 메뉴 레벨이 오르면 하나씩 열리고, 개발한 메뉴는 오늘의 메뉴 칸에 올려 팝니다.'],
+      ['ohPhone', '그리고 칠판. 메뉴가 손에 익으면 레시피를 한 군데씩 바꿔 봐라. 요즘 애들은 로제니 크림이니 하더라.'],
+      [null, '가게 안 칠판에서 레시피 한 칸을 다른 재료로 바꿔 메뉴 변형을 찾을 수 있습니다. 바꿔 넣을 재료는 기본 메뉴 레벨이 오르면 늘어나고, 찾은 변형은 메뉴에 올려 오늘의 메뉴 칸에서 팝니다.'],
       [null, '자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
     ],
     start: ['c2_park'],
@@ -3471,6 +3552,7 @@ function migrate(o) {
   if (!o.explore) o.explore = newExplore(); // 동네 탐방 이전 세이브 (v0.78)
   if (!o.explore.seen) o.explore.seen = []; // 임대 매물 (v0.84)
   if (!o.notebook) o.notebook = {}; // 손님층 수첩 (v0.90)
+  if (!o.varFound) o.varFound = ((o.story && o.story.menus) || []).filter(m => MENUS[m] && MENUS[m].base); // 메뉴 변형 찾기 (v0.91): 이미 개발한 변형은 찾은 것으로
   // v0.74: 처음 돈 150만 → 250만. 이미 1장을 시작한 세이브(가게 통장을 받은 뒤)는 한 번만 100만 원을 더해요
   if (o.story.ch >= 1 && !o.story.cash74) { o.cash = (o.cash || 0) + 1000000; o.story.cash74 = true; }
   if (o.story.ch < 1) o.story.cash74 = true; // 프롤로그 세이브는 1장에서 새 처음 돈(250만)을 받아요
@@ -3557,7 +3639,7 @@ const SAVE_V = 1;
 // guild = 골목 상인회 { seen, due, member, eq: { 설비: Lv }, tools2, visits } (sim/guild.js)
 // shopLv = 가게 등급 (확장공사로 오름 — data/layout.js applyShopLv · sim/furniture.js)
 // menuLv · mastery · fans = 메뉴 업그레이드 (레벨 · 숙련도 · 맛있게 먹고 간 손님 — sim/upgrade.js)
-const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore', 'notebook'];
+const SAVE_ORDER = ['v', 'shop', 'day', 'cash', 'loan', 'rating', 'ratingN', 'revs', 'prices', 'prep', 'inv', 'ledger', 'history', 'weekSales', 'baseSeed', 'stats', 'story', 'meta', 'market', 'town', 'menuOff', 'menuLv', 'mastery', 'fans', 'board', 'book', 'bond', 'furn', 'shopLv', 'guild', 'menuSlots', 'explore', 'notebook', 'varFound'];
 
 const G = { phase: 'title', run: null };
 
@@ -3596,6 +3678,7 @@ function newGame(shopName) {
     guild: newGuild(),
     explore: newExplore(), // 동네 탐방 (2장, v0.78)
     notebook: {}, // 손님층 수첩 (1장부터, v0.90 — sim/notebook.js)
+    varFound: [], // 칠판에서 찾은 메뉴 변형 (v0.91 — sim/upgrade.js menuTry)
     phase: 'prep',
     run: null,
   });
@@ -4127,7 +4210,7 @@ function cartFor(plan) {
 // 저장: G.menuLv { 메뉴: 레벨 } · G.mastery { 메뉴: 숙련도 } · G.fans { 사람(그림 번호): { m: 맛있게 먹은 메뉴, n: 다시 온 횟수 } }
 // 영업 중에는 G.run.log에만 모아 두고 마감 때 더해요 (영업 중에 끄면 그날 것은 없던 일)
 
-// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「메뉴 연구 칠판」에서 — 장과 상관없이 Lv5까지
+// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「칠판」에서 — 장과 상관없이 Lv5까지
 const upgradeOpen = () => !!(G.story && G.story.ch >= 1);
 const menuLv = m => (G.menuLv && G.menuLv[m]) || 1;
 const lvInfo = (m, lv = menuLv(m)) => MENU_LEVELS[lv];
@@ -4169,13 +4252,39 @@ defineCmd('menuUp', ({ menu }) => {
   return true;
 });
 
-// ── 새 메뉴 개발 (2장부터 · 메뉴 연구 칠판): 기본 메뉴 레벨 + 개발비 → 메뉴가 하나 더 생겨요 (data/menu.js VARIANT_IDS) ──
+// ── 메뉴 변형 개발 (2장부터 · 칠판): 기본 메뉴 레벨 + 개발비 → 메뉴가 하나 더 생겨요 (data/menu.js VARIANT_IDS) ──
 const devOpen = () => !!(G.story && G.story.ch >= DEV_OPEN_CH);
-// ok · done(이미 있음) · base(기본 메뉴가 아직) · lv(기본 메뉴 레벨 모자람) · cash · closed
+// ── 메뉴 변형 찾기 (v0.91 사용자 요청 — 칠판): 레시피 한 칸을 바꿔 「한 그릇 만들어 보기」 (data/menu.js VARIANT_FIND) ──
+//  찾은 변형은 G.varFound · 찾아야 개발(메뉴에 올리기)할 수 있어요 · 해 보기는 재료·시간이 들지 않아요
+const varFound = m => menuOpen(m) || !!(G.varFound && G.varFound.includes(m));
+// 바꿔 넣을 재료가 열리는 기본 메뉴 레벨: 그 재료를 쓰는 변형 중 가장 낮은 레벨 (헛짚는 재료는 Lv2)
+function findIngLv(b, ing) {
+  const F = VARIANT_FIND[b], lvs = Object.entries(F.swap).filter(([, sw]) => sw[1] === ing).map(([m]) => MENUS[m].lv);
+  return lvs.length ? Math.min(...lvs) : 2;
+}
+const findIngOpen = (b, ing) => menuLv(b) >= findIngLv(b, ing);
+defineCmd('menuTry', ({ base, slot, ing }) => {
+  const F = VARIANT_FIND[base];
+  if (!devOpen() || !F || !menuOpen(base) || G.phase !== 'prep') return null;
+  if (!(slot >= 0 && slot < MENUS[base].recipe.length) || F.fixed.includes(slot) || !F.shelf.includes(ing) || !findIngOpen(base, ing)) return null;
+  const hit = Object.keys(F.swap).find(m => { const [s, i] = F.swap[m]; return (s === -1 || s === slot) && i === ing; });
+  if (hit) {
+    const again = varFound(hit);
+    if (!again) { (G.varFound = G.varFound || []).push(hit); emit('track', 'menu_find', { menu: hit }); }
+    emit('sfx', again ? 'tap' : 'perfect');
+    return { hit, again };
+  }
+  const anySlot = Object.values(F.swap).some(sw => sw[0] === -1);
+  emit('sfx', 'page');
+  return { hit: null, text: F.flop[`${anySlot ? -1 : slot}:${ing}`] || FIND_FLOP.replace('{m}', MENUS[base].name) };
+});
+
+// ok · done(이미 있음) · find(아직 못 찾음) · base(기본 메뉴가 아직) · lv(기본 메뉴 레벨 모자람) · cash · closed
 function devState(m) {
   const M = MENUS[m];
   if (!devOpen() || !M.base) return 'closed';
   if (menuOpen(m)) return 'done';
+  if (!varFound(m)) return 'find';
   if (!menuOpen(M.base)) return 'base';
   if (menuLv(M.base) < M.lv) return 'lv';
   if (G.cash < M.dev) return 'cash';
@@ -4196,7 +4305,7 @@ defineCmd('menuDev', ({ menu }) => {
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
-  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
+  emit('toast', `「${M.name}」 메뉴에 올렸습니다!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
   if (!G.story.devSeen) { G.story.devSeen = true; G.story.queue.push('menudev1'); emit('story'); } // 처음 개발하면 만드는 법 안내 카드 (v0.64)
   emit('prep');
@@ -8228,6 +8337,8 @@ function finish(name) {
   onCall = sc && !sc.paper ? callEnds(sc.lines) : null;
   showNextScene();
   onCall = null;
+  // 장면 때문에 장부(준비 화면)를 먼저 열었으면, 장면을 다 본 뒤 가게 안으로 (v0.91 사용자 요청 — 장사 끝나고 「가게 열기」 화면이 바로 보이지 않게)
+  if (!open && document.body.dataset.sceneLedger && G.phase === 'prep') { delete document.body.dataset.sceneLedger; hideScreen(); showTown(); }
 }
 
 // 전화 받기
@@ -8450,14 +8561,15 @@ function initIncidentUI() {
 // 영업이 끝나면 남은 화면은 치워요 (결과는 영수증에도 나와요)
 function incidentReset() { stopRing(); incQueue.length = 0; if (incCur) { incCur = null; $('incUI').hidden = true; $('incUI').innerHTML = ''; incHeld = false; } }
 // ── js/ui/board.js ──
-// 메뉴 연구 칠판 (마을 · 우리 가게 「메뉴 연구 칠판」): 메뉴마다 레벨 · 숙련 막대 · 다음 레벨 효과 · 올리기 (규칙은 sim/upgrade.js)
+// 칠판 (마을 · 우리 가게 「칠판」): 메뉴마다 레벨 · 숙련 막대 · 다음 레벨 효과 · 올리기 (규칙은 sim/upgrade.js)
+// 2장부터 「메뉴 변형」 찾기 (v0.91): 레시피 네 칸 — 핀 꽂힌 칸은 못 바꾸고, ⇄ 딱지 칸 하나를 골라 재료를 바꿔 「한 그릇 만들어 보기」
 // 마을 아래 창(ui/town.js sheet)에 칠판 모양으로 그려요. 올리기 = data-ts="menuUp"
 
 const pctTxt = v => `${Math.round(v * 100)}%`;
 const effTxt = L => `적당한 가격 +${pctTxt(L.fair)} · 만족 +${L.sat} · 재방문 ${pctTxt(L.back)}`;
 // 2장부터: 기본 메뉴마다 탭 (그 메뉴 + 개발한 새 메뉴 · 아래에 「새 메뉴 개발」)
 let tab = null;
-function boardTab(b) { if (b) tab = b; return tab && menuOpen(tab) ? tab : BASE_IDS.find(menuOpen) || 'tteok'; }
+function boardTab(b) { if (b && b !== tab) { tab = b; boardFind('reset'); } return tab && menuOpen(tab) ? tab : BASE_IDS.find(menuOpen) || 'tteok'; }
 function upRow(m) {
   const lv = menuLv(m), st = upState(m), next = MENU_LEVELS[lv + 1];
   const have = mastery(m), bar = next ? Math.min(100, Math.round(have / next.need * 100)) : 100;
@@ -8468,26 +8580,64 @@ function upRow(m) {
     <div class="ubar"><i style="width:${bar}%"></i></div>
     <small>숙련 ${have}${next ? ` / ${next.need}` : ''}</small></div>${btn}</div>`;
 }
-// 아직 안 만든 새 메뉴: 재료(처음 쓰는 재료는 표시) · 조건 · 개발하기
+// 찾았지만 아직 메뉴에 안 올린 변형: 재료(처음 쓰는 재료는 표시) · 조건 · 메뉴에 올리기
 function devRow(m) {
   const M = MENUS[m], st = devState(m);
   const ings = M.recipe.map(i => (MENUS[M.base].recipe.includes(i) ? INGREDIENTS[i].name : `<em>${INGREDIENTS[i].name}</em>`)).join('·');
-  const btn = `<button type="button" class="ch-btn" data-ts="menuDev" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'lv' ? `Lv${M.lv} 필요` : st === 'cash' ? '잔고 모자람' : '개발하기'}<small>${wonShort(M.dev)}</small></button>`;
+  const btn = `<button type="button" class="ch-btn" data-ts="menuDev" data-m="${m}" ${st === 'ok' ? '' : 'disabled'}>${st === 'lv' ? `Lv${M.lv} 필요` : st === 'cash' ? '잔고 모자람' : '메뉴에 올리기'}<small>${wonShort(M.dev)}</small></button>`;
   return `<div class="urow dev${st === 'ok' ? ' ready' : ''}">${icon(m, 'dish')}<div class="u-txt"><b>${M.name} <small class="u-price">${wonShort(M.price)}</small></b><small>${ings}</small></div>${btn}</div>`;
 }
 function boardHTML() {
-  const head = '<div class="ts-head"><b>메뉴 연구 칠판</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>';
+  const head = '<div class="ts-head"><b>칠판</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div>';
   const more = `<details class="u-more"><summary>레벨마다 효과</summary>
       <p>${MENU_LEVELS.slice(2).map((L, k) => `Lv${k + 2} · ${effTxt(L)}`).join('<br>')}</p>
       <p>숙련도는 내준 그릇 수입니다 (완벽 조리는 ${MASTERY_PERFECT}그릇). 숙련도가 차면 돈을 내고 올립니다</p>
-      ${devOpen() ? '<p>새 메뉴는 기본 메뉴 레벨이 오르면 개발할 수 있습니다. 개발한 메뉴는 오늘의 메뉴 칸에 올려 팝니다</p>' : ''}
+      ${devOpen() ? '<p>메뉴 변형은 레시피 한 칸을 바꿔 찾습니다. 바꿔 넣을 재료는 기본 메뉴 레벨이 오르면 늘어납니다. 찾은 변형은 돈을 내고 메뉴에 올려 오늘의 메뉴 칸에서 팝니다</p>' : ''}
     </details>`;
   if (!devOpen()) return head + MENU_IDS.filter(m => menuOpen(m) && !MENUS[m].base).map(upRow).join('') + more; // 1장: 기본 메뉴만
   const b = boardTab();
   const tabs = BASE_IDS.filter(menuOpen).map(x => `<button type="button" class="u-tab${x === b ? ' sel' : ''}" data-ts="btab" data-b="${x}">${MENUS[x].name}<i>${VARIANT_IDS[x].filter(menuOpen).length + 1}</i></button>`).join('');
   const mine = [b, ...VARIANT_IDS[b].filter(menuOpen)].map(upRow).join('');
-  const todo = VARIANT_IDS[b].filter(m => !menuOpen(m)).map(devRow).join('');
-  return `${head}<div class="u-tabs">${tabs}</div>${mine}${todo ? `<p class="u-sub">새 메뉴 개발</p>${todo}` : ''}${more}`;
+  const todo = VARIANT_IDS[b].filter(m => !menuOpen(m) && varFound(m) && m !== (vRes && vRes.hit)).map(devRow).join('');
+  return `${head}<div class="u-tabs">${tabs}</div>${mine}<p class="u-sub">메뉴 변형</p>${findHTML(b)}${todo}${more}`;
+}
+
+// ── 메뉴 변형 찾기 (v0.91): 칸 고르기 → 재료 고르기 → 해 보기 → 결과 ──
+let vSlot = -1, vPut = null, vRes = null;
+// 화면 상태 바꾸기 (ui/town.js 칠판 버튼): slot · ing · try · reset
+function boardFind(act, v) {
+  if (act === 'reset') { vSlot = -1; vPut = null; vRes = null; }
+  else if (act === 'slot') { vSlot = vSlot === v ? -1 : v; vPut = null; vRes = null; }
+  else if (act === 'ing') vPut = v;
+  else if (act === 'try' && vSlot >= 0 && vPut) { vRes = runCmd('menuTry', { base: boardTab(), slot: vSlot, ing: vPut }); if (!vRes) boardFind('reset'); }
+}
+const ingName = k => (k === 'none' ? '빼기' : INGREDIENTS[k].name);
+const ingPic = (k, cls) => (k === 'none' ? `<span class="${cls} vf-none">✕</span>` : icon('ing_' + k, cls));
+function findHTML(b) {
+  const F = VARIANT_FIND[b], rec = MENUS[b].recipe;
+  const slots = rec.map((k, i) => {
+    const fx = F.fixed.includes(i), sw = i === vSlot && vPut, show = sw ? vPut : k;
+    const cls = fx ? 'fixed' : i === vSlot ? 'sel' : vSlot >= 0 ? 'off' : 'can';
+    return `<button type="button" class="vf-slot ${cls}" data-ts="vSlot" data-s="${i}" ${fx || vRes ? 'disabled' : ''} aria-label="${INGREDIENTS[k].name}${fx ? ' · 바꿀 수 없음' : ' · 바꿀 수 있음'}">${!fx && vSlot < 0 ? '<i class="vf-sw">⇄</i>' : ''}${sw ? `<i class="vf-old">${INGREDIENTS[k].name}</i>` : ''}${ingPic(show, 'vf-ic')}<span>${ingName(show)}</span></button>`;
+  }).join('');
+  let below = '';
+  if (vRes) {
+    if (vRes.hit) {
+      const M = MENUS[vRes.hit], st = devState(vRes.hit);
+      below = `<div class="vf-res">${vRes.again ? '<small>이미 찾은 변형입니다</small>' : '<span class="vf-stamp">새 변형!</span>'}${icon(vRes.hit, 'vf-dish')}<b>${M.name}</b><small>${M.recipe.map(i => INGREDIENTS[i].name).join(' · ')} · ${wonShort(M.price)}</small>
+        <div class="vf-btns"><button type="button" class="ch-btn" data-ts="vOk">나중에</button>${st === 'done' ? '' : `<button type="button" class="ch-btn pri" data-ts="menuDev" data-m="${vRes.hit}" ${st === 'ok' ? '' : 'disabled'}>${st === 'lv' ? `Lv${M.lv} 필요` : st === 'cash' ? '잔고 모자람' : '메뉴에 올리기'}<small>${wonShort(M.dev)}</small></button>`}</div></div>`;
+    } else below = `<div class="vf-res flop"><small>칠판에 적었습니다</small><b>${vRes.text}</b><div class="vf-btns"><button type="button" class="ch-btn" data-ts="vOk">다른 칸 바꿔 보기</button></div></div>`;
+  } else if (vSlot >= 0) {
+    const shelf = F.shelf.map(k => {
+      const open = findIngOpen(b, k);
+      return `<button type="button" class="vf-ing${k === vPut ? ' on' : ''}" data-ts="vIng" data-k="${k}" ${open ? '' : 'disabled'}>${open ? `${ingPic(k, 'vf-ic')}<span>${ingName(k)}</span>` : `<span class="vf-lock"></span><span>Lv${findIngLv(b, k)}</span>`}</button>`;
+    }).join('');
+    below = `<div class="vf-pick" style="--ax:${(vSlot + 0.5) * 25}%"><div class="vf-shelf">${shelf}</div></div>
+      <button type="button" class="btn primary vf-go" data-ts="vTry" ${vPut ? '' : 'disabled'}>한 그릇 만들어 보기</button>`;
+  }
+  const vids = VARIANT_IDS[b];
+  const got = `<div class="vf-found">${vids.map(m => varFound(m) ? `<span class="got${menuOpen(m) ? ' on' : ''}">${icon(m, 'vf-mini')}</span>` : '<span>?</span>').join('')}</div>`;
+  return `<div class="vf"><div class="vf-slots">${slots}</div>${below}${got}</div>`;
 }
 // ── js/ui/book.js ──
 // 손님 수첩 (마을 · 우리 가게 「손님 수첩」): 얼굴 칸 18개 — 아직 안 온 사람은 그림자, 누르면 아래에 그 사람 (기록은 sim/book.js)
@@ -9288,7 +9438,10 @@ function showTown() {
   if (!townMode()) return;
   const part = G.town.part;
   if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.day = G.day; }
-  if (T.day !== G.day) { placeMe('shop'); T.day = G.day; } // 영업을 마치면 가게 앞에서
+  if (T.day !== G.day) { // 영업을 마치면 가게 안에서 (v0.91 사용자 요청 — 전에는 가게 앞 골목). 1장 첫 밤(골목 안내)만 골목에서
+    placeMe('shop'); T.day = G.day;
+    T.inside = G.story && G.story.queue.includes('town1') ? null : { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+  }
   if (T.walkKey !== part + G.day) spawnWalkers(); // 골목을 걷는 손님 (밤·새벽마다 새로)
   $('town').hidden = false;
   document.body.classList.add('in-town'); // 위 막대(#bar)는 숨겨요 (마을 막대가 대신)
@@ -9300,7 +9453,7 @@ function showTown() {
 function renderNav() {
   if (exOn()) { $('townNav').innerHTML = exNav(); return; }
   if (T && T.inside) { // 가게 안: 할 일 버튼
-    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '칠판'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -9340,11 +9493,14 @@ function renderBar() {
 }
 
 // 할 일이 있는 곳 「!」: 시장(오늘 아직 재료를 안 샀으면) · 장을 봤으면 우리 가게(열기)
+// 「!」는 지금 할 일(퀘스트)을 하는 곳에만 (v0.91 사용자 요청 — 전에는 늘 식자재·우리 가게에 떠서 헷갈렸어요)
+//  퀘스트 종류 → 하는 곳: 쪽지(냉장고)·장사 도구·낼 돈(장부)은 우리 가게 · 가게 분위기는 미소 가구
+const QUEST_PLACE = { note: 'shop', buyTool: 'shop', pay: 'shop', mood: 'flower' };
 function townMarks() {
-  const Tn = G.town, out = [];
+  const out = [];
   const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
-  const bought = Object.keys(Tn.bought || {}).length > 0;
-  out.push(top(bought ? 'shop' : 'market'));
+  const at = new Set(G.story.active.map(id => QUESTS[id] && QUEST_PLACE[QUESTS[id].kind]).filter(id => id && PLACES[id] && placeOpen(id)));
+  for (const id of at) out.push(top(id));
   if (rivalHoard() && !(G.story.flags || {}).c3hoard && vacantB) out.push({ x: vacantB[1] + 40, y: vacantB[2] - 100 }); // 3장: 가림막을 살펴보라고 「!」
   return out;
 }
@@ -9516,7 +9672,7 @@ function townActTarget() {
   return null;
 }
 // 가게 안: 서 있는 칸(또는 바로 옆)의 물건 — 여러 개면 바라보는 쪽
-const IN_LABEL = { pantry: '냉장고', recipe: '메뉴 연구', counter: '계산대', clean: '청소', exit: '나가기' };
+const IN_LABEL = { pantry: '냉장고', recipe: '칠판', counter: '계산대', clean: '청소', exit: '나가기' };
 function insideActTarget() {
   const me = T.inside.me, mx = Math.round(me.x), my = Math.round(me.y);
   const [fx, fy] = [mx + (me.dir === 0 ? 1 : me.dir === 2 ? -1 : 0), my + (me.dir === 3 ? 1 : me.dir === 1 ? -1 : 0)];
@@ -9698,7 +9854,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? '장사 도구 · 설비 손보기' : a === 'furn' ? '탁자 · 의자 · 장식 사기'
       : TALK_WHO[a] ? (ok ? (a === 'jungTalk' ? '친밀도 +2 · 시간이 들지 않습니다' : '친밀도 · 내일 소개 손님') : '오늘은 이미 대화했습니다')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩 · 손님층' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩 · 손님층' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '메뉴 레벨 올리기 · 메뉴 변형' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(TALK_WHO[a] && !ok) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -9878,7 +10034,12 @@ function initTown() {
     else if (k === 'toolUp') runCmd('toolUp', { id: b.dataset.id });
     else if (k === 'join') runCmd('questPay', { id: 'c2_join' });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
-    else if (k === 'menuDev') runCmd('menuDev', { menu: b.dataset.m });
+    else if (k === 'menuDev') { if (runCmd('menuDev', { menu: b.dataset.m })) { boardFind('reset'); sheet(boardHTML(), 'chalk'); } }
+    else if (k === 'vSlot' || k === 'vIng' || k === 'vTry' || k === 'vOk') { // 칠판 · 메뉴 변형 찾기 (v0.91)
+      boardFind(k === 'vSlot' ? 'slot' : k === 'vIng' ? 'ing' : k === 'vTry' ? 'try' : 'reset', k === 'vSlot' ? +b.dataset.s : b.dataset.k);
+      if (k !== 'vTry') playSfx('tap');
+      sheet(boardHTML(), 'chalk');
+    }
     else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
     else if (k === 'prepD') { const m = b.dataset.m; prepCart[m] = Math.max(0, (prepCart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(stoveHTML(), 'stove'); }
     else if (k === 'prepMake') { if (runCmd('prepMake', { plan: prepCart })) prepCart = {}; refreshTown(); }
@@ -9897,7 +10058,7 @@ function initTown() {
     if (what === 'pantry') { T.sheetPlace = 'shop'; sheet(pantryHTML(), 'pantry'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter('sales'); playSfx('page'); return; }
-    if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
+    if (what === 'recipe') { boardFind('reset'); sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { playSfx('page'); renderBar(); return; } // 4시간을 쓰면 시계가 새벽으로 (할 수 있는 일은 같아요)
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
@@ -10178,14 +10339,14 @@ function pickSheet(cur) {
   const can = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
   const head = on ? `${icon(on, 'dish')}<b>${MENUS[on].name}</b>` : '<b>빈 칸</b>';
   const now = on ? `<div class="pk-now"><span>${won(G.prices[on])} · ${invServings(on)}그릇</span>
-      <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격 · 추천</button>
+      <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격</button>
       ${todayMenus().length > 1 ? `<button type="button" class="btn small" data-act="slotOff" data-m="${on}">빼기</button>` : ''}</div>` : '';
   const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}${neverSold(m) ? ' <i class="bk-new">NEW</i>' : ''}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="오늘의 메뉴 칸">
     <div class="mm-head">${head}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     ${now}
     <small class="pk-h">${on ? '이 칸을 다른 메뉴로' : '이 칸에 올릴 메뉴'}</small>
-    ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 메뉴 연구 칠판에서 새 메뉴를 개발해 보세요' : ''}</p>`}
+    ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 가게 안 칠판에서 메뉴 변형을 찾아보세요' : ''}</p>`}
   </div></div>`;
 }
 // 칠판 추천 버튼 (아침 · 점심 · 오후) — 메뉴 창과 프롤로그 준비 화면이 같이 써요
@@ -10193,18 +10354,16 @@ function boardBtns(m, on = true) {
   const B = G.board || {};
   return Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
 }
-// 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
+// 메뉴 창 (칸을 누르면): 가격 · 원가율 · 오늘 쉬기 (칠판 추천은 v0.91부터 「가게 열기」 화면의 명패로) — 원가·재료·Lv는 「자세히」
 function menuSheet(m, last) {
   const M = MENUS[m], on = menuOn(m), B = G.board || {}, lv = menuLv(m);
   const inv = invServings(m);
   const step = `<div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 줄이기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 늘리기">+</button></div>`;
-  const board = boardBtns(m, on);
   const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} ${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} <small>· ${I.shelf}일</small>`; }).join('<br>');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="${M.name}">
     <div class="mm-head">${icon(m, 'dish')}<b>${M.name}</b>${lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : ''}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     <div class="row"><span>가격</span>${step}</div>
     ${ledgerLine(m)}
-    ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>` : ''}
     <div class="row"><span>재고</span><b class="stock-n">${inv}그릇</b></div>
     <details class="more"><summary>자세히</summary>
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>
@@ -10227,7 +10386,7 @@ function todayCard() {
       const t = todayIngs(m), n = invServings(m), B = G.board || {};
       const marks = Object.keys(BOARD_SLOTS).filter(k => B[k] === m).map(k => `<i class="bmark">★${BOARD_SLOTS[k].name}</i>`).join('');
       const warn = t.length || !n; // 오늘까지 써야 하는 재료 · 재료 없음
-      return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
+      return `<button type="button" class="slot on${warn ? ' hurry' : ''}${plateHeld ? ' drop' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
     if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy" ${nx.price > G.cash ? 'disabled' : ''}><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
@@ -10235,8 +10394,56 @@ function todayCard() {
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.some(neverSold) ? '<i class="bk-new">NEW</i> 새 메뉴가 쉬는 중 · 칸을 눌러 올려 보세요' : `${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기`}</span></div>
     <div class="slots">${slots}</div>
+    ${boardOpen() ? platesHTML() : ''}
   </div>`;
 }
+// 칠판 추천 명패 (v0.91 사용자 요청 — 전에는 메뉴 창의 버튼): 아침 · 점심 · 오후 명패를 메뉴 칸으로 끌어다 놓거나, 명패를 누른 뒤 칸을 눌러요
+//  같은 메뉴에 다시 놓으면 떼어요 · 걸린 명패를 칸 밖으로 끌어 놓아도 떼어요 (규칙은 sim/traffic.js boardSet)
+let plateHeld = null;
+function platesHTML() {
+  const B = G.board || {};
+  const plates = Object.keys(BOARD_SLOTS).map(k => {
+    const S = BOARD_SLOTS[k], m = B[k] && menuOn(B[k]) ? B[k] : null;
+    return `<button type="button" class="plate${plateHeld === k ? ' held' : ''}${m ? ' set' : ''}" data-act="plate" data-slot="${k}" aria-label="칠판 추천 ${S.name}${m ? ` · ${MENUS[m].name}` : ''}"><span class="pl-name"><b>${S.name}</b><small>${S.from}~${S.to}시</small></span>${m ? icon(m, 'pl-dish') : '<span class="pl-empty"></span>'}</button>`;
+  }).join('');
+  return `<div class="plates"><small class="pl-h">칠판 추천</small>${plates}</div>`;
+}
+// 명패 끌기 (pointer): 6px 넘게 움직이면 끌기 — 놓은 곳의 메뉴 칸에 걸어요
+let plateDrag = null;
+function plateDown(e) {
+  const p = e.target.closest('.plate');
+  if (!p || e.button > 0) return;
+  plateDrag = { slot: p.dataset.slot, el: p, x: e.clientX, y: e.clientY, ghost: null, id: e.pointerId };
+}
+function plateMove(e) {
+  const D = plateDrag;
+  if (!D || e.pointerId !== D.id) return;
+  if (!D.ghost) {
+    if (Math.hypot(e.clientX - D.x, e.clientY - D.y) < 6) return;
+    D.ghost = D.el.cloneNode(true); D.ghost.classList.add('ghost'); document.body.appendChild(D.ghost);
+    D.el.classList.add('lifted');
+    document.querySelectorAll('.slot.on').forEach(x => x.classList.add('drop'));
+  }
+  D.ghost.style.left = `${e.clientX}px`; D.ghost.style.top = `${e.clientY}px`;
+  const t = slotAt(e.clientX, e.clientY);
+  document.querySelectorAll('.slot.on.over').forEach(x => x.classList.remove('over'));
+  if (t) t.classList.add('over');
+  e.preventDefault();
+}
+function plateUp(e) {
+  const D = plateDrag;
+  if (!D || e.pointerId !== D.id) return;
+  plateDrag = null;
+  if (!D.ghost) return; // 끌지 않았으면 누르기 (click)
+  D.ghost.remove();
+  const t = slotAt(e.clientX, e.clientY), B = G.board || {};
+  plateHeld = null; dragJustEnded = true; setTimeout(() => { dragJustEnded = false; }, 50);
+  if (t) runCmd('boardSet', { slot: D.slot, menu: t.dataset.m });
+  else if (B[D.slot]) runCmd('boardSet', { slot: D.slot, menu: null }); // 칸 밖에 놓으면 떼기
+  else renderPrep();
+}
+let dragJustEnded = false;
+function slotAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest('.slot.on'); }
 
 // 장사 도구 (오 사장님 권유로 1장 중간부터): 사면 계속 써요
 function toolsCard() {
@@ -10295,7 +10502,7 @@ function masteryCard(g) {
   if (!g || !upgradeOpen()) return '';
   const t = MENU_IDS.filter(m => g[m]).map(m => `${MENUS[m].name} +${Math.round(g[m] * 10) / 10}`).join(' · ');
   if (!t) return '';
-  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>메뉴 연구 칠판에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
+  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>칠판에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
 }
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 function renderReceipt() {
@@ -10631,6 +10838,9 @@ function initScreens(onStart) {
       toast(`클라우드 세이브를 불러왔습니다 · ${line}`, 'good');
     },
   });
+  scr().addEventListener('pointerdown', plateDown); // 칠판 추천 명패 끌기 (v0.91)
+  window.addEventListener('pointermove', plateMove, { passive: false });
+  window.addEventListener('pointerup', plateUp); window.addEventListener('pointercancel', () => { if (!plateDrag) return; if (plateDrag.ghost) { plateDrag.ghost.remove(); plateDrag = null; renderPrep(); } else plateDrag = null; });
   scr().addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -10640,14 +10850,16 @@ function initScreens(onStart) {
     else if (a === 'continue') { if (loadGame()) { playSfx('page'); onStart(); } }
     else if (a === 'price') { runCmd('setPrice', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
-    else if (a === 'open') { mmOpen = null; pickOpen = null; runCmd('openShop'); }
+    else if (a === 'open') { mmOpen = null; pickOpen = null; plateHeld = null; runCmd('openShop'); }
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
     else if (a === 'mmOpen') { mmOpen = m; pickOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotBuy') runCmd('slotBuy');
-    else if (a === 'slotPick') { pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'plate') { if (dragJustEnded) return; plateHeld = plateHeld === b.dataset.slot ? null : b.dataset.slot; playSfx('tap'); renderPrep(); } // 칠판 추천 명패 (v0.91)
+    else if (a === 'slotPick' && plateHeld && m) { const k = plateHeld; plateHeld = null; runCmd('boardSet', { slot: k, menu: m }); }
+    else if (a === 'slotPick') { plateHeld = null; pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotSet') { pickOpen = null; const off = b.dataset.off; if (off) runCmd('menuSwap', { off, on: m }); else runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; pickOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕
@@ -10845,7 +11057,7 @@ function initFeedback() {
     if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p !== 'prep') hideTown();
     document.body.classList.toggle('in-town', p === 'prep' && townMode());
-    if (p === 'prep') { setTimeout(showConflict, 0); if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else renderPrep(); showNextScene(); }
+    if (p === 'prep') { setTimeout(showConflict, 0); if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else { if (townMode()) document.body.dataset.sceneLedger = '1'; renderPrep(); } showNextScene(); } // 장면이 장부를 짚으면 장부 먼저 — 다 보면 가게 안으로 (ui/story.js finish, v0.91)
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();

@@ -163,14 +163,14 @@ function pickSheet(cur) {
   const can = MENU_IDS.filter(m => menuOpen(m) && !menuOn(m));
   const head = on ? `${icon(on, 'dish')}<b>${MENUS[on].name}</b>` : '<b>빈 칸</b>';
   const now = on ? `<div class="pk-now"><span>${won(G.prices[on])} · ${invServings(on)}그릇</span>
-      <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격 · 추천</button>
+      <button type="button" class="btn small" data-act="mmOpen" data-m="${on}">가격</button>
       ${todayMenus().length > 1 ? `<button type="button" class="btn small" data-act="slotOff" data-m="${on}">빼기</button>` : ''}</div>` : '';
   const rows = can.map(m => `<button type="button" class="pk-row" data-act="slotSet" data-m="${m}" data-off="${on}">${icon(m, 'dish')}<span><b>${MENUS[m].name}${neverSold(m) ? ' <i class="bk-new">NEW</i>' : ''}</b><small>${won(G.prices[m])} · ${invServings(m) ? `${invServings(m)}그릇` : '재료 없음'}</small></span><i>${on ? '바꾸기' : '올리기'}</i></button>`).join('');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="오늘의 메뉴 칸">
     <div class="mm-head">${head}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     ${now}
     <small class="pk-h">${on ? '이 칸을 다른 메뉴로' : '이 칸에 올릴 메뉴'}</small>
-    ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 메뉴 연구 칠판에서 새 메뉴를 개발해 보세요' : ''}</p>`}
+    ${rows || `<p class="pk-none">올릴 수 있는 다른 메뉴가 없습니다${devOpen() ? '. 가게 안 칠판에서 메뉴 변형을 찾아보세요' : ''}</p>`}
   </div></div>`;
 }
 // 칠판 추천 버튼 (아침 · 점심 · 오후) — 메뉴 창과 프롤로그 준비 화면이 같이 써요
@@ -178,18 +178,16 @@ function boardBtns(m, on = true) {
   const B = G.board || {};
   return Object.keys(BOARD_SLOTS).map(k => { const S = BOARD_SLOTS[k]; return `<button type="button" class="b-m${B[k] === m ? ' on' : ''}" data-act="boardSet" data-slot="${k}" data-m="${m}" ${on ? '' : 'disabled'}><b>${S.name}</b><small>${S.from}~${S.to}시</small></button>`; }).join('');
 }
-// 메뉴 창 (칸을 누르면): 가격 · 원가율 · 칠판 추천 · 오늘 쉬기 — 원가·재료·Lv는 「자세히」
+// 메뉴 창 (칸을 누르면): 가격 · 원가율 · 오늘 쉬기 (칠판 추천은 v0.91부터 「가게 열기」 화면의 명패로) — 원가·재료·Lv는 「자세히」
 function menuSheet(m, last) {
   const M = MENUS[m], on = menuOn(m), B = G.board || {}, lv = menuLv(m);
   const inv = invServings(m);
   const step = `<div class="step"><button data-act="price" data-m="${m}" data-d="-1" aria-label="${M.name} 가격 줄이기">−</button><b>${won(G.prices[m])}</b><button data-act="price" data-m="${m}" data-d="1" aria-label="${M.name} 가격 늘리기">+</button></div>`;
-  const board = boardBtns(m, on);
   const recipe = recipeOf(m).map(i => { const I = INGREDIENTS[i], t = invToday(i); return `${I.name} ${invOf(i)}${t ? ` <em class="today">오늘까지 ${t}</em>` : ''} <small>· ${I.shelf}일</small>`; }).join('<br>');
   return `<div class="mm-back" data-act="mmClose"><div class="mm-card" role="dialog" aria-label="${M.name}">
     <div class="mm-head">${icon(m, 'dish')}<b>${M.name}</b>${lv > 1 ? `<span class="tag lv">Lv${lv}</span>` : ''}<button type="button" class="ts-x" data-act="mmClose" aria-label="닫기">✕</button></div>
     <div class="row"><span>가격</span>${step}</div>
     ${ledgerLine(m)}
-    ${boardOpen() ? `<div class="row"><span>칠판 추천</span><span class="b-pick">${board}</span></div>` : ''}
     <div class="row"><span>재고</span><b class="stock-n">${inv}그릇</b></div>
     <details class="more"><summary>자세히</summary>
       <p>원가 ${won(costOf(m))} · 한 그릇 남는 돈 ${won(G.prices[m] - costOf(m))}${lv > 1 ? ` · Lv${lv} 기본 가격 ${won(lvBasePrice(m))}` : ''}${last ? `<br>어제 ${last.sold[m]}그릇 판매` : ''}</p>
@@ -212,7 +210,7 @@ function todayCard() {
       const t = todayIngs(m), n = invServings(m), B = G.board || {};
       const marks = Object.keys(BOARD_SLOTS).filter(k => B[k] === m).map(k => `<i class="bmark">★${BOARD_SLOTS[k].name}</i>`).join('');
       const warn = t.length || !n; // 오늘까지 써야 하는 재료 · 재료 없음
-      return `<button type="button" class="slot on${warn ? ' hurry' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
+      return `<button type="button" class="slot on${warn ? ' hurry' : ''}${plateHeld ? ' drop' : ''}" data-act="slotPick" data-m="${m}">${warn ? '<i class="wdot"></i>' : ''}${icon(m, 'dish')}<b>${MENUS[m].name}</b><small class="price">${won(G.prices[m])}</small><small class="${n ? '' : 'none'}">${n ? `${n}그릇` : '재료 없음'}</small>${marks}</button>`;
     }
     if (k < open) return `<button type="button" class="slot empty" data-act="slotPick" data-m=""><small>빈 칸</small><b class="slot-plus">+</b></button>`;
     if (nx && k === nx.k && nx.ok) return `<button type="button" class="slot buy" data-act="slotBuy" ${nx.price > G.cash ? 'disabled' : ''}><small>칸 늘리기</small><b class="slot-plus">+</b><small>${wonShort(nx.price)}</small></button>`;
@@ -220,8 +218,56 @@ function todayCard() {
   }).join('');
   return `<div class="tmcard" data-guide="today"><div class="q-head"><small>오늘의 메뉴</small><b>${on.length}/${open}칸</b><span class="q-sub">${off.some(neverSold) ? '<i class="bk-new">NEW</i> 새 메뉴가 쉬는 중 · 칸을 눌러 올려 보세요' : `${off.length ? `쉬는 메뉴 ${off.length}가지 · ` : ''}칸을 눌러 바꾸기`}</span></div>
     <div class="slots">${slots}</div>
+    ${boardOpen() ? platesHTML() : ''}
   </div>`;
 }
+// 칠판 추천 명패 (v0.91 사용자 요청 — 전에는 메뉴 창의 버튼): 아침 · 점심 · 오후 명패를 메뉴 칸으로 끌어다 놓거나, 명패를 누른 뒤 칸을 눌러요
+//  같은 메뉴에 다시 놓으면 떼어요 · 걸린 명패를 칸 밖으로 끌어 놓아도 떼어요 (규칙은 sim/traffic.js boardSet)
+let plateHeld = null;
+function platesHTML() {
+  const B = G.board || {};
+  const plates = Object.keys(BOARD_SLOTS).map(k => {
+    const S = BOARD_SLOTS[k], m = B[k] && menuOn(B[k]) ? B[k] : null;
+    return `<button type="button" class="plate${plateHeld === k ? ' held' : ''}${m ? ' set' : ''}" data-act="plate" data-slot="${k}" aria-label="칠판 추천 ${S.name}${m ? ` · ${MENUS[m].name}` : ''}"><span class="pl-name"><b>${S.name}</b><small>${S.from}~${S.to}시</small></span>${m ? icon(m, 'pl-dish') : '<span class="pl-empty"></span>'}</button>`;
+  }).join('');
+  return `<div class="plates"><small class="pl-h">칠판 추천</small>${plates}</div>`;
+}
+// 명패 끌기 (pointer): 6px 넘게 움직이면 끌기 — 놓은 곳의 메뉴 칸에 걸어요
+let plateDrag = null;
+function plateDown(e) {
+  const p = e.target.closest('.plate');
+  if (!p || e.button > 0) return;
+  plateDrag = { slot: p.dataset.slot, el: p, x: e.clientX, y: e.clientY, ghost: null, id: e.pointerId };
+}
+function plateMove(e) {
+  const D = plateDrag;
+  if (!D || e.pointerId !== D.id) return;
+  if (!D.ghost) {
+    if (Math.hypot(e.clientX - D.x, e.clientY - D.y) < 6) return;
+    D.ghost = D.el.cloneNode(true); D.ghost.classList.add('ghost'); document.body.appendChild(D.ghost);
+    D.el.classList.add('lifted');
+    document.querySelectorAll('.slot.on').forEach(x => x.classList.add('drop'));
+  }
+  D.ghost.style.left = `${e.clientX}px`; D.ghost.style.top = `${e.clientY}px`;
+  const t = slotAt(e.clientX, e.clientY);
+  document.querySelectorAll('.slot.on.over').forEach(x => x.classList.remove('over'));
+  if (t) t.classList.add('over');
+  e.preventDefault();
+}
+function plateUp(e) {
+  const D = plateDrag;
+  if (!D || e.pointerId !== D.id) return;
+  plateDrag = null;
+  if (!D.ghost) return; // 끌지 않았으면 누르기 (click)
+  D.ghost.remove();
+  const t = slotAt(e.clientX, e.clientY), B = G.board || {};
+  plateHeld = null; dragJustEnded = true; setTimeout(() => { dragJustEnded = false; }, 50);
+  if (t) runCmd('boardSet', { slot: D.slot, menu: t.dataset.m });
+  else if (B[D.slot]) runCmd('boardSet', { slot: D.slot, menu: null }); // 칸 밖에 놓으면 떼기
+  else renderPrep();
+}
+let dragJustEnded = false;
+function slotAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest('.slot.on'); }
 
 // 장사 도구 (오 사장님 권유로 1장 중간부터): 사면 계속 써요
 function toolsCard() {
@@ -280,7 +326,7 @@ function masteryCard(g) {
   if (!g || !upgradeOpen()) return '';
   const t = MENU_IDS.filter(m => g[m]).map(m => `${MENUS[m].name} +${Math.round(g[m] * 10) / 10}`).join(' · ');
   if (!t) return '';
-  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>메뉴 연구 칠판에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
+  return `<div class="hl wide${anyUpReady() ? ' good' : ''}"><small>메뉴 숙련</small><b>${t}</b>${anyUpReady() ? '<span>칠판에서 올릴 수 있는 메뉴가 있습니다</span>' : ''}</div>`;
 }
 const MISS_NAME = { full: '자리 없음', wait: '오래 기다림', price: '가격', soldout: '품절' };
 export function renderReceipt() {
@@ -616,6 +662,9 @@ export function initScreens(onStart) {
       toast(`클라우드 세이브를 불러왔습니다 · ${line}`, 'good');
     },
   });
+  scr().addEventListener('pointerdown', plateDown); // 칠판 추천 명패 끌기 (v0.91)
+  window.addEventListener('pointermove', plateMove, { passive: false });
+  window.addEventListener('pointerup', plateUp); window.addEventListener('pointercancel', () => { if (!plateDrag) return; if (plateDrag.ghost) { plateDrag.ghost.remove(); plateDrag = null; renderPrep(); } else plateDrag = null; });
   scr().addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -625,14 +674,16 @@ export function initScreens(onStart) {
     else if (a === 'continue') { if (loadGame()) { playSfx('page'); onStart(); } }
     else if (a === 'price') { runCmd('setPrice', { menu: m, delta: d }); playSfx('tap'); }
     else if (a === 'prep') { runCmd('setPrep', { menu: m, delta: d }); playSfx('tap'); }
-    else if (a === 'open') { mmOpen = null; pickOpen = null; runCmd('openShop'); }
+    else if (a === 'open') { mmOpen = null; pickOpen = null; plateHeld = null; runCmd('openShop'); }
     else if (a === 'questPay') runCmd('questPay', { id: b.dataset.q });
     else if (a === 'buyTool') runCmd('buyTool', { id: b.dataset.tool });
     else if (a === 'menuToggle') runCmd('menuToggle', { menu: m });
     else if (a === 'boardSet') runCmd('boardSet', { slot: b.dataset.slot, menu: m });
     else if (a === 'mmOpen') { mmOpen = m; pickOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotBuy') runCmd('slotBuy');
-    else if (a === 'slotPick') { pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
+    else if (a === 'plate') { if (dragJustEnded) return; plateHeld = plateHeld === b.dataset.slot ? null : b.dataset.slot; playSfx('tap'); renderPrep(); } // 칠판 추천 명패 (v0.91)
+    else if (a === 'slotPick' && plateHeld && m) { const k = plateHeld; plateHeld = null; runCmd('boardSet', { slot: k, menu: m }); }
+    else if (a === 'slotPick') { plateHeld = null; pickOpen = m || ''; mmOpen = null; playSfx('page'); renderPrep(); }
     else if (a === 'slotSet') { pickOpen = null; const off = b.dataset.off; if (off) runCmd('menuSwap', { off, on: m }); else runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'slotOff') { pickOpen = null; runCmd('menuToggle', { menu: m }); renderPrep(); }
     else if (a === 'mmClose') { if (e.target === b || b.classList.contains('ts-x')) { mmOpen = null; pickOpen = null; playSfx('tap'); renderPrep(); } } // 창 밖이나 ✕

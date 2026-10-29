@@ -125,7 +125,7 @@ export function initFeedback() {
     if (p !== 'day') { closeQuests(); incidentReset(); $('cookUI').hidden = true; $('rushUI').hidden = true; $('dawnUI').hidden = true; $('toasts').innerHTML = ''; } // 영업 중 알림은 정산 화면으로 넘기지 않아요
     if (p !== 'prep') hideTown();
     document.body.classList.toggle('in-town', p === 'prep' && townMode());
-    if (p === 'prep') { setTimeout(showConflict, 0); if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else renderPrep(); showNextScene(); }
+    if (p === 'prep') { setTimeout(showConflict, 0); if (saveGame()) cloudSaved(); if (townMode() && !sceneWantsLedger()) { hideScreen(); showTown(); } else { if (townMode()) document.body.dataset.sceneLedger = '1'; renderPrep(); } showNextScene(); } // 장면이 장부를 짚으면 장부 먼저 — 다 보면 가게 안으로 (ui/story.js finish, v0.91)
     else if (p === 'day') hideScreen();
     else if (p === 'receipt') renderReceipt();
     else if (p === 'weekly') renderWeekly();

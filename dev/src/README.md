@@ -7,7 +7,7 @@
 | engine | `util.js` `random.js` | 공통 도구 · 난수(rand/fxRand) |
 | sim | `events.js` | 사건(emit/onEvent) · 명령(defineCmd/runCmd) |
 | art · audio | `atlas.js` `music.js` | 그림 한 장 + 자리표 (art_pack.py) · 배경음악 (audio_pack.py) — 손으로 안 고쳐요 |
-| data | `menu.js` | 메뉴 18종(기본 3 + 2장 변형 15: `base`·`lv`)·레시피·원재료(유통기한)·메뉴 레벨·오늘의 메뉴 칸 |
+| data | `menu.js` | 메뉴 18종(기본 3 + 2장 변형 15: `base`·`lv`)·레시피·원재료(유통기한)·메뉴 레벨·오늘의 메뉴 칸 · 변형 찾기 `VARIANT_FIND`(v0.91) |
 | | `customers.js` `people.js` `notebook.js` | 손님층·시간대 흐름·좋아하는 메뉴 · 손님 수첩 인물(이름·소개·`fav`) · 손님층 수첩 칸·열리는 조건(v0.90) |
 | | `economy.js` `layout.js` `reviews.js` `version.js` `credits.js` | 돈과 시간·별점 · 가게 배치(등급마다) · 리뷰 문구 · 게임 버전 · 크레딧(지우지 않기) |
 | | `market.js` `town.js` `explore.js` | 재료 시세 소식 · 마을(지도·장소·행동 칸·물건·걷는 손님·홍보) · 동네 탐방(재래시장·아파트 단지·오피스 거리 — 가게 종류·사건·가방에 담는 것·동네 메모, v0.78·v0.82·v0.84) · `move.js` 동네마다 임대 매물(이사 갈 자리, v0.84) |
@@ -23,7 +23,7 @@
 | render | `view.js` `cut.js` `town.js` `explore.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 · 동네 탐방 지도 그리기 |
 | ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
 | | `hud.js` `phone.js` `reviews.js` `story.js` `incident.js` | 영업 중 위아래 막대 · 전화 받기(울리는 폰 · 「받기」) · 위 막대 ★ → 리뷰 기록 · 대화/신문/퀘스트 · 돌발 이벤트 화면 |
-| | `board.js` `book.js` `notebook.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 손님층 수첩(계산대 「손님층」 탭) · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
+| | `board.js`(칠판: 레벨 올리기 · 메뉴 변형 찾기) `book.js` `notebook.js` `furn.js` `sales.js` `guild.js` | 메뉴 연구 칠판 · 손님 수첩 · 손님층 수첩(계산대 「손님층」 탭) · 미소 가구 창 · 판매 장부 · 문 철물·상인회 창 |
 | | `explore.js` | 동네 탐방 화면 (골목 화면을 빌려 써요: 체력·가방 막대, 「살펴보기」, 사건·돌아오기 창, 심부름 표시 · 손기술 미니게임 v0.81) |
 | | `town.js` `cutscene.js` `screens.js` `feedback.js` `input.js` | 마을 화면(걷기·조이스틱·가게 안·대화하기 버튼·휴대폰: 인스타·블로그 홍보·최근 통화·상권 지도 자물쇠) · 연출 진행 · 처음/준비/영수증/고지서 화면 · 사건 받기 · 입력 |
 | | `main.js` | 시작·매 프레임 · 시험 손잡이 `window.__T` |

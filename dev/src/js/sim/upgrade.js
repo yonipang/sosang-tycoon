@@ -3,13 +3,13 @@
 // 저장: G.menuLv { 메뉴: 레벨 } · G.mastery { 메뉴: 숙련도 } · G.fans { 사람(그림 번호): { m: 맛있게 먹은 메뉴, n: 다시 온 횟수 } }
 // 영업 중에는 G.run.log에만 모아 두고 마감 때 더해요 (영업 중에 끄면 그날 것은 없던 일)
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MASTERY_PERFECT, REVISIT_SAT, INGREDIENTS, DEV_OPEN_CH } from '../data/menu.js';
+import { MENUS, MENU_IDS, MENU_LEVELS, MENU_LV_MAX, MASTERY_PERFECT, REVISIT_SAT, INGREDIENTS, DEV_OPEN_CH, VARIANT_FIND, FIND_FLOP } from '../data/menu.js';
 import { emit, defineCmd } from './events.js';
 import { menuOpen, storyOpenMenu } from './story.js';
 import { todayMenus, slotsOpen } from './pantry.js';
 import { josa } from '../engine/util.js';
 
-// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「메뉴 연구 칠판」에서 — 장과 상관없이 Lv5까지
+// 1장(가게를 맡은 뒤)부터, 마을의 우리 가게 「칠판」에서 — 장과 상관없이 Lv5까지
 export const upgradeOpen = () => !!(G.story && G.story.ch >= 1);
 export const menuLv = m => (G.menuLv && G.menuLv[m]) || 1;
 export const lvInfo = (m, lv = menuLv(m)) => MENU_LEVELS[lv];
@@ -51,13 +51,39 @@ defineCmd('menuUp', ({ menu }) => {
   return true;
 });
 
-// ── 새 메뉴 개발 (2장부터 · 메뉴 연구 칠판): 기본 메뉴 레벨 + 개발비 → 메뉴가 하나 더 생겨요 (data/menu.js VARIANT_IDS) ──
+// ── 메뉴 변형 개발 (2장부터 · 칠판): 기본 메뉴 레벨 + 개발비 → 메뉴가 하나 더 생겨요 (data/menu.js VARIANT_IDS) ──
 export const devOpen = () => !!(G.story && G.story.ch >= DEV_OPEN_CH);
-// ok · done(이미 있음) · base(기본 메뉴가 아직) · lv(기본 메뉴 레벨 모자람) · cash · closed
+// ── 메뉴 변형 찾기 (v0.91 사용자 요청 — 칠판): 레시피 한 칸을 바꿔 「한 그릇 만들어 보기」 (data/menu.js VARIANT_FIND) ──
+//  찾은 변형은 G.varFound · 찾아야 개발(메뉴에 올리기)할 수 있어요 · 해 보기는 재료·시간이 들지 않아요
+export const varFound = m => menuOpen(m) || !!(G.varFound && G.varFound.includes(m));
+// 바꿔 넣을 재료가 열리는 기본 메뉴 레벨: 그 재료를 쓰는 변형 중 가장 낮은 레벨 (헛짚는 재료는 Lv2)
+export function findIngLv(b, ing) {
+  const F = VARIANT_FIND[b], lvs = Object.entries(F.swap).filter(([, sw]) => sw[1] === ing).map(([m]) => MENUS[m].lv);
+  return lvs.length ? Math.min(...lvs) : 2;
+}
+export const findIngOpen = (b, ing) => menuLv(b) >= findIngLv(b, ing);
+defineCmd('menuTry', ({ base, slot, ing }) => {
+  const F = VARIANT_FIND[base];
+  if (!devOpen() || !F || !menuOpen(base) || G.phase !== 'prep') return null;
+  if (!(slot >= 0 && slot < MENUS[base].recipe.length) || F.fixed.includes(slot) || !F.shelf.includes(ing) || !findIngOpen(base, ing)) return null;
+  const hit = Object.keys(F.swap).find(m => { const [s, i] = F.swap[m]; return (s === -1 || s === slot) && i === ing; });
+  if (hit) {
+    const again = varFound(hit);
+    if (!again) { (G.varFound = G.varFound || []).push(hit); emit('track', 'menu_find', { menu: hit }); }
+    emit('sfx', again ? 'tap' : 'perfect');
+    return { hit, again };
+  }
+  const anySlot = Object.values(F.swap).some(sw => sw[0] === -1);
+  emit('sfx', 'page');
+  return { hit: null, text: F.flop[`${anySlot ? -1 : slot}:${ing}`] || FIND_FLOP.replace('{m}', MENUS[base].name) };
+});
+
+// ok · done(이미 있음) · find(아직 못 찾음) · base(기본 메뉴가 아직) · lv(기본 메뉴 레벨 모자람) · cash · closed
 export function devState(m) {
   const M = MENUS[m];
   if (!devOpen() || !M.base) return 'closed';
   if (menuOpen(m)) return 'done';
+  if (!varFound(m)) return 'find';
   if (!menuOpen(M.base)) return 'base';
   if (menuLv(M.base) < M.lv) return 'lv';
   if (G.cash < M.dev) return 'cash';
@@ -78,7 +104,7 @@ defineCmd('menuDev', ({ menu }) => {
   const full = todayMenus().length > slotsOpen(); // 오늘의 메뉴 칸이 꽉 찼으면 쉬는 메뉴로
   if (full) G.menuOff.push(menu);
   const fresh = M.recipe.filter(i => !MENU_IDS.some(x => x !== menu && menuOpen(x) && MENUS[x].recipe.includes(i))).map(i => INGREDIENTS[i].name);
-  emit('toast', `새 메뉴 「${M.name}」 개발!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
+  emit('toast', `「${M.name}」 메뉴에 올렸습니다!${fresh.length ? ` ${josa(fresh.join('·'), '은/는')} 정 사장 식자재에서 살 수 있습니다` : ''}${full ? ' · 오늘의 메뉴 칸이 꽉 차서 쉬는 메뉴에 넣었습니다' : ''}`, 'good');
   emit('sfx', 'perfect');
   if (!G.story.devSeen) { G.story.devSeen = true; G.story.queue.push('menudev1'); emit('story'); } // 처음 개발하면 만드는 법 안내 카드 (v0.64)
   emit('prep');

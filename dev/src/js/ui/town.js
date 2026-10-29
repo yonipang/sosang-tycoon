@@ -4,7 +4,7 @@ import { G } from '../save/state.js';
 import { $, won, josa } from '../engine/util.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { MENUS, INGREDIENTS } from '../data/menu.js';
-import { CAST, SCENES } from '../data/story.js';
+import { CAST, SCENES, QUESTS } from '../data/story.js';
 import { TILE, STATIONS, REGISTER, DOOR, FRONT_Y, TABLES, SEATS, solidForPlayer } from '../data/layout.js';
 import { drawShopTo, shopViewSize } from '../render/view.js';
 import { findPath } from '../sim/path.js';
@@ -27,7 +27,7 @@ import { menuOpen } from '../sim/story.js';
 import { invOf, invToday, invServings, openIngs, menusUsing, todayMenus, cartFor } from '../sim/pantry.js';
 import { ingNews } from '../sim/market.js';
 import { toast } from './feedback.js';
-import { boardHTML, boardTab } from './board.js';
+import { boardHTML, boardTab, boardFind } from './board.js';
 import { bookHTML } from './book.js';
 import { notebookHTML } from './notebook.js';
 import { nbNew } from '../sim/notebook.js';
@@ -284,7 +284,10 @@ export function showTown() {
   if (!townMode()) return;
   const part = G.town.part;
   if (!T) { T = { me: { char: 0, x: 0, y: 0, dir: 3, path: [] }, cam: { x: 0, y: 0 }, then: null, time: 0, vw: VIEW_W, vh: 240 }; placeMe('shop'); T.day = G.day; }
-  if (T.day !== G.day) { placeMe('shop'); T.day = G.day; } // 영업을 마치면 가게 앞에서
+  if (T.day !== G.day) { // 영업을 마치면 가게 안에서 (v0.91 사용자 요청 — 전에는 가게 앞 골목). 1장 첫 밤(골목 안내)만 골목에서
+    placeMe('shop'); T.day = G.day;
+    T.inside = G.story && G.story.queue.includes('town1') ? null : { me: { x: DOOR.x, y: FRONT_Y - 1, dir: 1, moving: false, path: [] }, then: null };
+  }
   if (T.walkKey !== part + G.day) spawnWalkers(); // 골목을 걷는 손님 (밤·새벽마다 새로)
   $('town').hidden = false;
   document.body.classList.add('in-town'); // 위 막대(#bar)는 숨겨요 (마을 막대가 대신)
@@ -296,7 +299,7 @@ export function showTown() {
 function renderNav() {
   if (exOn()) { $('townNav').innerHTML = exNav(); return; }
   if (T && T.inside) { // 가게 안: 할 일 버튼
-    const B = [['pantry', '냉장고'], ['recipe', '메뉴 연구'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
+    const B = [['pantry', '냉장고'], ['recipe', '칠판'], ['counter', '계산대'], ['clean', '청소'], ['setup', prepMax() ? '조리대' : '오픈 준비'], ['open', '가게 열기'], ['exit', '나가기']];
     $('townNav').innerHTML = B.map(([a, n]) => `<button type="button" data-in="${a}" class="${a === 'open' ? 'go' : ''}">${n}</button>`).join('');
     return;
   }
@@ -336,11 +339,14 @@ function renderBar() {
 }
 
 // 할 일이 있는 곳 「!」: 시장(오늘 아직 재료를 안 샀으면) · 장을 봤으면 우리 가게(열기)
+// 「!」는 지금 할 일(퀘스트)을 하는 곳에만 (v0.91 사용자 요청 — 전에는 늘 식자재·우리 가게에 떠서 헷갈렸어요)
+//  퀘스트 종류 → 하는 곳: 쪽지(냉장고)·장사 도구·낼 돈(장부)은 우리 가게 · 가게 분위기는 미소 가구
+const QUEST_PLACE = { note: 'shop', buyTool: 'shop', pay: 'shop', mood: 'flower' };
 function townMarks() {
-  const Tn = G.town, out = [];
+  const out = [];
   const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
-  const bought = Object.keys(Tn.bought || {}).length > 0;
-  out.push(top(bought ? 'shop' : 'market'));
+  const at = new Set(G.story.active.map(id => QUESTS[id] && QUEST_PLACE[QUESTS[id].kind]).filter(id => id && PLACES[id] && placeOpen(id)));
+  for (const id of at) out.push(top(id));
   if (rivalHoard() && !(G.story.flags || {}).c3hoard && vacantB) out.push({ x: vacantB[1] + 40, y: vacantB[2] - 100 }); // 3장: 가림막을 살펴보라고 「!」
   return out;
 }
@@ -512,7 +518,7 @@ function townActTarget() {
   return null;
 }
 // 가게 안: 서 있는 칸(또는 바로 옆)의 물건 — 여러 개면 바라보는 쪽
-const IN_LABEL = { pantry: '냉장고', recipe: '메뉴 연구', counter: '계산대', clean: '청소', exit: '나가기' };
+const IN_LABEL = { pantry: '냉장고', recipe: '칠판', counter: '계산대', clean: '청소', exit: '나가기' };
 function insideActTarget() {
   const me = T.inside.me, mx = Math.round(me.x), my = Math.round(me.y);
   const [fx, fy] = [mx + (me.dir === 0 ? 1 : me.dir === 2 ? -1 : 0), my + (me.dir === 3 ? 1 : me.dir === 1 ? -1 : 0)];
@@ -694,7 +700,7 @@ function actRow(id, a) {
       : a === 'insta' ? (ok ? `${day} 학생 손님이 더 들어옵니다` : '이미 올렸습니다') : a === 'blogger' ? (ok ? `${won(A.money)} · ${day} 블로거가 옵니다. 맛있으면 사흘 동안 직장인·어르신이 더, 아니면 덜` : `${day} 블로거가 옵니다`)
       : a === 'guild' ? '장사 도구 · 설비 손보기' : a === 'furn' ? '탁자 · 의자 · 장식 사기'
       : TALK_WHO[a] ? (ok ? (a === 'jungTalk' ? '친밀도 +2 · 시간이 들지 않습니다' : '친밀도 · 내일 소개 손님') : '오늘은 이미 대화했습니다')
-      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩 · 손님층' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '숙련도와 돈으로 메뉴 레벨 올리기' : '';
+      : a === 'book' ? '가게에 온 손님들' : a === 'sales' ? '날마다 매출 · 총이익 · 손님' : a === 'counter' ? '판매 장부 · 손님 수첩 · 손님층' : a === 'sleep' ? (slotsMax() > Tn.used ? `남은 ${slotsMax() - Tn.used}시간은 푹 쉬고 아침에 가게를 엽니다` : '아침에 가게를 엽니다') : a === 'open' ? '가격 확인하고 문 열기' : a === 'ledger' ? '가격 · 장사 도구 · 할 일' : a === 'recipe' ? '메뉴 레벨 올리기 · 메뉴 변형' : '';
     return `<button type="button" class="ts-act" data-ts="act" data-a="${a}" ${ok ? '' : 'disabled'}><b>${actLabel(id, a)}</b><small>${sub}</small>${cost && !(a === 'market' && Tn.marketIn) && !(TALK_WHO[a] && !ok) ? `<i>${cost}</i>` : ''}</button>`;
   }
 }
@@ -874,7 +880,12 @@ export function initTown() {
     else if (k === 'toolUp') runCmd('toolUp', { id: b.dataset.id });
     else if (k === 'join') runCmd('questPay', { id: 'c2_join' });
     else if (k === 'menuUp') runCmd('menuUp', { menu: b.dataset.m });
-    else if (k === 'menuDev') runCmd('menuDev', { menu: b.dataset.m });
+    else if (k === 'menuDev') { if (runCmd('menuDev', { menu: b.dataset.m })) { boardFind('reset'); sheet(boardHTML(), 'chalk'); } }
+    else if (k === 'vSlot' || k === 'vIng' || k === 'vTry' || k === 'vOk') { // 칠판 · 메뉴 변형 찾기 (v0.91)
+      boardFind(k === 'vSlot' ? 'slot' : k === 'vIng' ? 'ing' : k === 'vTry' ? 'try' : 'reset', k === 'vSlot' ? +b.dataset.s : b.dataset.k);
+      if (k !== 'vTry') playSfx('tap');
+      sheet(boardHTML(), 'chalk');
+    }
     else if (k === 'btab') { boardTab(b.dataset.b); playSfx('tap'); sheet(boardHTML(), 'chalk'); }
     else if (k === 'prepD') { const m = b.dataset.m; prepCart[m] = Math.max(0, (prepCart[m] || 0) + +b.dataset.d); playSfx('tap'); sheet(stoveHTML(), 'stove'); }
     else if (k === 'prepMake') { if (runCmd('prepMake', { plan: prepCart })) prepCart = {}; refreshTown(); }
@@ -893,7 +904,7 @@ export function initTown() {
     if (what === 'pantry') { T.sheetPlace = 'shop'; sheet(pantryHTML(), 'pantry'); playSfx('page'); return; }
     if (what === 'book') { T.sheetPlace = 'shop'; sheet(bookHTML(bookSel), 'book'); playSfx('page'); return; }
     if (what === 'counter') { openCounter('sales'); playSfx('page'); return; }
-    if (what === 'recipe') { sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
+    if (what === 'recipe') { boardFind('reset'); sheet(boardHTML(), 'chalk'); playSfx('page'); return; }
     if (what === 'dawn') { playSfx('page'); renderBar(); return; } // 4시간을 쓰면 시계가 새벽으로 (할 수 있는 일은 같아요)
     if (what === 'ledger' || what === 'open') { closeSheet(); return; } // ui/feedback.js가 장부(준비 화면)를 열어요
   });
