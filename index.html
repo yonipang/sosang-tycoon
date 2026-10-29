@@ -1464,7 +1464,7 @@ const MASTERY_PERFECT = 1.5;
 const REVISIT_SAT = 4;
 // 올리는 곳: 우리 가게 「메뉴 연구 칠판」 (마을, 1장부터 · 장과 상관없이 숙련도·돈만 되면 Lv5까지)
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
-const PRICE_STEP = 500;
+const PRICE_STEP = 100; // v0.89 사용자 요청: 100원 단위 (전 500원)
 const PRICE_MIN = 1500;
 const PRICE_MAX = 9000;
 const PREP_STEP = 5;   // 재료 주문 단위(인분)
@@ -1779,7 +1779,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.88';
+const GAME_VERSION = '0.89';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [

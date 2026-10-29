@@ -105,7 +105,7 @@ export const MASTERY_PERFECT = 1.5;
 export const REVISIT_SAT = 4;
 // 올리는 곳: 우리 가게 「메뉴 연구 칠판」 (마을, 1장부터 · 장과 상관없이 숙련도·돈만 되면 Lv5까지)
 // 메뉴는 이야기 퀘스트로 열려요 (떡볶이로 시작 → 김밥 → 튀김). sim/story.js menuOpen
-export const PRICE_STEP = 500;
+export const PRICE_STEP = 100; // v0.89 사용자 요청: 100원 단위 (전 500원)
 export const PRICE_MIN = 1500;
 export const PRICE_MAX = 9000;
 export const PREP_STEP = 5;   // 재료 주문 단위(인분)
