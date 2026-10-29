@@ -9,6 +9,8 @@ import { townEnterNight } from './town.js';
 import { addReviews } from './rating.js';
 
 const PRO = ['p_stir', 'p_serve', 'p_book', 'p_ahead', 'p_keys'];
+const C1 = ['c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'];
+const C2 = ['c2_park', 'c2_moon', 'c2_join', 'c2_kim', 'c2_doyun', 'c2_miso', 'c2_end'];
 // 가 볼 수 있는 곳: day(그날 준비 화면) · ch · title · done · active · queue(보여 줄 장면) · menus · toolsOpen · tools · decor · shop · town(마을 밤부터) · mastery(메뉴 숙련도) · cash(잔고) · bond(친밀도 점수) · furnSeen(미소 가구 장면 건너뛰기) · guild(상인회 상태)
 export const DEV_JUMPS = [
   { id: 'p1', name: '프롤로그 1일차 · 첫 연출부터', day: 1, fresh: true },
@@ -32,6 +34,9 @@ export const DEV_JUMPS = [
   { id: 'c2e', name: '14일차 전날 밤 · 2장 끝 직전 (주간 정산 때 별점 3.5 이상이면 「동네 사장」)', day: 14, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week', 'c2_park', 'c2_moon', 'c2_join', 'c2_kim', 'c2_doyun', 'c2_miso'], active: ['c2_end'], perks: ['oldTaste'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 10, member: true }, bond: { moon: 30, miso: 20, jung: 30 }, cash: 2000000 },
   { id: 'c2o', name: '8일차 전날 밤 · 2장 여는 장면 (바로: 아침 골목 → 「2장 · 골목 사람들」 · 오 사장님 전화)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, queue: ['ch2soon'] },
   { id: 'c2', name: '8일차 · 2장 첫날 (박 할머니 부탁)', day: 8, ch: 2, title: '초보 사장', shop: '골목분식', done: [...PRO, 'c1_first', 'c1_note', 'c1_kimbap', 'c1_tools', 'c1_fryer', 'c1_stock', 'c1_week'], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'] },
+  // 3장 「길 건너 대결」 (v0.88): c3 = 3장 며칠째 · flags 이미 본 것
+  { id: 'c3a', name: '3장 1일째 밤 · 3장 여는 장면 → 골목에 공사 가림막', day: 15, ch: 2, c3: 0, title: '동네 사장', shop: '골목분식', done: [...PRO, ...C1, ...C2], active: [], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 1, member: true }, bond: { moon: 50, miso: 30, jung: 30 }, cash: 2000000, queue: ['ch3soon'] },
+  { id: 'c3b', name: '3장 3일째 밤 · 길 건너 떡볶이 공장 개업 (가게를 열면 강 점장)', day: 17, ch: 3, c3: 3, title: '동네 사장', shop: '골목분식', done: [...PRO, ...C1, ...C2], active: [], menus: ['tteok', 'kimbap', 'twigim'], toolsOpen: true, tools: ['tray', 'timer', 'warmer'], decor: ['plant'], town: true, furnSeen: true, guild: { seen: true, due: 1, member: true }, bond: { moon: 50, miso: 30, jung: 30 }, cash: 2000000, flags: { c3hoard: true } },
 ];
 
 defineCmd('devJump', ({ id }) => {
@@ -46,6 +51,8 @@ defineCmd('devJump', ({ id }) => {
     queue: J.queue || [], menus: J.menus || ['tteok'], fresh: J.fresh || [], decor: J.decor || [],
     toolsOpen: !!J.toolsOpen, tools: J.tools || [], perks: J.perks || [],
   });
+  if (J.c3) S.c3 = J.day - J.c3 + 1; // 3장 시작한 날
+  if (J.flags) S.flags = { ...J.flags };
   if (J.ch >= 2 && !J.active) S.active = ['c2_park'].concat(J.furnSeen ? ['c2_miso'] : []); // 2장: 박 할머니 부탁부터
   for (const q of S.done) S.prog[q] = 99;
   for (const m of S.menus) G.prep[m] = G.prep[m] || PREP_FIRST_DAY[m];

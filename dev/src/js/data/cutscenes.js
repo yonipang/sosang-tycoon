@@ -147,6 +147,25 @@ export const CUTS = {
     ],
   },
   // 2장 여는 장면 (v0.54 사용자 요청 「장마다 프롤로그 연출」): 첫 주를 버틴 다음 날 아침, 골목 사람들이 하나씩 지나가요 → 「2장 · 골목 사람들」
+  // 3장 여는 장면 (v0.88): 밤 골목, 길 건너 빈 가게에 불이 켜져 있어요 → 「3장 · 길 건너 대결」
+  ch3open: {
+    night: true,
+    cam: { x: 72, y: 14 },
+    actors: { me: { char: 0, x: 120, y: 164, dir: 3 } },
+    props: [{ spr: 'lamp', x: 84, y: 174 }],
+    steps: [
+      { fade: 1, sec: 0.3 },
+      { caption: '골목 신문에 가게가 난 날 밤.', sec: 1.8 },
+      { caption: '' },
+      { fade: 0, sec: 1.0 },
+      { say: ['meThink', '길 건너 빈 가게에 밤늦게까지 불이 켜져 있다.'] },
+      { emote: ['me', '…'], sec: 1.0 },
+      { say: ['meThink', '누가 들어오는 걸까.'] },
+      { fade: 1, sec: 1.2 },
+      { title: ['3장', '길 건너 대결'], sec: 2.4 },
+      { title: null },
+    ],
+  },
   ch2open: {
     night: false,
     cam: { x: 72, y: 14 },

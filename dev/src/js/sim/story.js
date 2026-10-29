@@ -125,6 +125,7 @@ defineCmd('sceneDone', ({ name }) => {
   for (const q of sc.start || []) start(q);
   if (sc.title) S.title = sc.title;
   if (sc.ch !== undefined) S.ch = sc.ch;
+  if (sc.ch === 3 && !S.c3) S.c3 = G.day; // 3장 시작한 날 (sim/rival.js c3Day)
   if (sc.decor && !S.decor.includes(sc.decor)) S.decor.push(sc.decor);
   if (sc.opens === 'tools') S.toolsOpen = true;
   // 가게를 넘겨받을 때: 오 사장님 가게 돈은 사장님이 정리해 가고, 내 돈과 창업 대출로 새로 시작

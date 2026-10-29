@@ -31,6 +31,8 @@ import { boardHTML, boardTab } from './board.js';
 import { bookHTML } from './book.js';
 let bookSel = 0; // 손님 수첩에서 고른 사람
 import { lineHTML, talking } from './story.js';
+import { rivalHoard, rivalBuilt, rivalSale } from '../sim/rival.js';
+import { RIVAL, RIVAL_LOOK } from '../data/rival.js';
 import { icon } from './icons.js';
 import { playSfx } from './sfx.js';
 import { exOn, exHook, exUpdate, exTap, exBar, exHud, exNav, exNavClick, exSheetClick, exActTarget, busHTML, initExplore, exMapH } from './explore.js';
@@ -335,6 +337,7 @@ function townMarks() {
   const top = id => { const [tx, ty] = PLACES[id].door; return { x: tileX(tx), y: ty * TILE - 40 }; };
   const bought = Object.keys(Tn.bought || {}).length > 0;
   out.push(top(bought ? 'shop' : 'market'));
+  if (rivalHoard() && !(G.story.flags || {}).c3hoard && vacantB) out.push({ x: vacantB[1] + 40, y: vacantB[2] - 100 }); // 3장: 가림막을 살펴보라고 「!」
   return out;
 }
 
@@ -399,7 +402,7 @@ export function updateTown(dt) {
   const dawn = G.town.part === 'dawn';
   const actors = [me, ...(T.walkers || [])];
   for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; actors.push({ char: id === 'choi' && guildOpen() ? CAST.moon.char : CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); } // 2장: 세탁소 자리엔 문 회장님
-  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}) }, only: onlyNow() });
+  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}), ...(rivalHoard() ? { tw_vacant: 'tw_hoard', sign_vacant: 'sign_hoard' } : rivalBuilt() ? { tw_vacant: 'tw_factory', sign_vacant: 'sign_factory' } : {}) }, only: onlyNow() });
 }
 
 // ── 골목 꾸밈 · 물건 · 걷는 손님 (v0.48) ──
@@ -551,7 +554,14 @@ function talkPress() {
 }
 const walkerAt = (x, y) => (T.walkers || []).find(w => inRect(x, y, [w.x - 8, w.y - 30, 16, 32]));
 
-function showVacant() { sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
+function showVacant() {
+  // 3장: 공사 가림막 → 떡볶이 공장 (sim/rival.js) — 가림막을 처음 보면 장면
+  if (rivalHoard() || rivalBuilt()) {
+    if (runCmd('rivalLook')) return; // 가림막 처음 → 장면 (sim/rival.js)
+    sheet(`<div class="ts-head"><b>${rivalHoard() ? '공사 중' : RIVAL.name}</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${rivalHoard() ? RIVAL_LOOK.hoard : rivalSale() ? RIVAL_LOOK.sale : RIVAL_LOOK.open}</p>`);
+    return;
+  }
+  sheet(`<div class="ts-head"><b>빈 가게</b><button type="button" class="ts-x" data-ts="close" aria-label="닫기">✕</button></div><p class="ts-note">${VACANT_NOTE}</p>`); }
 
 // 누른 곳: 이웃 → 그 가게 · 건물(문 앞) → 할 일 · 빈 가게 → 안내 · 나머지는 그 칸까지 걸어요 (갈 수 없는 칸이면 가만히)
 const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;

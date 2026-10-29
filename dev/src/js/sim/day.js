@@ -5,6 +5,8 @@ import { MENUS, MENU_IDS, ING_IDS, INGREDIENTS, PRICE_STEP, PRICE_MIN, PRICE_MAX
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul, fameMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR, FOOT_PER_HOUR, CUSTOMER_MUL } from '../data/customers.js';
 import { kitLeftCost } from './kitchen.js';
+import { c3Day } from './rival.js';
+import { RIVAL } from '../data/rival.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
@@ -104,6 +106,11 @@ defineCmd('openShop', () => {
   G.run.blog = bloggerToday() ? { at: PROMO.blogger.at, done: false } : null; // 어젯밤 섭외한 파워블로거
   planRegulars(G.run); planIncidents(G.run); // 오늘 올 단골 · 오늘 일어날 돌발 (그날 씨앗으로)
   storyOpenDay();
+  if (c3Day() === RIVAL.openDay && !(G.story.flags || {}).c3flyer) { // 3장 3일째: 길 건너 공장 개업 · 강 점장 전단지 (v0.88)
+    (G.story.flags = G.story.flags || {}).c3flyer = true;
+    G.story.queue.push('c3_flyer'); emit('story');
+    emit('track', 'rival_open', {});
+  }
   emit('track', 'day_open', { menus: todayMenus().length, fatigue: (G.town && G.town.fatigue) || 0 }); // 플레이 기록 (ui/analytics.js)
   setPhase('day');
   const n = Object.values(ordered).reduce((a, b) => a + b, 0);

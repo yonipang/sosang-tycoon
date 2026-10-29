@@ -23,6 +23,8 @@ import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upg
 import { noteVisit, noteBookSat } from './book.js';
 import { PEOPLE_INFO, FAV_CHANCE } from '../data/people.js';
 import { typeEnterMul, enterLine, boardPick, logPass, nowHour } from './traffic.js';
+import { rivalTake, rivalSale } from './rival.js';
+import { RIVAL, RIVAL_SAY, RIVAL_SALE_SAY } from '../data/rival.js';
 import { moodSat, moodEnterMul, eatMul } from './furniture.js';
 import { ratingNow } from './rating.js';
 import { payWaitMul } from './guild.js';
@@ -287,7 +289,12 @@ function atDoor(c) {
   r.log.foot += members.length;
   // 들어오는 비율 = 기본 × 손님층 배율(메뉴 궁합·칠판·홍보 — sim/traffic.js) × 재방문(메뉴 레벨). 단골·돌발 손님은 꼭 들어와요
   const hour = nowHour();
-  const enter = c.force || rand() < Math.min(0.95, (r.enterP || 0) * typeEnterMul(c.type, hour) * revisitMul(c.char) * moodEnterMul(c.type));
+  const p0 = Math.min(0.95, (r.enterP || 0) * typeEnterMul(c.type, hour) * revisitMul(c.char) * moodEnterMul(c.type)), u = c.force ? 0 : rand();
+  const enter = c.force || u < p0 * (1 - rivalTake(c.type, hour)); // 3장: 길 건너 공장이 손님층·시간마다 나눠 가져가요 (sim/rival.js)
+  if (!enter && u < p0) { // 들어올 사람이었는데 공장으로 (대결판 · 영수증에 셈)
+    r.log.rival = (r.log.rival || 0) + members.length;
+    if (fxRand() < RIVAL.sayChance) { const L = rivalSale() ? RIVAL_SALE_SAY : RIVAL_SAY; emit('say', c.id, L[Math.floor(fxRand() * L.length)]); }
+  }
   logPass(hour, c.type, members.length, enter);
   if (enter) {
     r.log.entered += members.length;

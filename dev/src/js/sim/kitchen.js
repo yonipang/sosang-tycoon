@@ -102,13 +102,9 @@ export function kitPickup(id) {
   while (K.shelf.length && r.hands.length < handsMax()) { const d = K.shelf.shift(); hold(d.menu, freshQ(d), false, d.ahead); got++; }
   if (got) return;
   if (K.cur) { r.kitWait = id; emit('float', p.x, p.y - 1.8, `${MENUS[K.cur.menu].name} 만드는 중…`, 'plain'); return; } // 서 있으면 다 되는 대로 들어요
-  // 할 일이 없으면 하나 미리 만들어요 (주문이 없을 때)
-  const m = ms.find(x => stockOf(x) > 0);
-  if (!m) { emit('toast', `${josa(INGREDIENTS[shortIng(ms[0])].name, '이/가')} 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
-  if (K.ahead.length + K.shelf.length >= AUTO_SHELF) return;
-  K.ahead.push(m); r.kitWait = id;
-  emit('float', p.x, p.y - 1.8, `${MENUS[m].name} 하나 미리 만듭니다`, 'plain');
-  emit('sfx', 'cookStart');
+  // 주문이 없으면 만들지 않아요 (v0.88 사용자 요청: 「하나 미리 만들기」 뺌)
+  if (!ms.some(x => stockOf(x) > 0)) { emit('toast', `${josa(INGREDIENTS[shortIng(ms[0])].name, '이/가')} 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
+  emit('float', p.x, p.y - 1.8, '주문이 들어오면 만듭니다', 'plain');
 }
 // 손에 들기 (조리 미니게임의 finishCook 몫 — 품질 알림 · 퀘스트 · 돌발 미션)
 function hold(m, q, prep, made) {

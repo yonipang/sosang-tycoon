@@ -85,7 +85,7 @@ export function drawTown(canvas, S) {
   twGround(x0, y0, x1, y1);
   // 건물·간판·물건·사람: 바닥 y 순서
   const items = [];
-  for (const [n, x, bot] of BUILDINGS) items.push({ y: bot, d: () => twSpr(n, x, bot - SPR[n][3]) });
+  for (const [n, x, bot] of BUILDINGS) { const m = (S.swap && S.swap[n]) || n; items.push({ y: bot, d: () => twSpr(m, x, bot - SPR[m][3]) }); } // swap: 바뀐 건물 (3장 공사 가림막 · 떡볶이 공장)
   SIGNS.forEach(([n, x, y], i) => items.push({ y: twSignKey[i] + 0.1, d: () => twSpr((S.swap && S.swap[n]) || n, x, y) })); // swap: 바뀐 간판 (2장 미소 가구)
   for (const p of MAP_PROPS) if (!p.only || (S.only && S.only[p.only])) items.push({ y: p.y, d: () => twSpr(p.spr, p.x, p.y - SPR[p.spr][3]) }); // only: 장에 따라 바뀌는 가게 앞 꾸밈
   for (const a of S.actors) items.push({ y: a.y + 0.5, d: () => twPerson(a, t + a.char) });

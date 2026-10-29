@@ -10,7 +10,7 @@
 //   guest: 이 차례가 끝나면 그 메뉴를 먹으러 손님 한 명이 바로 와요 (손님을 오래 기다리지 않게)
 // 그날 끝까지 못 한 차례는 건너뛰어요 (장면이 주는 퀘스트는 그대로 받아요)
 import { AUTO_COOK } from './menu.js';
-export const TUTORIAL = [
+const TUTORIAL_ALL = [
   { id: 'd1_hi', day: 1, on: 'open', scene: 'tut_hi', guest: 'tteok' },
   AUTO_COOK // v0.83 시험: 자동 주방 — 화구가 알아서 끓이고, 다 되면 들기만
     ? { id: 'd1_order', day: 1, on: 'order', ask: { text: '첫 주문 들어왔다! 화구가 알아서 끓인다. 다 되면 화구를 눌러 들어 봐.', at: 'stove', until: 'cookEnd' } }
@@ -20,12 +20,14 @@ export const TUTORIAL = [
   { id: 'd1_pay', day: 1, on: 'payLine', ask: { text: '다 먹은 손님이 계산 줄에 섰다. 계산대를 눌러.', at: 'register', until: 'paid' } },
   { id: 'd1_paid', day: 1, on: 'now', scene: 'tut_paid' },
   { id: 'd1_close', day: 1, on: 'closing', scene: 'tut_close' },
-  { id: 'd2_hi', day: 2, on: 'open', scene: 'tut_d2' },
+  { id: 'd2_hi', day: 2, on: 'open', scene: 'tut_d2', guest: AUTO_COOK ? 'tteok' : undefined },
   { id: 'd2_ahead', day: 2, on: 'now', ask: { text: '주문이 없어도 화구를 누르면 미리 만든다. 하나 만들어 봐.', at: 'stove', until: AUTO_COOK ? 'aheadStart' : 'cookStart' } }, // 자동 주방: 주문 몫이 아니라 미리 만들기를 시작해야 넘어가요
   { id: 'd2_made', day: 2, on: 'cookEnd', scene: 'tut_ahead', guest: 'tteok' },
   { id: 'd2_wait', day: 2, on: 'impatient', scene: 'tut_wait' },
   { id: 'd3_phone', day: 3, on: 'open', scene: 'tut_d3' },
 ];
+// 자동 주방(v0.88 사용자 요청): 「미리 만들기」 차례는 빼요
+export const TUTORIAL = AUTO_COOK ? TUTORIAL_ALL.filter(s => s.id !== 'd2_ahead' && s.id !== 'd2_made') : TUTORIAL_ALL;
 // 오 사장님이 서 있는 칸 (1장부터 화분이 놓이는 자리 — 처음부터 막힌 칸이라 길이 바뀌지 않아요)
 export const TUT_SPOT = { x: 11, y: 7 }; // v0.72: 계산대 아래 (화분 자리)
 // 오 사장님이 가게에 있는 날 (프롤로그)
