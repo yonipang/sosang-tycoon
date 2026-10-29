@@ -18,6 +18,7 @@ import { HYGIENE_SAT } from '../data/town.js';
 import { TUT_IMPATIENT } from '../data/tutorial.js';
 import { tutNote, tutHold } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
+import { kitMade } from './kitchen.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
 import { noteVisit, noteBookSat } from './book.js';
 import { PEOPLE_INFO, FAV_CHANCE } from '../data/people.js';
@@ -177,13 +178,13 @@ function removeTicket(c) {
   const m = c.menu;
   const handsM = r.hands.filter(d => d.menu === m).length;
   const ticketsM = r.tickets.filter(t => t.menu === m).length;
-  if (handsM <= ticketsM) giveMenu(m);
+  if (handsM + kitMade(m) <= ticketsM) giveMenu(m); // 자동 주방: 조리대 위·만드는 중인 그릇도 만든 몫 (sim/kitchen.js)
 }
 
 // 손에 든 음식 중 주문표에 묶이지 않은 몫 = 주문 없이 미리 만든 것 (재료는 만들 때 이미 썼어요)
 export function spareOf(m) {
   const r = G.run;
-  return Math.max(0, r.hands.filter(d => d.menu === m).length - r.tickets.filter(t => t.menu === m).length);
+  return Math.max(0, r.hands.filter(d => d.menu === m).length + kitMade(m) - r.tickets.filter(t => t.menu === m).length); // 자동 주방: 조리대 위 그릇도 (v0.83)
 }
 // 팔 수 있나: 오늘의 메뉴에 있고, 재료가 다 있거나 미리 만든 게 손에 있거나
 export const canSell = m => menuOn(m) && (stockOf(m) > 0 || spareOf(m) > 0);

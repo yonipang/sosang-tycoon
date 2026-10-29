@@ -1,6 +1,7 @@
 // 가게 그리기: 캔버스 1픽셀 = 그림 1픽셀, 화면에서는 정수 배로 키워요(픽셀이 뭉개지지 않게).
 import { G } from '../save/state.js';
-import { baseOf } from '../data/menu.js';
+import { baseOf, AUTO_COOK, MENUS } from '../data/menu.js';
+import { freshLeft, freshQ } from '../sim/kitchen.js';
 import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER, FURN_SPOTS } from '../data/layout.js';
 import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
@@ -137,8 +138,34 @@ function drawRoom() {
   ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
 }
 
+// 자동 주방 (v0.83 시험): 만드는 중이면 조리대 위 막대 · 다 된 그릇은 말풍선(그릇 수 · 「완벽」 남은 시간 막대 — 초록 완벽 · 노랑 좋음 · 회색 식음)
+function kitchenHint() {
+  const r = G.run;
+  for (const id in r.kit || {}) {
+    const st = STATIONS[id], K = r.kit[id];
+    const [x, y] = st.tiles[0], cx = x * TILE + (st.tiles.length > 2 ? 16 : 8), bob = Math.round(Math.sin(t * 5) * 1.5);
+    if (K.shelf.length) {
+      const d = K.shelf[0], q = freshQ(d);
+      const b = iconBubble(d.menu, cx, y * TILE + bob);
+      if (K.shelf.length > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(b.x + b.w - 5, b.y - 2, 6, 6); ctx.fillStyle = '#fff'; digit(K.shelf.length, b.x + b.w - 3, b.y - 1); }
+      bar(b.x, b.y + b.h + 1, b.w, q === 2 ? freshLeft(d) : 1, q === 2 ? '#6fd36f' : q === 1 ? '#f2c94c' : '#9a9a9a');
+    } else { // 프렙 통에 미리 만들어 둔 그릇이 주문을 기다리면 그 그릇을 보여 줘요
+      const t2 = r.tickets.find(q => MENUS[q.menu] && MENUS[q.menu].station === id && r.ready && (r.ready[q.menu] || []).length && ticketsCount(q.menu) > handsCount(q.menu));
+      if (t2) iconBubble(t2.menu, cx, y * TILE + bob);
+    }
+    if (K.cur) {
+      for (let i = 0; i < 3; i++) { // 김
+        const k = (t * 1.5 + i / 3) % 1;
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.fillRect(x * TILE + 4 + i * 4 + Math.round(Math.sin((t + i) * 6)), y * TILE + 2 - Math.round(k * 10), 2, 2);
+      }
+      bar(cx - 8, y * TILE + 22, 16, Math.min(1, K.cur.t / K.cur.dur), '#ffd34a');
+    }
+  }
+}
 function stationHint() {
   if (!G.run) return;
+  if (AUTO_COOK) { kitchenHint(); return; }
   for (const id in STATIONS) {
     const st = STATIONS[id]; if (!st.menu || !menuOpen(st.menu)) continue;
     const ms = stationMenus(st), needOf = m => Math.max(0, ticketsCount(m) - handsCount(m));

@@ -34,6 +34,8 @@ export const BOARD_MUL = 0.25;
 export const FIT_MISS = 0.8;
 // 전략(칠판 × 홍보)으로 올릴 수 있는 들어오는 비율의 상한
 export const STRATEGY_CAP = 1.5; // v0.35: 1.8 → 1.5 (칠판·인스타·블로거가 겹치면 손님이 몰려 너무 바빴어요)
+// v0.83 시험(사용자 결정 10-29): 조리 미니게임을 없애고 손님을 늘려 봐요 — 위 기대값 ×
+export const CUSTOMER_MUL = 1.6;
 export const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 3, 12: 5, 13: 3, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 지나가는 사람이 가게 앞에서 하는 말 (말풍선). 상황에 맞는 묶음에서 골라요
 export const PASSER_SAY_CHANCE = 0.3;   // 지나가는 일행이 한마디 할 확률

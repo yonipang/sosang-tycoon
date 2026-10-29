@@ -1,8 +1,10 @@
 // 사장: 누른 곳으로 가서 할 일을 해요.
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
+//   v0.83 시험(AUTO_COOK): 조리대가 알아서 만들고 사장은 다 된 그릇을 들기만 (sim/kitchen.js)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 import { G } from '../save/state.js';
-import { MENUS, INGREDIENTS, QUALITY_NAME } from '../data/menu.js';
+import { MENUS, INGREDIENTS, QUALITY_NAME, AUTO_COOK } from '../data/menu.js';
+import { kitPickup } from './kitchen.js';
 import { PAY_STEP_SEC } from '../data/economy.js';
 import { STATIONS, REGISTER, SEATS, TABLES, PAY_SPOTS, solidForPlayer } from '../data/layout.js';
 import { josa } from '../engine/util.js';
@@ -77,6 +79,7 @@ defineCmd('tap', ({ x, y }) => {
   if (!r || G.phase !== 'day') return;
   if (r.cook) { cookTap(); return; }
   if (r.dawn) return; // 새벽에는 가게를 돌아다니지 않아요
+  r.kitWait = null; // 조리대 앞에서 기다리던 것 (sim/kitchen.js)
   const t = targetAt(x, y);
   if (!t) return;
   const goals = standFor(t);
@@ -236,7 +239,7 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu) startCook(st);
+    if (st.menu) { if (AUTO_COOK) kitPickup(t.id); else startCook(st); } // v0.83 시험: 자동 주방 (sim/kitchen.js)
     else if (t.id === 'fridge') { if (!storyFridge()) emit('fridge', true); } // 냉장고: 남은 재료 보기·급구매 (이야기 쪽지가 먼저)
     else trash();
   } else if (t.kind === 'serve') {

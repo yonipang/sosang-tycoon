@@ -21,7 +21,7 @@ window.__bot = (() => {
     if (p.moving) return;
     // 오 사장님이 미리 만들어 보라고 하면 (프롤로그 2일차)
     const ask = window.__T.tutAsk();
-    if (ask && ask.at === 'stove' && ask.until === 'cookStart' && r.hands.length < 2) { tap(1, 1); return; }
+    if (ask && ask.at === 'stove' && (ask.until === 'cookStart' || ask.until === 'aheadStart') && r.hands.length < 2) { tap(1, 1); return; }
     // 이야기: 냉장고 뒤 쪽지를 찾아야 하면 한가할 때 냉장고로
     if (G.story.active.includes('c1_note') && !r.hands.length && !r.tickets.length && !r.payLine.length) { tap(0, 1); return; }
     const waiting = r.customers.filter(c => c.state === 'waitFood');
@@ -33,7 +33,12 @@ window.__bot = (() => {
     const base = m => m.split('_')[0]; // 새 메뉴(tteok_rose …)는 기본 메뉴의 조리대에서
     const need = [...new Set(r.tickets.map(t => t.menu))].filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length).map(base);
     if (front && front.patience / front.patMax < 0.6) { reg(); return; }
-    if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
+    if (r.kit) { // 자동 주방 (v0.83 시험): 조리대 위에 다 된 그릇이 있을 때만 들러 가요
+      const KID = { tteok: 'stove', kimbap: 'mat', twigim: 'fryer' };
+      const ready = m => { const K = r.kit[KID[base(m)]]; return (K && K.shelf.some(d => d.menu === m)) || (r.ready && r.ready[m] && r.ready[m].length); };
+      const got = [...new Set(r.tickets.map(t => t.menu))].filter(m => r.tickets.filter(t => t.menu === m).length > r.hands.filter(d => d.menu === m).length && ready(m));
+      if (got.length && r.hands.length < 2) { const [x, y] = ST[base(got[0])]; tap(x, y); return; }
+    } else if (need.length && r.hands.length < 2) { const [x, y] = ST[need[0]]; tap(x, y); return; }
     if (r.tickets.some(t => t.takeout && r.hands.some(d => d.menu === t.menu)) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { if (!atReg) reg(); return; } // 포장은 계산대로
     if (r.hands.some(d => !d.ahead) && !waiting.some(c => r.hands.some(d => d.menu === c.menu))) { const [tx, ty] = window.__T.trashAt(); tap(tx, ty); return; } // 미리 만든 몫은 들고 있어요 (퇴식대 — v0.67부터 홀 왼쪽 아래)
     if (!atReg) reg();

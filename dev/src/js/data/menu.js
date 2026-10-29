@@ -123,3 +123,13 @@ export const COOK_GAMES = {
   fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.6, 0.8], good: [0.48, 0.9] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
 };
 export const QUALITY_NAME = ['보통', '좋음', '완벽'];
+// ── 자동 주방 (v0.83 시험 · 사용자 결정 10-29 「조리 미니게임 없이 + 손님 늘리기」) ──
+//  true면 주문이 들어오면 조리대가 알아서 만들어요(sim/kitchen.js). 사장은 다 된 음식을 들어 내주기·치우기·계산만
+//  false로 바꾸면 예전 조리 미니게임으로 돌아가요
+export const AUTO_COOK = true;
+export const AUTO_COOK_SEC = { stir: 6, roll: 5, fry: 5 };   // 한 그릇 만드는 시간 (게임 초 · 게임 1시간 = 30초)
+export const AUTO_SHELF = 3;                                  // 조리대 위에 올려 둘 수 있는 그릇 수
+export const AUTO_FRESH = { perfect: 8, good: 20 };           // 다 된 뒤 이 초 안에 들면 「완벽」 · 「좋음」, 더 지나면 「보통」(식어요)
+export const AUTO_FRESH_TIMER = 1.5;                          // 주방 타이머: 위 시간 ×
+export const AUTO_FRESH_TIMER2 = 2;                           // 디지털 타이머(상인회)
+export const AUTO_EQ_FAST = 0.8;                              // 설비 Lv2(상인회): 만드는 시간 ×

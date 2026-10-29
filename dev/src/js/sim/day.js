@@ -3,7 +3,8 @@
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, ING_IDS, INGREDIENTS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul, fameMul } from '../data/economy.js';
-import { SPAWN_PER_HOUR, FOOT_PER_HOUR } from '../data/customers.js';
+import { SPAWN_PER_HOUR, FOOT_PER_HOUR, CUSTOMER_MUL } from '../data/customers.js';
+import { kitLeftCost } from './kitchen.js';
 import { SEATS, PLAYER_START } from '../data/layout.js';
 import { REVIEW_TEMPLATES } from '../data/reviews.js';
 import { seedRand, rand, newSeed, pick } from '../engine/random.js';
@@ -169,7 +170,7 @@ export function tickDay(dt) {
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
   // 들어올 손님 = 시간대 기대값 × 별점 × 인지도(1장부터 리뷰 수 · 프롤로그는 개업 초기) × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(ratingNow()) * (G.story.ch === 0 ? openingMul(G.day) : fameMul(G.ratingN || 0)) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * CUSTOMER_MUL * ratingSpawnMul(ratingNow()) * (G.story.ch === 0 ? openingMul(G.day) : fameMul(G.ratingN || 0)) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
@@ -256,6 +257,7 @@ export function endDay() {
   usedCost = Math.round(usedCost / 10) * 10; expiredCost = Math.round(expiredCost / 10) * 10;
   r.rush.forEach(o => { G.cash += rushCost(o.menu); r.rushExtra -= rushCost(o.menu) - costOf(o.menu) * o.n; }); // 도착 전 마감한 급구매는 취소
   const leftover = Object.fromEntries(ING_IDS.filter(i => invOf(i) > 0).map(i => [i, invOf(i)])); // 내일로 넘어가는 재료
+  L.wasteDishes += kitLeftCost(costOf); // 자동 주방: 조리대 위에 남은 그릇 (v0.83)
   const dishWaste = r.hands.reduce((s, d) => s + costOf(d.menu), 0) + L.wasteDishes + readyLeft; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;

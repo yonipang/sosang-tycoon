@@ -1476,6 +1476,16 @@ const COOK_GAMES = {
   fry: { name: '튀기는 중', tip: '노릇노릇할 때 눌러 건져 보세요', sec: 1.5, perfect: [0.6, 0.8], good: [0.48, 0.9] }, // 바늘 빠르기를 졸이기와 비슷하게 (한 번 지나가는 데 1.5초)
 };
 const QUALITY_NAME = ['보통', '좋음', '완벽'];
+// ── 자동 주방 (v0.83 시험 · 사용자 결정 10-29 「조리 미니게임 없이 + 손님 늘리기」) ──
+//  true면 주문이 들어오면 조리대가 알아서 만들어요(sim/kitchen.js). 사장은 다 된 음식을 들어 내주기·치우기·계산만
+//  false로 바꾸면 예전 조리 미니게임으로 돌아가요
+const AUTO_COOK = true;
+const AUTO_COOK_SEC = { stir: 6, roll: 5, fry: 5 };   // 한 그릇 만드는 시간 (게임 초 · 게임 1시간 = 30초)
+const AUTO_SHELF = 3;                                  // 조리대 위에 올려 둘 수 있는 그릇 수
+const AUTO_FRESH = { perfect: 8, good: 20 };           // 다 된 뒤 이 초 안에 들면 「완벽」 · 「좋음」, 더 지나면 「보통」(식어요)
+const AUTO_FRESH_TIMER = 1.5;                          // 주방 타이머: 위 시간 ×
+const AUTO_FRESH_TIMER2 = 2;                           // 디지털 타이머(상인회)
+const AUTO_EQ_FAST = 0.8;                              // 설비 Lv2(상인회): 만드는 시간 ×
 // ── js/data/customers.js ──
 // 손님 유형과 시간대별 손님 흐름
 // priceMul: 적당하다고 느끼는 가격 배율 · patience: 기다림 배율 · likes: 메뉴 고르는 무게 · tip: 팁 확률 · eat: 먹는 시간(초)
@@ -1512,6 +1522,8 @@ const BOARD_MUL = 0.25;
 const FIT_MISS = 0.8;
 // 전략(칠판 × 홍보)으로 올릴 수 있는 들어오는 비율의 상한
 const STRATEGY_CAP = 1.5; // v0.35: 1.8 → 1.5 (칠판·인스타·블로거가 겹치면 손님이 몰려 너무 바빴어요)
+// v0.83 시험(사용자 결정 10-29): 조리 미니게임을 없애고 손님을 늘려 봐요 — 위 기대값 ×
+const CUSTOMER_MUL = 1.6;
 const SPAWN_PER_HOUR = { 9: 2, 10: 3, 11: 3, 12: 5, 13: 3, 14: 2, 15: 3, 16: 4, 17: 3, 18: 4, 19: 3, 20: 1 };
 // 지나가는 사람이 가게 앞에서 하는 말 (말풍선). 상황에 맞는 묶음에서 골라요
 const PASSER_SAY_CHANCE = 0.3;   // 지나가는 일행이 한마디 할 확률
@@ -1759,7 +1771,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.82';
+const GAME_VERSION = '0.83';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2138,9 +2150,9 @@ const MOON_DISC = { 2: 0.05 };  // 문 회장님 ♥♥: 설비 5% 할인
 
 // lv: [Lv1(지금) 설명, Lv2 { price, heart, text }, Lv3 { … }]
 const EQUIP = {
-  stove: { name: '떡볶이 화구', spr: 'stove', lv: ['졸이기 바늘 보통', { price: 150000, heart: 1, text: '졸이기 바늘이 15% 느려집니다' }, { price: 400000, heart: 3, text: '한 번 졸이면 2그릇' }] },
-  mat: { name: '김밥 작업대', spr: 'mat', lv: ['6번 눌러 말기', { price: 150000, heart: 1, text: '5번만 눌러도 말립니다' }, { price: 400000, heart: 3, text: '한 번에 2줄' }] },
-  fryer: { name: '튀김기', spr: 'fryer', lv: ['노릇한 구간 보통', { price: 150000, heart: 1, text: '노릇한 구간이 넓어집니다' }, { price: 400000, heart: 3, text: '한 번에 2개' }] },
+  stove: { name: '떡볶이 화구', spr: 'stove', lv: [AUTO_COOK ? '한 그릇 6초' : '졸이기 바늘 보통', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '졸이기 바늘이 15% 느려집니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2그릇' : '한 번 졸이면 2그릇' }] },
+  mat: { name: '김밥 작업대', spr: 'mat', lv: [AUTO_COOK ? '한 줄 5초' : '6번 눌러 말기', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '5번만 눌러도 말립니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2줄' : '한 번에 2줄' }] },
+  fryer: { name: '튀김기', spr: 'fryer', lv: [AUTO_COOK ? '한 접시 5초' : '노릇한 구간 보통', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '노릇한 구간이 넓어집니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2개' : '한 번에 2개' }] },
   fridge: { name: '냉장고', spr: 'fridge', lv: ['—', { price: 200000, heart: 1, text: '새로 산 재료 유통기한 +1일' }, { price: 500000, heart: 3, text: '급구매 웃돈 1.6배 → 1.3배 · 도착 20초 → 10초' }] },
   register: { name: '계산대', spr: 'register', lv: ['한 명 계산 0.35초', { price: 100000, heart: 1, text: '한 명 계산 0.25초' }, { price: 300000, heart: 3, text: '카드 단말기 · 계산 줄 손님이 50% 더 기다려 줍니다' }] },
 };
@@ -2158,7 +2170,7 @@ const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
   warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 30그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
-  timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
+  timer: { name: '디지털 타이머', price: 200000, heart: 4, text: AUTO_COOK ? '다 된 음식이 「완벽」으로 남는 시간이 2배' : '「완벽」 구간이 조금 더 넓어집니다' },
 };
 const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
 // 디지털 타이머 구간 (주방 타이머보다 조금 더 넓게)
@@ -2227,7 +2239,7 @@ const WEEK_RATING = 3.5;     // 2장 끝: 주간 정산 때 별점
 //  menu: 그 메뉴만 셈 · need: 몇 번 · needs: 이 퀘스트들이 끝나면 저절로 시작 · after: 이 퀘스트들이 끝나야 완료
 //  give: 끝나면 — scenes(대화 장면 차례로) · menuNext(다음 날부터 여는 메뉴) · menuNow(바로 여는 메뉴) · bond([누구, 점수]) · guild · perk(오래 가는 효과 — sim/story.js storyPerk)
 const QUESTS = {
-  p_stir: { who: 'oh', title: '떡볶이는 팔로 저어', goal: '떡볶이 완벽 조리', kind: 'cook', menu: 'tteok', need: 3 },
+  p_stir: { who: 'oh', title: '떡볶이는 팔로 저어', goal: AUTO_COOK ? '갓 나온 떡볶이 「완벽」으로 들기' : '떡볶이 완벽 조리', kind: 'cook', menu: 'tteok', need: 3 },
   p_serve: { who: 'oh', title: '손님은 끝까지', goal: '계산까지 마친 손님', kind: 'paid', need: 5 },
   p_book: { who: 'oh', title: '오늘 장부', goal: '마감 영수증 보기', kind: 'receipt', need: 1 },
   p_ahead: { who: 'oh', title: '손이 놀 때', goal: '미리 만든 음식 내주기', kind: 'ahead', need: 2 }, // 사흘 안에 못 해도 인수는 돼요 (1장에서도 셀 수 있어요)
@@ -2282,8 +2294,8 @@ const SCENES = {
   tut_cooked: {
     when: 'now',
     lines: [
-      ['tip', '바늘이 가운데 왔을 때 누르면 「완벽」입니다. 완벽하게 만든 음식을 먹은 손님은 별점을 후하게 주고, 가끔 팁도 줍니다.', null, ['tteok', 'face_love']],
-      ['oh', '떡볶이는 팔로 젓는 거다. 오늘내일 완벽하게 세 번 만들어 봐.'],
+      ['tip', AUTO_COOK ? '음식은 조리대가 알아서 만듭니다. 다 되자마자 들면 「완벽」, 조리대 위에 오래 두면 식어서 「좋음」·「보통」이 됩니다. 완벽한 음식을 먹은 손님은 별점을 후하게 주고, 가끔 팁도 줍니다.' : '바늘이 가운데 왔을 때 누르면 「완벽」입니다. 완벽하게 만든 음식을 먹은 손님은 별점을 후하게 주고, 가끔 팁도 줍니다.', null, ['tteok', 'face_love']],
+      ['oh', AUTO_COOK ? '떡볶이는 나오자마자 내는 거다. 오늘내일 완벽하게 세 번 들어 봐.' : '떡볶이는 팔로 젓는 거다. 오늘내일 완벽하게 세 번 만들어 봐.'],
     ],
     start: ['p_stir'],
   },
@@ -2315,7 +2327,7 @@ const SCENES = {
   tut_ahead: {
     when: 'now',
     lines: [
-      ['tip', '미리 만든 음식은 손에 들고 있다가 주문이 들어오면 바로 내줄 수 있습니다. 손에 들 수 있는 만큼만 만들 수 있고, 마감까지 못 팔면 버립니다.', null, ['tteok', 'tteok']],
+      ['tip', AUTO_COOK ? '주문이 없을 때 조리대를 누르면 하나 미리 만듭니다. 들어 두었다가 주문이 들어오면 바로 내줄 수 있고, 마감까지 못 팔면 버립니다.' : '미리 만든 음식은 손에 들고 있다가 주문이 들어오면 바로 내줄 수 있습니다. 손에 들 수 있는 만큼만 만들 수 있고, 마감까지 못 팔면 버립니다.', null, ['tteok', 'tteok']],
       ['oh', '너무 많이 만들면 다 버린다. 손님 보면서 해.'],
     ],
   },
@@ -2398,7 +2410,7 @@ const SCENES = {
     when: 'now',
     lines: [
       [null, '수리 기사가 튀김기를 고쳤습니다. 오늘부터 야채튀김을 팝니다. 튀김가루·양파·당근·식용유가 하나씩 들어갑니다.'],
-      ['ohPhone', '튀김은 한 번 지나가면 끝이다. 노릇할 때 바로 건져. 머뭇거리면 탄다.'],
+      ['ohPhone', AUTO_COOK ? '튀김은 나오자마자 내야 바삭하다. 머뭇거리면 눅눅해진다.' : '튀김은 한 번 지나가면 끝이다. 노릇할 때 바로 건져. 머뭇거리면 탄다.'],
     ],
   },
   paper1: {
@@ -2522,7 +2534,7 @@ const SCENES = {
       ['ohPhone', '신문 봤다. 첫 주 버틴 거면 반은 한 거다.'],
       ['ohPhone', '근데 장사는 단골이 생겨야 진짜야. 같은 얼굴이 두 번, 세 번 오면 그게 단골이다.'],
       ['ohPhone', '박 할머니가 그러더라. 요즘 떡볶이가 옛날 그 맛이 아니라고. 섭섭해하시더라.'],
-      ['ohPhone', '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
+      ['ohPhone', AUTO_COOK ? '떡볶이는 나오자마자 내는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.' : '떡볶이는 졸이는 거야. 한 번 잘하는 건 운이고, 연달아 잘해야 니 손맛이다.'],
       ['ohPhone', '그리고 칠판. 메뉴가 손에 익으면 새 메뉴도 만들어 봐라. 요즘 애들은 로제니 크림이니 하더라.'],
       [null, '메뉴 연구 칠판에서 새 메뉴를 개발할 수 있습니다. 기본 메뉴 레벨이 오르면 하나씩 열리고, 개발한 메뉴는 오늘의 메뉴 칸에 올려 팝니다.'],
       [null, '자주 오는 손님은 계산대의 손님 수첩에서 볼 수 있습니다.'],
@@ -2615,7 +2627,7 @@ for (const id in MARKET_NEWS) {
 // 규칙은 sim/tutorial.js, 띠·화살표는 ui/story.js(updateTutBar)·render/view.js. 3일차는 오 사장님이 병원에 가서 전화로만
 //
 // 차례대로 하나씩 해요 (그날 것만). on: 이 일이 일어나면 시작 — 'now'는 앞 차례가 끝나자마자
-//   open 영업 시작 · order 첫 주문 · cookStart/cookEnd 조리 시작/끝 · served 내주기 · payLine 계산 줄 · paid 계산 · closing 마감 · impatient 손님이 지쳐 감
+//   open 영업 시작 · order 첫 주문 · cookStart/cookEnd 조리 시작/끝(자동 주방은 끝 = 들기) · aheadStart 미리 만들기 시작(자동 주방) · served 내주기 · payLine 계산 줄 · paid 계산 · closing 마감 · impatient 손님이 지쳐 감
 // 그다음 하나:
 //   scene: 대화·요령 장면 (data/story.js SCENES — 가게를 잠깐 멈춰요). 장면을 다 보면 다음 차례
 //   ask: 띠 + 화살표로 시켜요. until 일이 일어나면 다음 차례. 시키는 동안은 시계·손님 기다림이 멈춰요
@@ -2624,14 +2636,16 @@ for (const id in MARKET_NEWS) {
 // 그날 끝까지 못 한 차례는 건너뛰어요 (장면이 주는 퀘스트는 그대로 받아요)
 const TUTORIAL = [
   { id: 'd1_hi', day: 1, on: 'open', scene: 'tut_hi', guest: 'tteok' },
-  { id: 'd1_order', day: 1, on: 'order', ask: { text: '첫 주문 들어왔다! 떡볶이 화구를 눌러 봐.', at: 'stove', until: 'cookStart' } },
-  { id: 'd1_cooked', day: 1, on: 'cookEnd', scene: 'tut_cooked' },
+  AUTO_COOK // v0.83 시험: 자동 주방 — 화구가 알아서 끓이고, 다 되면 들기만
+    ? { id: 'd1_order', day: 1, on: 'order', ask: { text: '첫 주문 들어왔다! 화구가 알아서 끓인다. 다 되면 화구를 눌러 들어 봐.', at: 'stove', until: 'cookEnd' } }
+    : { id: 'd1_order', day: 1, on: 'order', ask: { text: '첫 주문 들어왔다! 떡볶이 화구를 눌러 봐.', at: 'stove', until: 'cookStart' } },
+  { id: 'd1_cooked', day: 1, on: AUTO_COOK ? 'now' : 'cookEnd', scene: 'tut_cooked' },
   { id: 'd1_serve', day: 1, on: 'now', ask: { text: '떡볶이 들었지? 주문한 손님 자리를 눌러서 갖다줘.', at: 'seat', until: 'served' } },
   { id: 'd1_pay', day: 1, on: 'payLine', ask: { text: '다 먹은 손님이 계산 줄에 섰다. 계산대를 눌러.', at: 'register', until: 'paid' } },
   { id: 'd1_paid', day: 1, on: 'now', scene: 'tut_paid' },
   { id: 'd1_close', day: 1, on: 'closing', scene: 'tut_close' },
   { id: 'd2_hi', day: 2, on: 'open', scene: 'tut_d2' },
-  { id: 'd2_ahead', day: 2, on: 'now', ask: { text: '주문이 없어도 화구를 누르면 미리 만든다. 하나 만들어 봐.', at: 'stove', until: 'cookStart' } },
+  { id: 'd2_ahead', day: 2, on: 'now', ask: { text: '주문이 없어도 화구를 누르면 미리 만든다. 하나 만들어 봐.', at: 'stove', until: AUTO_COOK ? 'aheadStart' : 'cookStart' } }, // 자동 주방: 주문 몫이 아니라 미리 만들기를 시작해야 넘어가요
   { id: 'd2_made', day: 2, on: 'cookEnd', scene: 'tut_ahead', guest: 'tteok' },
   { id: 'd2_wait', day: 2, on: 'impatient', scene: 'tut_wait' },
   { id: 'd3_phone', day: 3, on: 'open', scene: 'tut_d3' },
@@ -2850,7 +2864,7 @@ const CUTS = {
 //  effect — hands: 손에 드는 수 +n · cookEase: 미니게임 「완벽」·「좋음」 구간 넓히기 · prep: 준비 시간에 미리 만들어 둘 수 있는 그릇 수 (v0.65 — 전에는 보온 통 ready)
 const TOOLS = {
   tray: { name: '서빙 쟁반', price: 50000, desc: '음식을 한 번에 3개까지 듭니다', effect: { hands: 1 } },
-  timer: { name: '주방 타이머', price: 40000, desc: '조리할 때 「완벽」 구간이 더 넓어집니다', effect: { cookEase: true } },
+  timer: { name: '주방 타이머', price: 40000, desc: AUTO_COOK ? '다 된 음식이 「완벽」으로 남는 시간이 1.5배 길어집니다' : '조리할 때 「완벽」 구간이 더 넓어집니다', effect: { cookEase: true } },
   // v0.65 사용자 결정: 보온 통 → 프렙 통 (id는 옛 세이브를 위해 그대로 warmer)
   warmer: { name: '프렙 통', price: 80000, desc: '준비 시간에 가게 조리대에서 메뉴를 미리 만들어 둡니다(미니게임 없음). 주문이 오면 바로 나갑니다', effect: { prep: 15 } }, // v0.67 사용자 요청: 넉넉하게 6 → 15
 };
@@ -5219,13 +5233,13 @@ function removeTicket(c) {
   const m = c.menu;
   const handsM = r.hands.filter(d => d.menu === m).length;
   const ticketsM = r.tickets.filter(t => t.menu === m).length;
-  if (handsM <= ticketsM) giveMenu(m);
+  if (handsM + kitMade(m) <= ticketsM) giveMenu(m); // 자동 주방: 조리대 위·만드는 중인 그릇도 만든 몫 (sim/kitchen.js)
 }
 
 // 손에 든 음식 중 주문표에 묶이지 않은 몫 = 주문 없이 미리 만든 것 (재료는 만들 때 이미 썼어요)
 function spareOf(m) {
   const r = G.run;
-  return Math.max(0, r.hands.filter(d => d.menu === m).length - r.tickets.filter(t => t.menu === m).length);
+  return Math.max(0, r.hands.filter(d => d.menu === m).length + kitMade(m) - r.tickets.filter(t => t.menu === m).length); // 자동 주방: 조리대 위 그릇도 (v0.83)
 }
 // 팔 수 있나: 오늘의 메뉴에 있고, 재료가 다 있거나 미리 만든 게 손에 있거나
 const canSell = m => menuOn(m) && (stockOf(m) > 0 || spareOf(m) > 0);
@@ -5644,6 +5658,128 @@ function handTakeout() {
   }
 }
 const takeoutWaiting = () => activeIncidents().some(x => INCIDENTS[x.id].kind === 'takeout' && x.left > 0);
+// ── js/sim/kitchen.js ──
+// 자동 주방 (v0.83 시험 — data/menu.js AUTO_COOK): 조리 미니게임 대신 조리대가 알아서 만들어요 (데이브 더 다이버의 반초처럼)
+//  주문이 들어오면 그 메뉴의 조리대가 하나씩 만들어 조리대 위에 올려 둬요(최대 AUTO_SHELF) → 사장이 가서 들고 → 손님에게 내줘요
+//  「완벽」은 갓 나왔을 때: 다 된 뒤 AUTO_FRESH.perfect초 안에 들면 「완벽」, good초 안이면 「좋음」, 더 늦으면 식어서 「보통」
+//  주문이 없을 때 조리대를 누르면 하나 미리 만들어요(재료는 그때 써요)
+//  재료: 주문 몫은 주문할 때(sim/customers.js decide), 미리 만드는 몫은 만들기 시작할 때 써요 — 조리대 위·만드는 중인 그릇은 이미 재료를 쓴 몫(kitMade)
+
+// 조리대 하나의 상태: cur 만드는 중 { menu, t, dur, n } · shelf 다 된 그릇 [{ menu, at }] · ahead 미리 만들 그릇 수
+function kitOf(id) {
+  const r = G.run;
+  r.kit = r.kit || {};
+  return (r.kit[id] = r.kit[id] || { cur: null, shelf: [], ahead: [] });
+}
+const kitMenus = id => todayMenus().filter(m => MENUS[m].station === id);
+const tk = m => G.run.tickets.filter(t => t.menu === m).length;
+const hd = m => G.run.hands.filter(d => d.menu === m).length;
+const shelfN = (K, m) => K.shelf.filter(d => d.menu === m).length;
+const curN = (K, m) => (K.cur && K.cur.menu === m ? K.cur.n : 0);
+// 이미 재료를 쓰고 만들었거나 만드는 중인 그릇 (sim/customers.js spareOf · removeTicket)
+function kitMade(m) {
+  if (!AUTO_COOK || !G.run || !G.run.kit) return 0;
+  const K = G.run.kit[MENUS[m].station];
+  return K ? shelfN(K, m) + curN(K, m) : 0;
+}
+// 더 만들어야 하는 주문 몫 (프렙 통 그릇도 있는 몫으로 셈)
+const needOf = (K, m) => tk(m) - hd(m) - shelfN(K, m) - curN(K, m) - ((G.run.ready && G.run.ready[m]) || []).length;
+const cookSec = m => AUTO_COOK_SEC[MENUS[m].game] * (eqLv(MENUS[m].station) >= 2 ? AUTO_EQ_FAST : 1);
+const freshMul = () => (toolUp('timer') ? AUTO_FRESH_TIMER2 : hasTool('timer') ? AUTO_FRESH_TIMER : 1);
+// 조리대 위에서 지난 시간 → 품질
+function freshQ(d) {
+  const age = G.run.kitT - d.at, k = freshMul();
+  return age <= AUTO_FRESH.perfect * k ? 2 : age <= AUTO_FRESH.good * k ? 1 : 0;
+}
+// 그릇이 「완벽」으로 남은 몫 (0~1, 그리기용)
+function freshLeft(d) { return Math.max(0, 1 - (G.run.kitT - d.at) / (AUTO_FRESH.perfect * freshMul())); }
+
+// 매 걸음 (sim/loop.js): 조리대마다 만들기 · 다 되면 조리대 위에
+function tickKitchen(dt) {
+  const r = G.run;
+  if (!AUTO_COOK || !r) return;
+  r.kitT = (r.kitT || 0) + dt;
+  for (const id in STATIONS) {
+    const st = STATIONS[id];
+    if (!st.menu) continue;
+    const ms = kitMenus(id);
+    if (!ms.length && !(r.kit && r.kit[id])) continue;
+    const K = kitOf(id);
+    if (K.cur) {
+      K.cur.t += dt;
+      if (K.cur.t >= K.cur.dur) done(id, K);
+    }
+    if (K.cur || K.shelf.length >= AUTO_SHELF) continue;
+    // 다음 그릇: 먼저 들어온 주문 → 미리 만들기
+    const t = r.tickets.find(q => ms.includes(q.menu) && needOf(K, q.menu) > 0);
+    let m = t ? t.menu : null, ahead = false;
+    if (!m && K.ahead.length) {
+      m = K.ahead.shift();
+      if (stockOf(m) <= 0) { emit('toast', `${josa(INGREDIENTS[shortIng(m)].name, '이/가')} 없어 미리 만들지 못했습니다`, 'warn'); continue; }
+      takeMenu(m); ahead = true;
+    }
+    if (!m) continue;
+    const n = !ahead && cookTwice(id) && needOf(K, m) >= 2 ? 2 : 1; // 설비 Lv3: 주문이 둘 넘게 밀리면 한 번에 2그릇
+    K.cur = { menu: m, t: 0, dur: cookSec(m), n, ahead };
+    tutNote('cookStart'); if (ahead) tutNote('aheadStart');
+  }
+  // 조리대 앞에서 기다리던 사장: 다 되면 바로 들어요
+  const w = r.kitWait, p = r.player;
+  if (w && (p.path.length || p.moving)) r.kitWait = null;
+  else if (w && kitOf(w).shelf.length && r.hands.length < handsMax()) { r.kitWait = null; kitPickup(w); }
+}
+function done(id, K) {
+  const r = G.run, c = K.cur;
+  K.cur = null;
+  for (let k = 0; k < c.n; k++) K.shelf.push({ menu: c.menu, at: r.kitT, ahead: c.ahead }); // ahead: 주문 없이 미리 만든 그릇 (퀘스트 「손이 놀 때」)
+  emit('sfx', 'cookDone'); // 조리대 위 말풍선이 「다 됐어요」를 보여 줘요 (render/view.js kitchenHint)
+}
+
+// 조리대를 눌렀을 때 (sim/player.js arriveAt): 다 된 그릇 들기 · 없으면 기다리거나 하나 미리 만들기
+function kitPickup(id) {
+  const r = G.run, K = kitOf(id), p = r.player;
+  const ms = kitMenus(id);
+  if (!ms.length) { emit('toast', `${josa(MENUS[STATIONS[id].menu].name, '은/는')} 오늘 쉬는 메뉴입니다`, 'info'); return; }
+  if (r.hands.length >= handsMax()) { emit('toast', '손이 꽉 찼습니다. 먼저 내주거나 퇴식대에 버려 보세요', 'warn'); return; }
+  let got = 0;
+  // 프렙 통에 미리 만들어 둔 그릇 먼저 (주문이 있는 메뉴부터)
+  for (const m of ms) {
+    const rd = r.ready && r.ready[m];
+    while (rd && rd.length && r.hands.length < handsMax() && tk(m) > hd(m)) { rd.sort((a, b) => b - a); hold(m, rd.shift(), true); got++; }
+  }
+  // 조리대 위 그릇: 주문 있는 메뉴 · 오래된 것부터
+  K.shelf.sort((a, b) => (tk(b.menu) > hd(b.menu)) - (tk(a.menu) > hd(a.menu)) || a.at - b.at);
+  while (K.shelf.length && r.hands.length < handsMax()) { const d = K.shelf.shift(); hold(d.menu, freshQ(d), false, d.ahead); got++; }
+  if (got) return;
+  if (K.cur) { r.kitWait = id; emit('float', p.x, p.y - 1.8, `${MENUS[K.cur.menu].name} 만드는 중…`, 'plain'); return; } // 서 있으면 다 되는 대로 들어요
+  // 할 일이 없으면 하나 미리 만들어요 (주문이 없을 때)
+  const m = ms.find(x => stockOf(x) > 0);
+  if (!m) { emit('toast', `${josa(INGREDIENTS[shortIng(ms[0])].name, '이/가')} 없습니다. 냉장고에서 급구매해 보세요`, 'warn'); return; }
+  if (K.ahead.length + K.shelf.length >= AUTO_SHELF) return;
+  K.ahead.push(m); r.kitWait = id;
+  emit('float', p.x, p.y - 1.8, `${MENUS[m].name} 하나 미리 만듭니다`, 'plain');
+  emit('sfx', 'cookStart');
+}
+// 손에 들기 (조리 미니게임의 finishCook 몫 — 품질 알림 · 퀘스트 · 돌발 미션)
+function hold(m, q, prep, made) {
+  const r = G.run, p = r.player;
+  const ahead = made || tk(m) <= hd(m); // 주문 없이 미리 만든 몫
+  if (prep && tk(m) <= hd(m) && stockOf(m) > 0) takeMenu(m); // 프렙 그릇은 낼 때 재료를 써요 (sim/day.js)
+  r.hands.push(ahead ? { menu: m, q, ahead: true } : { menu: m, q });
+  emit('float', p.x, p.y - 1.8, prep ? `미리 만든 ${MENUS[m].name}` : `${MENUS[m].name} ${QUALITY_NAME[q]}${q === 2 ? '!' : q === 0 ? ' (식었어요)' : ''}`, q === 2 ? 'great' : q === 1 ? 'good' : 'plain');
+  emit('sfx', q === 2 && !prep ? 'perfect' : 'cookDone');
+  if (!prep) { storyNote('cook', { menu: m, q }); storyNote('cookStreak', { menu: m, q }); incidentNote('cook', { menu: m }, q); }
+  tutNote('cookEnd');
+}
+
+// 마감 (sim/day.js endDay): 조리대 위·만드는 중인 그릇은 버려요 (재료는 이미 썼어요)
+function kitLeftCost(costOf) {
+  const r = G.run;
+  if (!r || !r.kit) return 0;
+  let s = 0;
+  for (const id in r.kit) { const K = r.kit[id]; for (const d of K.shelf) s += costOf(d.menu); if (K.cur) s += costOf(K.cur.menu) * K.cur.n; K.shelf = []; K.cur = null; K.ahead = []; }
+  return s;
+}
 // ── js/sim/day.js ──
 // 하루의 흐름: 준비(prep: 가격·재료 주문) → 아침 재료 도착 → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 고정비 내는 날(weekly: 임대료·대출·공과금 고지서) → 다음 날 준비
 // 재료는 원재료마다 유통기한(INGREDIENTS.shelf)까지 남겨 두고 다음 날 써요. 먼저 받은 재료부터 써요 (sim/pantry.js).
@@ -5785,7 +5921,7 @@ function tickDay(dt) {
   const hour = 9 + Math.floor(r.min / 60);
   const foot = FOOT_PER_HOUR[hour] || 8;
   // 들어올 손님 = 시간대 기대값 × 별점 × 인지도(1장부터 리뷰 수 · 프롤로그는 개업 초기) × 상권(경쟁 강도·메뉴 궁합 — data/district.js)
-  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * ratingSpawnMul(ratingNow()) * (G.story.ch === 0 ? openingMul(G.day) : fameMul(G.ratingN || 0)) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
+  const visits = r.closing ? 0 : (SPAWN_PER_HOUR[hour] || 0) * CUSTOMER_MUL * ratingSpawnMul(ratingNow()) * (G.story.ch === 0 ? openingMul(G.day) : fameMul(G.ratingN || 0)) * districtVisitMul(todayMenus()); // 손님층마다 다른 몫(칠판·홍보·메뉴 궁합)은 가게 앞에서 (sim/traffic.js)
   r.enterP = Math.min(0.9, visits / foot);
   r.spawnAcc += foot / (DAY_SEC / 12) * dt * (0.85 + rand() * 0.3);
   while (r.spawnAcc >= 1) { r.spawnAcc -= 1; spawnPasser(hour); }
@@ -5872,6 +6008,7 @@ function endDay() {
   usedCost = Math.round(usedCost / 10) * 10; expiredCost = Math.round(expiredCost / 10) * 10;
   r.rush.forEach(o => { G.cash += rushCost(o.menu); r.rushExtra -= rushCost(o.menu) - costOf(o.menu) * o.n; }); // 도착 전 마감한 급구매는 취소
   const leftover = Object.fromEntries(ING_IDS.filter(i => invOf(i) > 0).map(i => [i, invOf(i)])); // 내일로 넘어가는 재료
+  L.wasteDishes += kitLeftCost(costOf); // 자동 주방: 조리대 위에 남은 그릇 (v0.83)
   const dishWaste = r.hands.reduce((s, d) => s + costOf(d.menu), 0) + L.wasteDishes + readyLeft; // 만들고 못 판 음식 (쓴 재료값 안에 들어 있어요)
   const missed = Object.values(L.missed).reduce((a, b) => a + b, 0);
   const dayRating = L.sats.length ? L.sats.reduce((a, b) => a + b, 0) / L.sats.length : null;
@@ -5967,6 +6104,7 @@ function nextDay() {
 // ── js/sim/player.js ──
 // 사장: 누른 곳으로 가서 할 일을 해요.
 //  조리대 → 메뉴마다 다른 조리 미니게임(졸이기·말기·튀기기) → 손에 들기(최대 2개)
+//   v0.83 시험(AUTO_COOK): 조리대가 알아서 만들고 사장은 다 된 그릇을 들기만 (sim/kitchen.js)
 //  손님(또는 그 탁자) → 들고 있는 음식 내주기 · 계산대 → 서 있는 동안 계산 · 퇴식대 → 들고 있는 음식 버리기
 
 const has = (tiles, x, y) => tiles.some(([a, b]) => a === x && b === y);
@@ -6029,6 +6167,7 @@ defineCmd('tap', ({ x, y }) => {
   if (!r || G.phase !== 'day') return;
   if (r.cook) { cookTap(); return; }
   if (r.dawn) return; // 새벽에는 가게를 돌아다니지 않아요
+  r.kitWait = null; // 조리대 앞에서 기다리던 것 (sim/kitchen.js)
   const t = targetAt(x, y);
   if (!t) return;
   const goals = standFor(t);
@@ -6188,7 +6327,7 @@ function arriveAt(p) {
   if (t.kind === 'station') {
     p.dir = 1;
     const st = STATIONS[t.id];
-    if (st.menu) startCook(st);
+    if (st.menu) { if (AUTO_COOK) kitPickup(t.id); else startCook(st); } // v0.83 시험: 자동 주방 (sim/kitchen.js)
     else if (t.id === 'fridge') { if (!storyFridge()) emit('fridge', true); } // 냉장고: 남은 재료 보기·급구매 (이야기 쪽지가 먼저)
     else trash();
   } else if (t.kind === 'serve') {
@@ -6233,6 +6372,7 @@ function stepSim(realDt) {
   while (acc >= STEP && G.run && G.phase === 'day') {
     acc -= STEP;
     updatePlayer(STEP);
+    tickKitchen(STEP); // 자동 주방 (v0.83 시험)
     updateCustomers(STEP);
     if (!tutHold()) tickDay(STEP); // 오 사장님이 시키는 동안은 시계가 멈춰요
   }
@@ -6243,7 +6383,7 @@ function runFor(sec) {
   let t = 0;
   while (t < sec && G.run && G.phase === 'day') {
     tickCook(STEP);
-    if (!G.run.dawn) { updatePlayer(STEP); updateCustomers(STEP); if (!tutHold()) tickDay(STEP); }
+    if (!G.run.dawn) { updatePlayer(STEP); tickKitchen(STEP); updateCustomers(STEP); if (!tutHold()) tickDay(STEP); }
     t += STEP;
   }
 }
@@ -6432,8 +6572,34 @@ function drawRoom() {
   ctx.fillStyle = 'rgba(40,28,20,.18)'; ctx.fillRect(0, 4 * TILE, VW, 1);
 }
 
+// 자동 주방 (v0.83 시험): 만드는 중이면 조리대 위 막대 · 다 된 그릇은 말풍선(그릇 수 · 「완벽」 남은 시간 막대 — 초록 완벽 · 노랑 좋음 · 회색 식음)
+function kitchenHint() {
+  const r = G.run;
+  for (const id in r.kit || {}) {
+    const st = STATIONS[id], K = r.kit[id];
+    const [x, y] = st.tiles[0], cx = x * TILE + (st.tiles.length > 2 ? 16 : 8), bob = Math.round(Math.sin(t * 5) * 1.5);
+    if (K.shelf.length) {
+      const d = K.shelf[0], q = freshQ(d);
+      const b = iconBubble(d.menu, cx, y * TILE + bob);
+      if (K.shelf.length > 1) { ctx.fillStyle = '#e0533a'; ctx.fillRect(b.x + b.w - 5, b.y - 2, 6, 6); ctx.fillStyle = '#fff'; digit(K.shelf.length, b.x + b.w - 3, b.y - 1); }
+      bar(b.x, b.y + b.h + 1, b.w, q === 2 ? freshLeft(d) : 1, q === 2 ? '#6fd36f' : q === 1 ? '#f2c94c' : '#9a9a9a');
+    } else { // 프렙 통에 미리 만들어 둔 그릇이 주문을 기다리면 그 그릇을 보여 줘요
+      const t2 = r.tickets.find(q => MENUS[q.menu] && MENUS[q.menu].station === id && r.ready && (r.ready[q.menu] || []).length && ticketsCount(q.menu) > handsCount(q.menu));
+      if (t2) iconBubble(t2.menu, cx, y * TILE + bob);
+    }
+    if (K.cur) {
+      for (let i = 0; i < 3; i++) { // 김
+        const k = (t * 1.5 + i / 3) % 1;
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.fillRect(x * TILE + 4 + i * 4 + Math.round(Math.sin((t + i) * 6)), y * TILE + 2 - Math.round(k * 10), 2, 2);
+      }
+      bar(cx - 8, y * TILE + 22, 16, Math.min(1, K.cur.t / K.cur.dur), '#ffd34a');
+    }
+  }
+}
 function stationHint() {
   if (!G.run) return;
+  if (AUTO_COOK) { kitchenHint(); return; }
   for (const id in STATIONS) {
     const st = STATIONS[id]; if (!st.menu || !menuOpen(st.menu)) continue;
     const ms = stationMenus(st), needOf = m => Math.max(0, ticketsCount(m) - handsCount(m));

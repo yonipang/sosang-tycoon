@@ -3,6 +3,7 @@ import { G } from '../save/state.js';
 import { tickDay } from './day.js';
 import { updateCustomers } from './customers.js';
 import { updatePlayer, tickCook } from './player.js';
+import { tickKitchen } from './kitchen.js';
 import { tutHold } from './tutorial.js';
 
 const STEP = 1 / 30;
@@ -16,6 +17,7 @@ export function stepSim(realDt) {
   while (acc >= STEP && G.run && G.phase === 'day') {
     acc -= STEP;
     updatePlayer(STEP);
+    tickKitchen(STEP); // 자동 주방 (v0.83 시험)
     updateCustomers(STEP);
     if (!tutHold()) tickDay(STEP); // 오 사장님이 시키는 동안은 시계가 멈춰요
   }
@@ -26,7 +28,7 @@ export function runFor(sec) {
   let t = 0;
   while (t < sec && G.run && G.phase === 'day') {
     tickCook(STEP);
-    if (!G.run.dawn) { updatePlayer(STEP); updateCustomers(STEP); if (!tutHold()) tickDay(STEP); }
+    if (!G.run.dawn) { updatePlayer(STEP); tickKitchen(STEP); updateCustomers(STEP); if (!tutHold()) tickDay(STEP); }
     t += STEP;
   }
 }

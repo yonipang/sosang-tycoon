@@ -2,15 +2,16 @@
 //  가입: 문 회장님 부탁(상인회 회의 김밥) → 가입비 → 상인회원. 회비는 주마다 고정비 고지서에 한 줄
 //  설비: 맛(만족)은 올리지 않고 속도·여유만 — Lv2 더 쉽게(♥) · Lv3 한 번에 둘(♥♥♥). 맡기면 그날 밤 손봐서 다음 영업부터
 //  장사 도구 등급 업(♥♥♥♥): 1장에 산 도구를 한 단계 위로
+import { AUTO_COOK } from './menu.js';
 export const GUILD_JOIN_FEE = 50000;
 export const GUILD_DUES = 10000;       // 주마다
 export const MOON_DISC = { 2: 0.05 };  // 문 회장님 ♥♥: 설비 5% 할인
 
 // lv: [Lv1(지금) 설명, Lv2 { price, heart, text }, Lv3 { … }]
 export const EQUIP = {
-  stove: { name: '떡볶이 화구', spr: 'stove', lv: ['졸이기 바늘 보통', { price: 150000, heart: 1, text: '졸이기 바늘이 15% 느려집니다' }, { price: 400000, heart: 3, text: '한 번 졸이면 2그릇' }] },
-  mat: { name: '김밥 작업대', spr: 'mat', lv: ['6번 눌러 말기', { price: 150000, heart: 1, text: '5번만 눌러도 말립니다' }, { price: 400000, heart: 3, text: '한 번에 2줄' }] },
-  fryer: { name: '튀김기', spr: 'fryer', lv: ['노릇한 구간 보통', { price: 150000, heart: 1, text: '노릇한 구간이 넓어집니다' }, { price: 400000, heart: 3, text: '한 번에 2개' }] },
+  stove: { name: '떡볶이 화구', spr: 'stove', lv: [AUTO_COOK ? '한 그릇 6초' : '졸이기 바늘 보통', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '졸이기 바늘이 15% 느려집니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2그릇' : '한 번 졸이면 2그릇' }] },
+  mat: { name: '김밥 작업대', spr: 'mat', lv: [AUTO_COOK ? '한 줄 5초' : '6번 눌러 말기', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '5번만 눌러도 말립니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2줄' : '한 번에 2줄' }] },
+  fryer: { name: '튀김기', spr: 'fryer', lv: [AUTO_COOK ? '한 접시 5초' : '노릇한 구간 보통', { price: 150000, heart: 1, text: AUTO_COOK ? '만드는 시간이 20% 줄어듭니다' : '노릇한 구간이 넓어집니다' }, { price: 400000, heart: 3, text: AUTO_COOK ? '주문이 밀리면 한 번에 2개' : '한 번에 2개' }] },
   fridge: { name: '냉장고', spr: 'fridge', lv: ['—', { price: 200000, heart: 1, text: '새로 산 재료 유통기한 +1일' }, { price: 500000, heart: 3, text: '급구매 웃돈 1.6배 → 1.3배 · 도착 20초 → 10초' }] },
   register: { name: '계산대', spr: 'register', lv: ['한 명 계산 0.35초', { price: 100000, heart: 1, text: '한 명 계산 0.25초' }, { price: 300000, heart: 3, text: '카드 단말기 · 계산 줄 손님이 50% 더 기다려 줍니다' }] },
 };
@@ -28,7 +29,7 @@ export const EQ_PAY_WAIT = 1.5;        // 계산대 Lv3: 계산 줄 기다림 ×
 export const TOOL_UP = {
   tray: { name: '큰 쟁반', price: 250000, heart: 4, text: '손에 4개까지 듭니다' },
   warmer: { name: '큰 프렙 통', price: 300000, heart: 4, text: '프렙을 30그릇까지 만들어 둡니다' }, // v0.65 보온 통 → 프렙 통
-  timer: { name: '디지털 타이머', price: 200000, heart: 4, text: '「완벽」 구간이 조금 더 넓어집니다' },
+  timer: { name: '디지털 타이머', price: 200000, heart: 4, text: AUTO_COOK ? '다 된 음식이 「완벽」으로 남는 시간이 2배' : '「완벽」 구간이 조금 더 넓어집니다' },
 };
 export const TOOL_UP_IDS = ['tray', 'warmer', 'timer'];
 // 디지털 타이머 구간 (주방 타이머보다 조금 더 넓게)

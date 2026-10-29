@@ -18,7 +18,7 @@
 | sim | `rating.js` `story.js` `pantry.js` `upgrade.js` | 별점(리뷰 수가 적으면 3점 쪽으로) · 이야기 규칙 · 재료 창고·오늘의 메뉴 · 메뉴 레벨·메뉴 개발 |
 | | `traffic.js` `book.js` `tutorial.js` `tools.js` | 유동인구 × 들어오는 비율(칠판·홍보·블로거) · 손님 수첩 기록 · 가게 길잡이 · 장사 도구 |
 | | `market.js` `bond.js` `furniture.js` `guild.js` `town.js` `explore.js` | 원가(`costOf`) · 친밀도 · 미소 가구 · 상인회 · 마을 규칙 · 동네 탐방(재래시장·아파트 지도 만들기·체력·가방·심부름·돌아오면 반영) |
-| | `path.js` `customers.js` `incidents.js` `day.js` `player.js` `loop.js` | 길찾기 · 손님 · 돌발 · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
+| | `path.js` `customers.js` `incidents.js` `kitchen.js` `day.js` `player.js` `loop.js` | 길찾기 · 손님 · 돌발 · 자동 주방(v0.83 시험) · 하루 흐름/정산 · 사장 행동/조리 · 틱 |
 | | `dev.js` | 개발자 모드 바로 가기(`DEV_JUMPS`) |
 | render | `view.js` `cut.js` `town.js` `explore.js` | 가게 그리기 · 연출 그리기 · 마을 지도 그리기 · 동네 탐방 지도 그리기 |
 | ui | `settings.js` `analytics.js` `sfx.js` `music.js` `icons.js` | 설정 · 플레이 기록(GA4) · 효과음 · 배경음악 · 작은 그림 |
