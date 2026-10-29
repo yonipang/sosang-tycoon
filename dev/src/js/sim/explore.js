@@ -4,7 +4,7 @@
 import { G } from '../save/state.js';
 import { emit, defineCmd } from './events.js';
 import { makeRand } from '../engine/random.js';
-import { MK, AP, APT_SHOPS, AP_CHARS, EX_AREAS, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
+import { MK, AP, APT_SHOPS, AP_CHARS, OF, OFFICE_SHOPS, OF_CHARS, EX_AREAS, SHOP_TYPES, SHOP_IDS, EX_STAMINA, EX_STEP, EX_BAG, EX_EVENTS, EX_CLOSED, EX_CHARS, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL, newExplore } from '../data/explore.js';
 import { townMode } from './town.js';
 import { stockIn } from './pantry.js';
 import { addBond } from './bond.js';
@@ -23,15 +23,19 @@ function genMarket(r) {
   const block = (tx, ty) => { if (tx >= 0 && ty >= 0 && tx < W && ty < H) walls[ty * W + tx] = 1; };
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   for (let ty = 0; ty < 6; ty++) for (let tx = 0; tx < W; tx++) block(tx, ty); // 위 가게 줄 (가게 사이 틈도 막혀요)
-  const types = shuffle([...shuffle(SHOP_IDS.slice()), ...shuffle(SHOP_IDS.slice()).slice(0, 2 * MK.SLOTS - SHOP_IDS.length)]);
-  const closed = new Set(shuffle([...Array(2 * MK.SLOTS).keys()]).slice(0, EX_CLOSED));
+  const types = shuffle([...shuffle(SHOP_IDS.slice()), ...shuffle(SHOP_IDS.slice()).slice(0, 2 * MK.SLOTS - SHOP_IDS.length - 1)]);
+  types.splice(MK.VACANT, 0, 'vacant'); // 임대 매물 자리는 늘 그대로 (v0.84 — data/move.js)
+  const closed = new Set(shuffle([...Array(2 * MK.SLOTS).keys()].filter(k => k !== MK.VACANT)).slice(0, EX_CLOSED));
   const shops = [], actors = [], props = [];
+  let listing = null;
   types.forEach((type, k) => {
     const row = k < MK.SLOTS ? 0 : 1, i = k % MK.SLOTS, x = MK.X0 + i * MK.STEP, bot = row ? MK.BOT2 : MK.BOT1;
-    const S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: closed.has(k) };
+    const vac = type === 'vacant';
+    const S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: vac || closed.has(k), vacant: vac };
     shops.push(S);
+    if (vac) listing = { tx: x / 16 + 2, ty: Math.floor((bot + 19) / 16) };
     for (let ty = Math.floor((bot - 87) / 16); ty <= Math.floor((bot - 1) / 16); ty++) for (let tx = x / 16; tx < x / 16 + 5; tx++) block(tx, ty);
-    const fy = Math.floor((bot + 19) / 16), c0 = Math.floor((x + 2) / 16), w = SHOP_TYPES[type].w;
+    const fy = Math.floor((bot + 19) / 16), c0 = Math.floor((x + 2) / 16), w = vac ? 0 : SHOP_TYPES[type].w;
     if (!S.closed) {
       for (let tx = c0; tx <= Math.floor((x + 1 + w) / 16); tx++) block(tx, fy);
       S.owner = { char: SHOP_TYPES[type].owner, tx: x / 16 + 4, ty: fy };
@@ -58,7 +62,7 @@ function genMarket(r) {
   // 버스 정류장 (왼쪽 아래) — 여기서 시작하고 여기서 돌아가요
   props.push({ kind: 'bus', tx: 2, ty: 23 }); for (let d = 0; d < 4; d++) block(2 + d, 23);
   const marks = shops.filter(s => !s.closed).map(s => ({ name: SHOP_TYPES[s.type].name, tx: s.x / 16 + 2, ty: s.bot / 16 }));
-  return { kind: 'market', W, H, walls, shops, actors, props, marks, start: MK.START, kidRows: [8, 20], spawnY: [7, H - 2] };
+  return { kind: 'market', W, H, walls, shops, actors, props, marks, listing, start: MK.START, kidRows: [8, 20], spawnY: [7, H - 2] };
 }
 
 // ── 아파트 단지 지도 (v0.82): 아파트 4동 · 화단 · 큰길 · 주차장 · 놀이터 · 상가 3칸 · 경비실 · 정류장 ──
@@ -74,7 +78,7 @@ function genApt(r) {
   const pick = a => a[Math.floor(r() * a.length)];
   fill(0, 0, W - 1, 0, 4); rect(0, 0, W - 1, 0);          // 울타리
   fill(0, 1, W - 1, 11, 1); fill(0, 14, W - 1, 15, 1);     // 잔디 · 화단
-  fill(1, 18, 12, 25, 3); fill(15, 18, 24, 24, 2);         // 주차장 · 놀이터
+  fill(1, 18, 12, 25, 3); fill(14, 18, 22, 24, 2);         // 주차장 · 놀이터
   // 아파트 4동 (현관 앞은 보도)
   AP.TOWERS.forEach((tx, i) => {
     spr('ap_t' + (i + 1), tx * 16, AP.TOWER_BOT); rect(tx, 1, tx + 6, 11);
@@ -106,16 +110,19 @@ function genApt(r) {
   spr('ap_gate', 16, 26 * 16); block(1, 25);
   marks.push({ name: '주차장', tx: 6, ty: 22 });
   // 놀이터: 미끄럼틀 · 그네 · 엄마
-  spr('slide', 16 * 16, 24 * 16); rect(16, 21, 17, 23);
-  spr('swing', 19 * 16 + 4, 22 * 16); rect(19, 21, 23, 21);
-  npc(null, AP_CHARS.mom, 21, 23); marks.push({ name: '놀이터', tx: 20, ty: 21 });
+  spr('slide', 15 * 16, 24 * 16); rect(15, 21, 16, 23);
+  spr('swing', 18 * 16 + 4, 22 * 16); rect(18, 21, 22, 21);
+  npc(null, AP_CHARS.mom, 20, 23); marks.push({ name: '놀이터', tx: 19, ty: 21 });
   // 상가: 편의점 + 그날 두 가게
   const others = Object.keys(APT_SHOPS).filter(k => k !== 'cvs');
   for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; }
   const row3 = ['cvs', others[0], others[1]], ci = Math.floor(r() * 3); [row3[0], row3[ci]] = [row3[ci], row3[0]]; // 편의점 자리도 그날그날
+  row3.splice(AP.VACANT, 0, 'vacant'); // 임대 매물 칸 (v0.84)
+  let listing = null;
   row3.forEach((type, i) => {
-    const x = AP.SHOP_X[i], bot = AP.SHOP_BOT, S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: false, apt: true };
+    const x = AP.SHOP_X[i], bot = AP.SHOP_BOT, vac = type === 'vacant', S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: vac, vacant: vac, plain: true };
     shops.push(S); rect(x / 16, Math.floor((bot - 87) / 16), x / 16 + 4, Math.floor((bot - 1) / 16));
+    if (vac) { listing = { tx: x / 16 + 2, ty: bot / 16 }; return; }
     S.owner = npc(null, APT_SHOPS[type].owner, x / 16 + 4, bot / 16);
     marks.push({ name: APT_SHOPS[type].name, tx: x / 16 + 2, ty: bot / 16 });
   });
@@ -125,7 +132,66 @@ function genApt(r) {
   spr('ap_planter', 22 * 16, 28 * 16); rect(22, 27, 24, 27);
   spr('ap_planter', 34 * 16, 28 * 16); rect(34, 27, 36, 27);
   props.push({ kind: 'bus', tx: 2, ty: H - 1 }); for (let d = 0; d < 4; d++) block(2 + d, H - 1);
-  return { kind: 'apt', W, H, walls, ground, shops, actors, props, npcs, doors, marks, start: [7, H - 2], kidRows: [13, 17, 26], spawnY: [12, H - 3] };
+  return { kind: 'apt', W, H, walls, ground, shops, actors, props, npcs, doors, marks, listing, start: [7, H - 2], kidRows: [13, 17, 26], spawnY: [12, H - 3] };
+}
+
+// ── 오피스 거리 지도 (v0.84 사용자 요청): 빌딩 4채 · 넓은 보도 · 찻길과 횡단보도 · 노점·쉼터 · 1층 가게 7칸(하나는 임대 매물) · 정류장 ──
+//  ground: 0 보도 · 1 잔디 · 3 아스팔트 · 5 찻길 · 6 횡단보도 · 7 빌딩 뒤 (render/explore.js)
+function genOffice(r) {
+  const { W, H } = OF, walls = new Uint8Array(W * H), ground = new Uint8Array(W * H);
+  const block = (tx, ty) => { if (tx >= 0 && ty >= 0 && tx < W && ty < H) walls[ty * W + tx] = 1; };
+  const fill = (x0, y0, x1, y1, g) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) ground[ty * W + tx] = g; };
+  const rect = (x0, y0, x1, y1) => { for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) block(tx, ty); };
+  const shops = [], actors = [], props = [], npcs = {}, doors = [], marks = [];
+  const spr = (n, x, bot) => props.push({ kind: 'spr', n, x, bot });
+  const npc = (key, char, tx, ty) => { const A = { char, tx, ty }; actors.push(A); block(tx, ty); if (key) npcs[key] = A; return A; };
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  fill(0, 0, W - 1, 0, 7); rect(0, 0, W - 1, 0);
+  // 빌딩 4채 (로비 = 배달 받는 곳)
+  OF.TOWERS.forEach((tx, i) => {
+    spr('of_t' + (i + 1), tx * 16, OF.TOWER_BOT); rect(tx, 1, tx + 6, 11);
+    doors.push({ key: 'door', tx: tx + 3, ty: 12, label: `${OF.NAMES[i]} 로비` });
+    marks.push({ name: OF.NAMES[i], tx: tx + 3, ty: 12 });
+  });
+  // 빌딩 사이 광장: 화단 · 나무
+  for (const c of [9, 20, 31]) { fill(c, 1, c + 3, 11, 1); }
+  const tree = (c, row) => { spr(r() < 0.5 ? 'tree' : 'tree2', c * 16 - 5, (row + 1) * 16); block(c, row); };
+  [10, 21, 32].forEach(c => { tree(c, 4); tree(c + 1, 9); }); tree(42, 6);
+  npc('guard', OF_CHARS.guard, OF.TOWERS[0] + 5, 12); // 한빛타워 로비 안내
+  props.push({ kind: 'board', tx: 21, ty: 13, v: 0 }); rect(21, 13, 22, 13); // 빌딩 게시판
+  npc('intern', OF_CHARS.intern, 26 + Math.floor(r() * 6), 13);
+  npc('lead', OF_CHARS.lead, 3 + Math.floor(r() * 10), 14);
+  [4, 15, 28, 40].forEach(c => { spr('ap_lamp', c * 16 + 1, 15 * 16); block(c, 14); });
+  // 찻길: 횡단보도로만 건너요
+  fill(0, OF.ROAD[0], W - 1, OF.ROAD[1], 5);
+  for (let tx = 0; tx < W; tx++) {
+    const cross = OF.CROSS.some(([a, b]) => tx >= a && tx <= b);
+    if (cross) fill(tx, OF.ROAD[0], tx, OF.ROAD[1], 6); else rect(tx, OF.ROAD[0], tx, OF.ROAD[1]);
+  }
+  // 아래 보도: 쉼터 벤치 · 토스트 노점 · 배달 오토바이
+  fill(1, 19, 9, 21, 1);
+  spr('ap_bench', 4 * 16 + 3, 22 * 16); rect(4, 21, 6, 21); npcs.bench = { tx: 5, ty: 21, prop: true };
+  tree(2, 20); tree(9, 20);
+  marks.push({ name: '쉼터', tx: 5, ty: 21 });
+  const cx = 13 + Math.floor(r() * 8);
+  const cart = { kind: 'cart', tx: cx, ty: 20, v: Math.floor(r() * 4) }; rect(cx, 20, cx + 2, 20);
+  cart.npc = npc(null, OF_CHARS.cart, cx + 3, 20); props.push(cart);
+  marks.push({ name: '토스트 노점', tx: cx + 1, ty: 20 });
+  spr('ap_box', 36 * 16 + 1, 21 * 16); spr('ap_box', 36 * 16 + 1, 21 * 16 - 9); block(36, 20);
+  npc('courier', OF_CHARS.courier, 37, 20);
+  // 1층 가게 7칸 (하나는 임대 매물 — 자리는 늘 그대로)
+  const types = shuffle(Object.keys(OFFICE_SHOPS)); types.splice(OF.VACANT, 0, 'vacant');
+  let listing = null;
+  types.forEach((type, i) => {
+    const x = OF.X0 + i * OF.STEP, bot = OF.SHOP_BOT, vac = type === 'vacant', S = { type, x, bot, base: 1 + Math.floor(r() * 12), closed: vac, vacant: vac, plain: true };
+    shops.push(S); rect(x / 16, Math.floor((bot - 87) / 16), x / 16 + 4, Math.floor((bot - 1) / 16));
+    if (vac) { listing = { tx: x / 16 + 2, ty: bot / 16 }; return; }
+    S.owner = npc(null, OFFICE_SHOPS[type].owner, x / 16 + 4, bot / 16);
+    marks.push({ name: OFFICE_SHOPS[type].name, tx: x / 16 + 2, ty: bot / 16 });
+    if (type === 'dosirak') OF_CHARS.line.forEach((ch, k) => npc(k ? null : 'line', ch, x / 16 + 1 + k, bot / 16)); // 도시락 가게 앞 줄
+  });
+  props.push({ kind: 'bus', tx: 2, ty: H - 1 }); for (let d = 0; d < 4; d++) block(2 + d, H - 1);
+  return { kind: 'office', W, H, walls, ground, shops, actors, props, npcs, doors, marks, listing, start: [7, H - 1], kidRows: [13, 19, 21], spawnY: [12, H - 2] };
 }
 
 // 사건 자리: 열린 가게 사장님 · 노점 · 할머니 · 게시판 · 길 잃은 아이
@@ -156,8 +222,8 @@ const evOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 defineCmd('exStart', ({ area } = {}) => {
   if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
   if (!EX_AREAS[area]) area = 'market';
-  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : 0));
-  const map = area === 'apt' ? genApt(r) : genMarket(r);
+  const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : area === 'office' ? 1553 : 0));
+  const map = area === 'apt' ? genApt(r) : area === 'office' ? genOffice(r) : genMarket(r);
   X = { area, map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r, area), memos: [], did: 0, walked: 0 };
   emit('sfx', 'door');
   emit('explore', 'start');
@@ -239,7 +305,7 @@ function exDone(S, ev, C, drop, pay) {
 // 심부름 만들기: deliver = 받을 사람(멀리 있는 곳 먼저) · escort = 시장 어딘가에 할머니가 나타나요
 function exAnchors() {
   const M = X.map, out = [];
-  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: (SHOP_TYPES[s.type] || APT_SHOPS[s.type]).name });
+  for (const s of M.shops) if (!s.closed && s.owner) out.push({ key: 'shop:' + s.type, tx: s.owner.tx, ty: s.owner.ty, label: (SHOP_TYPES[s.type] || APT_SHOPS[s.type] || OFFICE_SHOPS[s.type]).name });
   for (const p of M.props) if (p.npc) out.push({ key: p.kind, tx: p.npc.tx, ty: p.npc.ty, label: p.kind === 'cart' ? '어묵 노점' : '파라솔 할머니' });
   for (const d of M.doors || []) out.push(d); // 아파트 현관
   return out;
@@ -296,6 +362,14 @@ defineCmd('exReturn', () => {
   X = null;
   emit('explore', 'end', sum);
   emit('prep');
+  return true;
+});
+// 임대 매물 살펴보기 (v0.84 — data/move.js): 본 동네를 남겨 둬요 (나중에 이사할 때 「살펴본 자리」로)
+defineCmd('exListing', () => {
+  if (!X || !X.map.listing) return false;
+  const E = EXP(); E.seen = E.seen || [];
+  if (!E.seen.includes(X.area)) E.seen.push(X.area);
+  emit('track', 'move_look', { area: X.area });
   return true;
 });
 // 동네 메모 (손님 수첩 · 3장 상권 지도에서 써요)

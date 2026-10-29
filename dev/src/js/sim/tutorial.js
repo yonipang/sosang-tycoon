@@ -61,6 +61,14 @@ function arm(kind) {
 }
 
 // 규칙 코드가 알려 줘요: open · order · cookStart · cookEnd · served · payLine · paid · closing · impatient
+// 품절 길잡이 (v0.84 사용자 요청): 2일차부터 재료가 떨어져 손님을 처음 놓쳤을 때 한 번 — 급구매하거나 일찍 마감하기 (sim/customers.js)
+export function tutSoldOut() {
+  const r = G.run, S = G.story;
+  if (!r || G.phase !== 'day' || r.closing || G.day < 2 || !S || (S.tut || []).includes('soldout')) return;
+  (S.tut = S.tut || []).push('soldout');
+  S.queue.push(ohInShop() ? 'tut_soldout' : 'tut_soldout_ph');
+  emit('story');
+}
 export function tutNote(kind) {
   if (!tutOn() || !G.run || G.phase !== 'day') return;
   const r = G.run, cur = r.tutStep && TUTORIAL.find(x => x.id === r.tutStep);

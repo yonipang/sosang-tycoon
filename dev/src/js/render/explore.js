@@ -54,8 +54,15 @@ function aptGround(M, x0, x1, y0, y1) {
     if (g === 1 && gr) xc.drawImage(XA, gr[0], gr[1], 16, 16, px, py, 16, 16);
     else if (g === 2 && sd) xc.drawImage(XA, sd[0] + (tx % 2) * 16, sd[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
     else if (g === 3) { xc.fillStyle = (tx + ty) % 2 ? '#55565f' : '#52535c'; xc.fillRect(px, py, 16, 16); }
+    else if (g === 5 || g === 6) { xc.fillStyle = '#44454e'; xc.fillRect(px, py, 16, 16); if (g === 6) { xc.fillStyle = 'rgba(240,240,232,.85)'; xc.fillRect(px + 1, py + 3, 14, 4); xc.fillRect(px + 1, py + 11, 14, 4); } }
+    else if (g === 7) { xc.fillStyle = '#2b2733'; xc.fillRect(px, py, 16, 16); }
     else if (g === 4) { xc.fillStyle = '#3f6b3a'; xc.fillRect(px, py, 16, 16); xc.fillStyle = '#4f8446'; xc.fillRect(px + 1, py + 2, 6, 6); xc.fillRect(px + 9, py + 7, 6, 6); }
     else xc.drawImage(XA, pv[0] + (tx % 2) * 16, pv[1] + (ty % 2) * 16, 16, 16, px, py, 16, 16);
+  }
+  if (M.kind === 'office') { // 찻길 가운데 노란 점선
+    xc.fillStyle = '#e8c547';
+    for (let tx = x0; tx <= x1; tx++) if (M.ground[16 * M.W + tx] === 5 && tx % 2) xc.fillRect(tx * TILE + 2, 17 * TILE - 1, 12, 2);
+    return;
   }
   // 주차 칸 선 (1~12칸 · 18~21줄)
   xc.fillStyle = 'rgba(235,235,225,.75)';
@@ -76,7 +83,7 @@ export function drawExplore(canvas, S) {
   xc.translate(-cx, -cy);
   const pv = SPR.pave, x0 = Math.max(0, Math.floor(cx / TILE)), x1 = Math.min(M.W - 1, Math.floor((cx + S.vw) / TILE));
   const y0 = Math.max(0, Math.floor(cy / TILE)), y1 = Math.min(M.H - 1, Math.floor((cy + S.vh) / TILE));
-  const apt = M.kind === 'apt';
+  const apt = M.kind !== 'market'; // 아파트 단지 · 오피스 거리: 칸마다 바닥 종류
   if (apt) aptGround(M, x0, x1, y0, y1);
   else { // 바닥: 시장 보도 (위 가게 줄 뒤는 어두운 골목)
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
@@ -95,7 +102,7 @@ export function drawExplore(canvas, S) {
       if (s.closed) { xSpr('mk_shut', s.x + 6, top + 50); xc.fillStyle = 'rgba(20,20,40,.18)'; xc.fillRect(s.x, top, 80, 87); }
       xSpr('mk_s_' + s.type, s.x + 4, top + 29);
     } });
-    if (!s.closed && !s.apt) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
+    if (!s.closed && !s.plain) { const n = 'mk_d_' + s.type; items.push({ y: s.bot + 19, d: () => xSpr(n, s.x + 2, s.bot + 20 - xh(n)) }); }
   }
   for (const p of M.props) {
     const bx = p.tx * TILE, bot = (p.ty + 1) * TILE;

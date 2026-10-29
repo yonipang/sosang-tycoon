@@ -891,6 +891,7 @@ def collect():
     s.update(town2_sprites())  # 마을 동쪽 블록 · 가게 앞 꾸밈 · 상호작용 물건 (v0.48)
     s.update(market_sprites(s))  # 동네 탐방: 재래시장 (v0.78)
     s.update(apt_sprites(s))  # 동네 탐방: 아파트 단지 (v0.80)
+    s.update(office_sprites(s))  # 동네 탐방: 오피스 거리 · 임대 매물 간판 (v0.84)
     return s
 
 
@@ -1161,6 +1162,59 @@ def apt_sprites(s):
     SIGNS = {  # 단지 상가 간판 (src/js/data/explore.js SHOP_TYPES)
         'cvs': ('편의점', (40, 140, 90, 255)), 'tkd': ('태권도', (190, 50, 50, 255)), 'piano': ('피아노', (120, 80, 160, 255)),
         'hair': ('미용실', (210, 90, 140, 255)), 'estate': ('부동산', (50, 70, 120, 255)), 'math': ('수학학원', (60, 110, 190, 255)),
+    }
+    for k, (t, bg) in SIGNS.items():
+        o['mk_s_' + k] = mk_signboard(t, bg)
+    return o
+
+
+def of_tower(glass, frame, name, seed=1):  # 오피스 빌딩 (112x176): 유리벽 · 꼭대기 빌딩 이름 · 1층 로비 회전문
+    import random
+    rr = random.Random(seed)
+    W, H = 112, 176
+    im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    gl = glass + (255,); fr = frame + (255,); hi = tuple(min(255, c + 40) for c in glass) + (255,); lo = tuple(max(0, c - 30) for c in glass) + (255,)
+    d.rectangle((4, 0, W - 5, 10), fill=(150, 156, 166, 255), outline=INK)  # 옥상
+    d.rectangle((40, 1, 70, 8), fill=(120, 126, 136, 255), outline=INK)
+    d.rectangle((0, 10, W - 1, H - 1), fill=fr, outline=INK)
+    # 빌딩 이름 (게임 글꼴, 흰 글씨 + 그림자)
+    fn = kfont(16)
+    txt = Image.new('RGBA', (W, 24), (0, 0, 0, 0)); td = ImageDraw.Draw(txt)
+    tw = int(td.textlength(name, font=fn)); td.text(((W - tw) // 2, 0), name, font=fn, fill=(255, 255, 255, 255))
+    a_ = txt.split()[3].point(lambda v: 255 if v > 110 else 0)
+    bb = a_.getbbox()
+    if bb:
+        wh = Image.new('RGBA', txt.size, (250, 250, 245, 255)); wh.putalpha(a_)
+        sh = Image.new('RGBA', txt.size, (30, 34, 44, 255)); sh.putalpha(a_)
+        g, gs = wh.crop((0, bb[1], W, bb[3])), sh.crop((0, bb[1], W, bb[3]))
+        im.alpha_composite(gs, (1, 15)); im.alpha_composite(g, (0, 14))
+    # 유리벽: 층마다 가로 띠 · 세로 멀리언
+    for f in range(7):
+        y = 32 + f * 16
+        d.rectangle((6, y, W - 7, y + 12), fill=gl)
+        for x in range(6, W - 7, 14): d.line((x, y, x, y + 12), fill=fr)
+        d.line((6, y, W - 7, y), fill=hi)
+        for k in range(7):  # 불 켜진 창 · 반사
+            x = 7 + k * 14
+            if rr.random() < 0.22: d.rectangle((x + 1, y + 2, x + 11, y + 10), fill=(250, 236, 180, 255))
+            elif rr.random() < 0.3: d.line((x + 2, y + 10, x + 9, y + 3), fill=hi)
+        d.line((6, y + 12, W - 7, y + 12), fill=lo)
+    # 1층 로비
+    d.rectangle((1, H - 26, W - 2, H - 2), fill=(70, 76, 90, 255)); d.line((1, H - 26, W - 2, H - 26), fill=INK)
+    for x in range(4, W - 4, 12): d.rectangle((x, H - 23, x + 9, H - 3), fill=(120, 150, 176, 255))
+    d.rectangle((W // 2 - 13, H - 25, W // 2 + 12, H - 2), fill=(40, 46, 58, 255), outline=INK)  # 회전문
+    d.rectangle((W // 2 - 10, H - 22, W // 2 + 9, H - 3), fill=(150, 186, 210, 255)); d.line((W // 2, H - 22, W // 2, H - 3), fill=INK)
+    return im
+
+
+def office_sprites(s):
+    o = {}
+    for k, (glass, frame, name) in enumerate((((96, 150, 190), (60, 70, 86), '한빛타워'), ((110, 170, 160), (70, 80, 84), '누리빌딩'),
+                                               ((140, 150, 176), (90, 86, 96), '세종센터'), ((100, 130, 200), (56, 62, 84), '미래타워'))):
+        o['of_t%d' % (k + 1)] = of_tower(glass, frame, name, seed=k + 11)
+    SIGNS = {  # 오피스 거리 1층 가게 (src/js/data/explore.js OFFICE_SHOPS) · 임대 매물
+        'salad': ('샐러드', (90, 160, 80, 255)), 'bunsik': ('분식', (210, 120, 40, 255)), 'cafe': ('카페', (110, 76, 56, 255)),
+        'dosirak': ('도시락', (200, 70, 60, 255)), 'print': ('인쇄', (60, 90, 150, 255)), 'vacant': ('임대', (120, 124, 132, 255)),
     }
     for k, (t, bg) in SIGNS.items():
         o['mk_s_' + k] = mk_signboard(t, bg)

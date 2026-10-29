@@ -14,12 +14,13 @@ export const EX_CLOCK = '05:30'; // 새벽 첫차
 export const EX_AREAS = {
   market: { name: '재래시장', when: '새벽', clock: '05:30', bus: '새벽 첫차로 재래시장 가기', sub: '상인 · 어르신 · 갓 나온 재료', intro: '새벽 시장이 막 문을 엽니다.' },
   apt: { name: '아파트 단지', when: '아침', clock: '07:30', bus: '아침 버스로 아파트 단지 가기', sub: '학생 · 직장인 · 집이 많은 동네', intro: '출근하고 등교하는 사람들로 단지가 북적입니다.' },
+  office: { name: '오피스 거리', when: '출근길', clock: '08:30', bus: '출근 버스로 오피스 거리 가기', sub: '직장인 · 점심 장사 · 비싼 임대료', intro: '출근하는 직장인들이 빌딩 안으로 바쁘게 들어갑니다.' }, // v0.84 사용자 요청 (기획서엔 3장 — 지금은 2장부터 열어 둬요)
 };
 export const EX_AREA_IDS = Object.keys(EX_AREAS);
 
 // 재래시장 지도 (16px 칸): 위 가게 줄(0~5줄) · 길 A(6~11줄, 6줄은 가게 앞 진열) · 아래 가게 줄(12~17줄, 가게 사이 1칸 골목으로 지나가요) · 길 B(18~23줄)
 //  가게 한 자리 = 너비 80px(5칸) + 사이 16px. 왼쪽 2칸 · 오른쪽 2칸은 위아래로 이어진 길. 버스 정류장은 왼쪽 아래
-export const MK = { W: 45, H: 24, SLOTS: 7, X0: 32, STEP: 96, BOT1: 88, BOT2: 280, START: [7, 22] }; // 정류장 오른쪽 (v0.81: 정류장 뒤에 가려 안 보였어요)
+export const MK = { W: 45, H: 24, SLOTS: 7, X0: 32, STEP: 96, BOT1: 88, BOT2: 280, START: [7, 22], VACANT: 10 }; // VACANT: 임대 매물 자리 (아래 줄 넷째 칸, v0.84 — data/move.js) // 정류장 오른쪽 (v0.81: 정류장 뒤에 가려 안 보였어요)
 
 // 가게 종류 (간판·진열 그림은 dev/art_pack.py market_sprites — mk_s_ · mk_d_)
 //  owner: 가게 앞에 서 있는 사장님 그림 (캐릭터 번호) · w: 가게 앞 진열 그림 너비(px — 막히는 칸)
@@ -38,7 +39,7 @@ export const SHOP_TYPES = {
 export const SHOP_IDS = Object.keys(SHOP_TYPES);
 // 아파트 단지 지도 (16px 칸, v0.82): 0줄 울타리 · 1~11줄 아파트 4동(사이 잔디) · 12~13줄 현관 앞 길 · 14~15줄 화단 · 16~17줄 큰길
 //  18~25줄: 왼쪽 주차장 · 가운데 놀이터 · 오른쪽 상가 3칸 · 26~29줄 단지 앞길(경비실 · 차단기 · 버스 정류장)
-export const AP = { W: 44, H: 30, TOWERS: [2, 13, 24, 35], TOWER_BOT: 192, SHOP_X: [432, 528, 624], SHOP_BOT: 400 };
+export const AP = { W: 44, H: 30, TOWERS: [2, 13, 24, 35], TOWER_BOT: 192, SHOP_X: [384, 464, 544, 624], SHOP_BOT: 400, VACANT: 0 }; // 상가 4칸 붙어 있어요 · VACANT 임대 매물 칸 (v0.84)
 // 상가 가게 (간판 mk_s_ · 건물은 시장과 같은 mk_b) — 편의점은 늘, 나머지 둘은 그날 씨앗으로
 export const APT_SHOPS = {
   cvs: { name: '편의점', owner: 16 },
@@ -49,12 +50,25 @@ export const APT_SHOPS = {
   estate: { name: '부동산', owner: 19 },
 };
 // 단지 사람들 (캐릭터 번호): 경비 아저씨 · 택배 기사 · 부녀회장 · 등교 학생 둘 · 분리수거 아주머니 · 장 본 할머니 · 놀이터 엄마
+// 오피스 거리 지도 (16px 칸, v0.84): 1~11줄 빌딩 4채(사이 광장) · 12~14줄 넓은 보도 · 15~18줄 찻길(횡단보도 둘) · 19~21줄 보도(노점·쉼터) · 22~27줄 1층 가게 7칸 · 28~30줄 보도·정류장
+export const OF = { W: 44, H: 31, TOWERS: [2, 13, 24, 35], NAMES: ['한빛타워', '누리빌딩', '세종센터', '미래타워'], TOWER_BOT: 192, ROAD: [15, 18], CROSS: [[18, 21], [34, 37]], X0: 32, STEP: 96, SLOTS: 7, SHOP_BOT: 448, VACANT: 4 };
+// 1층 가게 (간판 mk_s_ · 건물은 시장과 같은 mk_b) — 날마다 자리 순서가 바뀌어요 (임대 매물 자리는 그대로)
+export const OFFICE_SHOPS = {
+  salad: { name: '샐러드', owner: 5 },
+  bunsik: { name: '분식', owner: 14 },
+  cafe: { name: '카페', owner: 9 },
+  dosirak: { name: '도시락', owner: 3 },
+  print: { name: '인쇄', owner: 12 },
+  cvs: { name: '편의점', owner: 16 },
+};
+// 거리 사람들 (캐릭터 번호): 로비 안내 · 신입 사원 · 팀장님 · 점심 줄 셋 · 배달 기사 · 토스트 노점
+export const OF_CHARS = { guard: 20, intern: 4, lead: 8, line: [2, 7, 19], courier: 6, cart: 15 };
 export const AP_CHARS = { guard: 20, courier: 6, chair: 5, student: 4, student2: 16, recycle: 10, shopper: 13, mom: 1 };
 export const EX_CLOSED = 3;      // 날마다 문 닫은 가게 수 (14자리 중)
 export const EX_CHARS = { cart: 15, stall: 14, kid: 15, grandma: 13 }; // 노점 아주머니 · 파라솔 할머니 · 길 잃은 아이 · 아이 할머니 (캐릭터 번호)
 export const EX_CARRY = 2;       // 짐을 들고 걸으면 체력이 이만큼 배로 들어요
 // 저장 칸 G.explore (save/state.js): last 마지막으로 다녀온 날 · runs 횟수 · memos 동네 메모 id · flyer 전단 효과
-export const newExplore = () => ({ last: 0, runs: 0, memos: [], flyer: null });
+export const newExplore = () => ({ last: 0, runs: 0, memos: [], flyer: null, seen: [] }); // seen: 살펴본 임대 매물 동네 (v0.84 — data/move.js)
 
 // 가방에 담는 것: ing 재료(냉장고로) · note 맛의 힌트(숙련도) · ref 소개 손님(다음 영업) · flyer 전단 자리(며칠 동안 그 손님층 ↑)
 export const FINDS = {
@@ -76,6 +90,10 @@ export const FINDS = {
   refCourier: { name: '택배 기사님들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
   flyerStudent: { name: '부녀회 단톡방 소개', icon: 'board', kind: 'flyer', type: 'student', mul: 1.3, days: 3, text: '3일 동안 학생 손님 ↑' },
   flyerWorker: { name: '단지 게시판 전단 자리', icon: 'board', kind: 'flyer', type: 'worker', mul: 1.3, days: 3, text: '3일 동안 직장인 손님 ↑' },
+  // 오피스 거리 (v0.84)
+  refOffice: { name: '신입 사원들의 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
+  refTeam: { name: '팀 점심 약속', icon: 'face_happy', kind: 'ref', type: 'worker', text: '다음 영업에 직장인 손님 2명' },
+  flyerOffice: { name: '빌딩 로비 전단 자리', icon: 'board', kind: 'flyer', type: 'worker', mul: 1.35, days: 3, text: '3일 동안 직장인 손님 ↑' },
 };
 
 // 동네 메모: 눈으로 본 것 한 줄 — 수첩에 쌓이고, 3장 상권 지도(나이스비즈맵)가 열리면 숫자로 다시 나와요
@@ -94,6 +112,14 @@ export const MEMOS = {
   apPrice: '편의점 삼각김밥 1,500원 · 컵떡볶이 2,500원. 단지 사람들은 값보다 가까운 곳을 고른다',
   apMoms: '부녀회 단톡방 한 마디가 단지 소문이 된다. 단골 한 명이 손님을 데려온다',
   apRent: '단지 상가 1층은 골목보다 임대료가 비싸다. 대신 날마다 같은 사람들이 지나간다',
+  // 오피스 거리: 오피스 상권 (v0.84)
+  ofLunch: '점심 12시~1시, 한 시간에 하루 손님 절반이 몰린다',
+  ofWeekend: '주말엔 거리가 텅 빈다. 평일 장사로 버텨야 한다',
+  ofQuick: '직장인은 빨리 나오는 걸 고른다. 포장해 가는 사람도 많다',
+  ofPrice: '오피스 거리 김밥 한 줄 4,500원. 비싸도 빨리 나오면 산다',
+  ofCafe: '점심 뒤엔 카페 줄이 점심 줄만큼 길다',
+  ofMorning: '출근길 8~9시엔 걸으면서 먹는 아침이 팔린다',
+  ofRent: '대로변 1층은 임대료가 가장 비싸다. 골목 안쪽은 훨씬 싸다',
 };
 
 // 사건: at 'shop:종류'(그 가게가 열린 날만 · 사장님) · 'cart'(길 가운데 노점) · 'stall'(할머니 노점 파라솔) · 'board'(시장 게시판) · 'kid'(길 잃은 아이)
@@ -161,4 +187,33 @@ export const EX_EVENTS_POOL = [
     choices: [{ label: '동네 이야기 듣기', cost: 5, give: 'noteTteok', say: '「요즘 애들은 매운 거 좋아해요. 떡볶이는 소스가 생명이지!」' }], memo: 'apMoms' },
   { id: 'apEstate', area: 'apt', at: 'shop:estate', title: '부동산 사장님', text: '유리문에 매물 종이가 빼곡합니다. 사장님이 커피를 들고 나옵니다.',
     choices: [{ label: '동네 이야기 듣기', cost: 4, say: '「여기 상가 1층은 비싸요. 그래도 단지 사람들이 매일 지나가니까.」' }], memo: 'apRent' },
+  // ── 오피스 거리 (v0.84): area 'office' ── at 'guard'(로비 안내)·'intern'·'lead'·'line'(점심 줄)·'courier'·'bench' · 'cart'(토스트 노점) · 'shop:종류' · 'board'(빌딩 게시판)
+  { id: 'ofIntern', area: 'office', at: 'intern', title: '신입 사원', text: '커피 캐리어를 양손에 든 신입 사원이 쩔쩔맵니다. 「선배님들 커피를… 다른 빌딩 회의실로 가져가야 하는데…」',
+    choices: [{ label: '커피 같이 날라 주기', task: { kind: 'deliver', item: '커피 캐리어', to: ['door'], verb: '전해 주기' }, give: 'refOffice', say: '「살았어요! 동기들이랑 점심 먹으러 꼭 갈게요.」' }], memo: 'ofCafe' },
+  { id: 'ofGuard', area: 'office', at: 'guard', title: '로비 안내 데스크', text: '빌딩 앞 안내 직원이 출입증을 확인하고 있습니다. 「로비에 전단 두는 자리가 있긴 한데요.」',
+    choices: [{ label: '전단 놓게 부탁드리기', cost: 4, give: 'flyerOffice', say: '「점심 메뉴 고민하는 분들 많으니까 잘 보일 거예요.」' }], memo: 'ofWeekend' },
+  { id: 'ofLead', area: 'office', at: 'lead', title: '팀장님', text: '휴대폰을 보던 팀장님이 한숨을 쉽니다. 「오늘 팀 점심 어디로 가지… 맨날 거기서 거기네.」',
+    choices: [{ label: '우리 가게 소개하기', cost: 4, give: 'refTeam', say: '「골목 분식? 애들이 좋아하겠네. 이번 주에 한번 가 볼게요.」' }], memo: 'ofLunch' },
+  { id: 'ofLine', area: 'office', at: 'line', title: '점심 줄', text: '아직 아침인데 도시락 가게 앞에 미리 예약하려는 줄이 섰습니다. 「점심엔 줄이 이것보다 세 배예요.」',
+    choices: [{ label: '줄 선 사람들과 이야기', cost: 5, say: '「빨리 나오는 데가 최고죠. 점심시간 한 시간밖에 없거든요.」' }], memo: 'ofQuick' },
+  { id: 'ofCourier', area: 'office', at: 'courier', title: '배달 기사님', text: '오토바이 짐칸에 상자가 가득합니다. 「점심 전에 이걸 다 돌려야 하는데…」',
+    choices: [{ label: '짐 싣기 돕기', cost: 8, mini: { kind: 'mash', name: '짐 싣기', act: '싣기!', taps: 15, time: 5 }, fail: '「괜찮아요, 제가 할게요. 마음만 받을게요.」', give: 'refCourier', say: '「덕분에 빨리 출발하네요! 동료들한테 얘기할게요.」' }], memo: 'ofLunch' },
+  { id: 'ofToast', area: 'office', at: 'cart', title: '토스트 노점', text: '출근길 사람들이 토스트를 하나씩 받아 걸어갑니다. 아주머니 손이 바쁩니다.',
+    choices: [{ label: '토스트 굽기 돕기', cost: 8, mini: { kind: 'timing', name: '토스트 뒤집기', act: '뒤집기!', rounds: 3, need: 2, speed: 1.2 }, fail: '「어머, 조금 탔네. 괜찮아요.」', give: 'egg', say: '「손이 야무지네! 남는 달걀 가져가요.」' }, { label: '토스트 하나 (2,500원)', pay: 2500, heal: 18, say: '따끈한 토스트에 힘이 납니다.' }], memo: 'ofMorning' },
+  { id: 'ofBench', area: 'office', at: 'bench', title: '빌딩 앞 쉼터', text: '나무 그늘 아래 벤치가 비어 있습니다. 출근하는 발소리가 끊이지 않습니다.',
+    choices: [{ label: '잠깐 앉아 쉬기', heal: 12, say: '숨을 고르니 다리가 조금 풀렸습니다.' }] },
+  { id: 'ofBoard', area: 'office', at: 'board', title: '빌딩 게시판', text: '동호회 모집, 분실물 안내 사이에 빈자리가 있습니다.',
+    choices: [{ label: '전단 붙이기', cost: 8, give: 'flyerWorker', say: '점심 메뉴를 찾는 사람들 눈높이에 붙였습니다.' }], memo: 'ofRent' },
+  { id: 'ofCafe', area: 'office', at: 'shop:cafe', title: '카페', text: '출근길 커피를 사려는 줄이 문밖까지 섰습니다.',
+    choices: [{ label: '아메리카노 (2,000원)', pay: 2000, heal: 20, say: '쌉쌀한 커피에 정신이 번쩍 듭니다.' }], memo: 'ofCafe' },
+  { id: 'ofBunsik', area: 'office', at: 'shop:bunsik', title: '분식 사장님', text: '같은 분식집입니다. 사장님이 김밥을 쉬지 않고 맙니다. 「점심엔 손이 열 개라도 모자라요.」',
+    choices: [{ label: '값 둘러보기', cost: 3, say: '김밥 한 줄 4,500원, 떡볶이 5,000원. 골목보다 꽤 비쌉니다.' }, { label: '김밥 마는 법 구경하기', cost: 6, give: 'noteKimbap', say: '「속을 적게, 빠르게. 점심엔 속도가 맛이에요.」' }], memo: 'ofPrice' },
+  { id: 'ofSalad', area: 'office', at: 'shop:salad', title: '샐러드 사장님', text: '「요즘 직장인들은 가볍게 먹으려고 해요. 그래도 금요일엔 다들 떡볶이 생각나나 봐요.」',
+    choices: [{ label: '이야기 나누기', cost: 4, give: 'noteTteok', say: '「매운 걸로 스트레스 푸는 사람 많아요. 맵기 단계 있으면 좋아하더라고요.」' }], memo: 'ofQuick' },
+  { id: 'ofDosirak', area: 'office', at: 'shop:dosirak', title: '도시락 사장님', text: '도시락 수십 개를 쌓아 두고 이름표를 붙이고 있습니다. 「회사 단체 주문이에요.」',
+    choices: [{ label: '도시락 포장 돕기', cost: 8, mini: { kind: 'mash', name: '포장하기', act: '포장!', taps: 14, time: 5 }, fail: '「아이고, 순서가 섞였네. 괜찮아요.」', give: 'refTeam', say: '「손 빠르네! 단체 주문 넘칠 때 그쪽 얘기 해 줄게요.」' }], memo: 'ofLunch' },
+  { id: 'ofPrint', area: 'office', at: 'shop:print', title: '인쇄 가게 사장님', text: '「명함이요? 전단이요? 오늘 찍으면 내일 나와요.」',
+    choices: [{ label: '전단 찍기 (10,000원)', pay: 10000, give: 'flyerOffice', say: '「로비 쪽에 몇 장 놓아 줄게요. 이 동네 사람들은 다 지나가니까.」' }], memo: 'ofRent' },
+  { id: 'ofCvs', area: 'office', at: 'shop:cvs', title: '편의점', text: '샌드위치와 삼각김밥이 출근길에 순식간에 팔려 나갑니다.',
+    choices: [{ label: '값 둘러보기', cost: 3, say: '삼각김밥 1,500원, 샌드위치 3,500원. 아침은 다들 여기서 해결합니다.' }], memo: 'ofMorning' },
 ];

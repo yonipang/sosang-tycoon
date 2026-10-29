@@ -1,6 +1,8 @@
 // 돈과 하루 (단위: 원·초)
 export const START_CASH = 2500000;   // 개업 비용을 치르고 남은 돈 (자기 돈 300만 + 창업 대출 500만으로 시작) · v0.74 사용자 요청 「돈이 빠듯」 150만 → 250만
 export const START_LOAN = 5000000;   // 창업 대출
+// 첫날(프롤로그 1일차, v0.84 사용자 요청): 가격·재료 주문을 오 사장님이 정한 대로 고정하고, 손님이 더 오래 기다려 줘요 — 90% 넘게 팔리게
+export const DAY1_PATIENCE = 1.8;
 export const WEEK_RENT = 250000;     // 주간 임대료 (v0.77부터 ÷7 해서 매일 내요 — sim/day.js dayBills) · v0.74 사용자 요청 「돈이 빠듯」 35만 → 25만
 export const LOAN_WEEKLY = 100000;   // 주간 대출 상환 (원리금: 이자 먼저, 나머지가 원금 — 1년 분할 초안)
 export const LOAN_RATE = 0.05;       // 창업 대출 연이율 (이자 = 남은 대출 × 연이율 ÷ 52)

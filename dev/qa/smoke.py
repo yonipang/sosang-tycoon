@@ -136,7 +136,7 @@ with sync_playwright() as pw:
     pg.goto(GAME); pg.wait_for_function('window.__T && window.__T.viewReady()')
     shot(pg, '1-title')
     pg.click('[data-act=new]'); talk(pg); shot(pg, '2-prep')
-    pg.click('[data-act=price][data-m=tteok][data-d="1"]'); pg.click('[data-act=price][data-m=tteok][data-d="-1"]')
+    if pg.locator('[data-act=price][data-m=tteok]:not([disabled])').count(): errs.append('첫날 가격 버튼이 눌려요 (고정이어야 해요)')  # v0.84: 첫날은 가격·재료 고정
     pg.click('[data-act=open]'); pg.add_script_tag(content=BOT)
     pg.evaluate('__bot.play(130)'); pg.wait_for_timeout(1300); shot(pg, '3-lunch'); pg.locator('#cvWrap').screenshot(path=os.path.join(OUT, '3b-shop.png'))
     # 메뉴마다 다른 조리 미니게임을 실제 탭으로 열어 보기 (잠깐 세 메뉴를 다 열어요)

@@ -9,6 +9,8 @@ import { fxRand } from '../engine/random.js';
 import { toast } from './feedback.js';
 import { runCmd, onEvent } from '../sim/events.js';
 import { TILE } from '../data/layout.js';
+import { MOVE_SPOTS } from '../data/move.js';
+import { WEEK_RENT } from '../data/economy.js';
 import { EX_AREAS, EX_AREA_IDS, EX_STAMINA, EX_BAG, EX_CARRY, FINDS, MEMOS, EX_EVENTS_POOL } from '../data/explore.js';
 import { exRun, exploreReady, exploredToday } from '../sim/explore.js';
 import { drawExplore } from '../render/explore.js';
@@ -65,7 +67,7 @@ export function exBar() {
   const X = exRun(); if (!X) return '';
   const T = X.task;
   const A = exArea();
-  return `<span class="tb-time ${X.area === 'apt' ? 'morning' : 'dawn'}">${A.when} ${A.clock}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : `<span class="ex-place">${A.name}</span>`}`;
+  return `<span class="tb-time ${X.area !== 'market' ? 'morning' : 'dawn'}">${A.when} ${A.clock}</span>${T ? `<span class="ex-place ex-task">${T.kind === 'escort' ? `아이와 할머니 찾기${T.hint ? ` · ${T.hint} 근처` : ''}` : `${T.item} → ${T.label}`}</span>` : `<span class="ex-place">${A.name}</span>`}`;
 }
 export const exNav = () => `<button type="button" data-ex="bag">가방 ${exRun() ? exRun().bag.length : 0}/${EX_BAG}</button><button type="button" data-ex="bus" class="go">정류장으로</button>`;
 export function exNavClick(k) {
@@ -83,6 +85,16 @@ function leaveHTML() {
   const X = exRun();
   return `${exHead('버스 정류장')}<p class="ts-note">가방 ${X.bag.length}/${EX_BAG} · 남은 체력 ${Math.round(X.sp)}</p>
     <button type="button" class="ts-act" data-ts="exLeave"><b>버스 타고 돌아가기</b><small>담은 것을 가게로 가져가요</small></button>`;
+}
+
+// 임대 매물 창 (v0.84 — data/move.js): 지금은 보기만 · 이사는 나중에
+function listingHTML() {
+  const M = MOVE_SPOTS[exRun().area]; if (!M) return '';
+  const row = (k, v) => `<div class="mv-row"><span>${k}</span><b>${v}</b></div>`;
+  return `${exHead('임대 매물')}<p class="ex-txt"><b>${M.name}</b></p>
+    ${row('주 임대료', `${won(M.rent)} <small>(지금 ${won(WEEK_RENT)})</small>`)}${row('보증금', won(M.deposit))}${row('자리', `${M.seats}석`)}
+    ${row('많이 오는 손님', M.who)}${row('붐비는 때', M.when)}${row('근처 같은 장사', M.rival)}
+    <p class="ex-memo">${M.note}</p><p class="ts-note">아직은 이사할 수 없습니다. 가게가 자리를 잡으면 이곳으로 옮길 수 있습니다.</p>`;
 }
 
 // ── 사건 창 ──
@@ -253,6 +265,8 @@ export function exActTarget() {
   if (T && Math.abs(exPx(T.tx) - V.me.x) < EX_NEAR.x && Math.abs(exPy(T.ty) - V.me.y) < EX_NEAR.y) return { label: T.verb, run: () => { V.me.path = []; runCmd('exFinish'); } };
   const i = spotNear();
   if (i >= 0) return { label: '살펴보기', run: () => (T ? toast(T.kind === 'escort' ? '먼저 아이를 할머니께 모셔다드려요' : `먼저 ${josa(T.item, '을/를')} 전해 줘요`, 'info') : openSpot(i)) };
+  const L = X.map.listing; // 임대 매물 (v0.84)
+  if (L && Math.abs(exPx(L.tx) - V.me.x) < EX_NEAR.x && Math.abs(exPy(L.ty) - V.me.y) < EX_NEAR.y) return { label: '매물 보기', run: () => { V.me.path = []; runCmd('exListing'); XC.sheet(listingHTML(), 'ex'); } };
   const [tx, ty] = exMeTile(), bus = X.map.props.find(p => p.kind === 'bus');
   if (bus && ty >= bus.ty - 1 && tx >= bus.tx - 1 && tx <= bus.tx + 5) return { label: '돌아가기', run: () => { V.me.path = []; XC.sheet(leaveHTML(), 'ex'); } };
   return null;

@@ -1,7 +1,7 @@
 // 하루의 흐름: 준비(prep: 가격·재료 주문) → 아침 재료 도착 → 낮 영업(day) → 마감 정산(receipt) → (7일마다) 고정비 내는 날(weekly: 임대료·대출·공과금 고지서) → 다음 날 준비
 // 재료는 원재료마다 유통기한(INGREDIENTS.shelf)까지 남겨 두고 다음 날 써요. 먼저 받은 재료부터 써요 (sim/pantry.js).
 import { G } from '../save/state.js';
-import { MENUS, MENU_IDS, ING_IDS, INGREDIENTS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX } from '../data/menu.js';
+import { MENUS, MENU_IDS, ING_IDS, INGREDIENTS, PRICE_STEP, PRICE_MIN, PRICE_MAX, PREP_STEP, PREP_MAX, PREP_FIRST_DAY } from '../data/menu.js';
 import { DAY_SEC, DAY_MIN, CLOSE_CAP_MIN, WEEK_RENT, LOAN_WEEKLY, LOAN_RATE, UTIL_BASE, UTIL_PER_DISH, PLAYER_SPEED, RUSH_QTY, RUSH_MUL, RUSH_SEC, ratingSpawnMul, openingMul, fameMul } from '../data/economy.js';
 import { SPAWN_PER_HOUR, FOOT_PER_HOUR, CUSTOMER_MUL } from '../data/customers.js';
 import { kitLeftCost } from './kitchen.js';
@@ -61,17 +61,24 @@ function newRun() {
 }
 
 // ── 새벽 준비 ──
+// 첫날(프롤로그 1일차): 가격·재료 주문은 오 사장님이 정한 대로 (v0.84 사용자 요청)
+export const day1Fixed = () => G.day === 1 && !!G.story && G.story.ch === 0;
+const soldOutTaught = () => !!G.story && (G.story.tut || []).includes('soldout');
+const day1Toast = () => emit('toast', '첫날은 오 사장님이 정해 둔 가격과 양으로 엽니다', 'info');
 defineCmd('setPrice', ({ menu, delta }) => {
+  if (day1Fixed()) { day1Toast(); return; }
   G.prices[menu] = Math.max(PRICE_MIN, Math.min(PRICE_MAX, G.prices[menu] + delta * PRICE_STEP));
   emit('prep');
 });
 defineCmd('setPrep', ({ menu, delta }) => {
+  if (day1Fixed()) { day1Toast(); return; }
   G.prep[menu] = Math.max(0, Math.min(PREP_MAX, G.prep[menu] + delta * PREP_STEP));
   emit('prep');
 });
 // 가게 열기: 주문한 재료가 도착하고(이때 값을 내요) 영업을 시작해요
 defineCmd('openShop', () => {
   if (!todayMenus().length) { emit('toast', '오늘의 메뉴에 메뉴를 하나 이상 올려 보세요', 'warn'); return false; }
+  if (day1Fixed()) for (const m of MENU_IDS) { G.prices[m] = MENUS[m].price; G.prep[m] = PREP_FIRST_DAY[m] || 0; }
   const cost = prepCost();
   if (cost > G.cash) { emit('toast', '주문 금액이 잔고보다 많습니다. 주문량을 줄여 보세요', 'warn'); return false; }
   if (!G.baseSeed) G.baseSeed = newSeed();
@@ -143,14 +150,15 @@ defineCmd('rushBuy', ({ menu }) => {
   emit('fridge');
 });
 // 일찍 마감: 새 손님은 받지 않고, 안에 있는 손님만 마저 받아요
-defineCmd('closeEarly', () => {
+defineCmd('closeEarly', () => closeNow());
+function closeNow() {
   const r = G.run;
   if (!r || r.closing) return;
   r.closing = true; r.closeMin = r.min;
   emit('toast', '영업을 마감합니다. 남은 손님만 받습니다', 'info');
   emit('closing');
   tutNote('closing');
-});
+}
 defineCmd('pause', ({ on }) => { if (G.run) G.run.paused = on; emit('pause', on); });
 defineCmd('speed', ({ x }) => { if (G.run) G.run.speed = x; });
 // 대화 장면을 보는 동안 가게를 잠깐 멈춰요 (쉬기 화면은 안 띄워요)
@@ -209,12 +217,14 @@ export function tickDay(dt) {
   for (const m of todayMenus()) {
     if (r.closing || stockOf(m) > 0 || (r.outHint || {})[m] || r.rush.some(o => o.menu === m)) continue;
     (r.outHint = r.outHint || {})[m] = true;
+    if (!soldOutTaught()) continue; // 품절 길잡이 전에는 알림 대신 장면으로 (v0.84 — sim/tutorial.js tutSoldOut)
     emit('toast', `${josa(INGREDIENTS[shortIng(m)].name, '이/가')} 떨어져 ${josa(MENUS[m].name, '을/를')} 못 만듭니다. 냉장고를 눌러 급구매해 보세요`, 'hint');
   }
   // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
   if (!r.closing && !r.soldOutHint && !r.rush.length && todayMenus().every(m => stockOf(m) <= 0) && !r.tickets.length && !r.hands.length) {
     r.soldOutHint = true;
-    emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
+    if (day1Fixed()) { G.story.queue.push('tut_d1done'); emit('story'); closeNow(); } // 첫날 다 팔면 오 사장님이 일찍 닫아요 (v0.84)
+    else if (soldOutTaught()) emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
   }
   if (r.closing && (shopCustomers().length === 0 || r.min >= Math.max(CLOSE_CAP_MIN, r.closeMin + 60))) endDay();
 }

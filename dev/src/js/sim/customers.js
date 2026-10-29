@@ -5,7 +5,7 @@
 import { G } from '../save/state.js';
 import { MENUS, MENU_IDS, baseOf } from '../data/menu.js';
 import { REGULARS, CUSTOMER_TYPES, typeLike, PEOPLE, PAIR_CHANCE, PATIENCE, READ_MENU_SEC, QUEUE_MAX, CUSTOMER_SPEED, PRICE_REACT, PASSER_SAY_CHANCE, GLANCE_CHANCE, PASSER_LINES, typeMix, FACES_START, FACES_NEXT } from '../data/customers.js';
-import { TIP, ratingPriceMul } from '../data/economy.js';
+import { TIP, ratingPriceMul, DAY1_PATIENCE } from '../data/economy.js';
 import { W, SEATS, TABLES, PAY_SPOTS, QUEUE_SPOTS, DOOR_OUT } from '../data/layout.js';
 import { rand, rint, weighted, fxRand } from '../engine/random.js';
 import { emit } from './events.js';
@@ -16,7 +16,7 @@ import { incidentNote } from './incidents.js';
 import { dirty } from './town.js';
 import { HYGIENE_SAT } from '../data/town.js';
 import { TUT_IMPATIENT } from '../data/tutorial.js';
-import { tutNote, tutHold } from './tutorial.js';
+import { tutNote, tutHold, tutSoldOut } from './tutorial.js';
 import { stockOf, takeMenu, giveMenu, menuOn } from './pantry.js';
 import { kitMade } from './kitchen.js';
 import { fairMul, lvSat, noteServed, noteSat, revisitMul, noteBack } from './upgrade.js';
@@ -31,7 +31,7 @@ export const custById = id => G.run.customers.find(c => c.id === id);
 const SEATED = ['reading', 'waitFood', 'eating', 'done', 'waitPayer'];
 export const isSeated = c => SEATED.includes(c.state) && c.seat >= 0;
 const partyOf = c => G.run.customers.filter(q => q.party === c.party && q.state !== 'leave');
-const P = c => CUSTOMER_TYPES[c.type].patience;
+const P = c => CUSTOMER_TYPES[c.type].patience * (G.day === 1 && G.story.ch === 0 ? DAY1_PATIENCE : 1); // 첫날은 더 오래 기다려요 (v0.84)
 // 지나가는 사람(아직 가게 손님이 아닌 사람)
 const PASSING = ['walk', 'glance', 'pass'];
 export const isPasser = c => PASSING.includes(c.state);
@@ -213,7 +213,7 @@ function decide(c) {
   if (!canSell(m)) {
     const alts = MENU_IDS.filter(x => x !== m && canSell(x) && !reaction(c, x).leave);
     if (alts.length && (c.tag || lead.ref || rand() < 0.5)) { m = alts[0]; re = reaction(c, m); } // 돌발 손님 · 소개 손님은 다른 메뉴라도 먹어요
-    else { partyLeaves(c, 'soldout', m); return; }
+    else { partyLeaves(c, 'soldout', m); tutSoldOut(); return; } // 처음 품절로 놓치면 길잡이 (v0.84)
   }
   if (!spareOf(m)) takeMenu(m); // 미리 만든 게 손에 있으면 그걸로 (재료는 이미 씀)
   c.menu = m; c.priceSat = re.sat;

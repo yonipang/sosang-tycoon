@@ -5,7 +5,7 @@ import { CREDITS, CREDITS_THANKS } from '../data/credits.js';
 import { GAME_VERSION } from '../data/version.js';
 import { $, won, wonShort, clockText, josa } from '../engine/util.js';
 import { runCmd } from '../sim/events.js';
-import { prepCost } from '../sim/day.js';
+import { prepCost, day1Fixed } from '../sim/day.js';
 import { CUSTOMER_TYPES, BOARD_SLOTS } from '../data/customers.js';
 import { boardOpen } from '../sim/traffic.js';
 import { upgradeOpen, menuLv, lvBasePrice, anyUpReady, devOpen } from '../sim/upgrade.js';
@@ -94,7 +94,8 @@ export function renderPrep() {
   const after = G.cash - cost;
   const alba = G.story.ch === 0; // 프롤로그: 아직 알바라 내 돈이 아니에요
   const town = townMode(), dawn = town && G.town.part === 'dawn'; // 마을(1장부터): 가게는 준비 시간 아무 때나 열어요 (v0.59) · dawn은 글자만
-  const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기">−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기">+</button></div>`;
+  const fx = day1Fixed() ? ' disabled' : ''; // 첫날은 고정 (v0.84)
+  const step = (act, m, label, value) => `<div class="step"><button data-act="${act}" data-m="${m}" data-d="-1" aria-label="${label} 줄이기"${fx}>−</button><b>${value}</b><button data-act="${act}" data-m="${m}" data-d="1" aria-label="${label} 늘리기"${fx}>+</button></div>`;
   // 프롤로그 · 4일차(마을 전): 「오늘의 메뉴」 한 칸 — 메뉴마다 한 줄(가격 · 재료 주문), 원가율·장부는 그 아래 작게 (v0.43 화면 정리)
   const rows = todayMenus().map(m => {
     const M = MENUS[m], isNew = G.story.fresh.includes(m);
@@ -110,7 +111,7 @@ export function renderPrep() {
       <div class="row"${m === 'tteok' ? ' data-guide="order"' : ''}><span>재료 주문</span>${step('prep', m, `${M.ing} 주문`, `${G.prep[m]}인분`)}</div>
     </div>`;
   }).join('');
-  const cards = `<div class="tmcard pm-card"><div class="q-head"><small>오늘의 메뉴</small><span class="q-sub">주문한 재료는 아침에 옵니다</span></div>${rows}</div>`;
+  const cards = `<div class="tmcard pm-card"><div class="q-head"><small>오늘의 메뉴</small><span class="q-sub">${day1Fixed() ? '첫날은 오 사장님이 정해 둔 대로' : '주문한 재료는 아침에 옵니다'}</span></div>${rows}</div>`;
   if (town) { renderLedger(last, after, dawn); return; } // 1장부터: 오늘의 메뉴 칸 하나로 (화면 정리 — 기획서 「화면 정리」)
   showScreen(`
     <div class="prep">
