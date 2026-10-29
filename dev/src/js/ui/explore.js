@@ -34,7 +34,7 @@ const exPx = tx => tx * TILE + TILE / 2, exPy = ty => ty * TILE + TILE - 3;
 // 동네 고르기 (v0.82 아파트 단지): 하루 한 곳
 export function busHTML() {
   if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘은 이미 동네에 다녀왔습니다. 내일 또 가 보세요.</p>`;
-  const rows = EX_AREA_IDS.map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
+  const rows = EX_AREA_IDS.filter(id => (EX_AREAS[id].ch || 2) <= G.story.ch).map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
   return `${exHead('버스 정류장')}<p class="ts-note">하루 한 곳, 준비 시간은 쓰지 않습니다. 걸으면 체력이 줄고 가방은 ${EX_BAG}칸입니다.</p>${rows}`;
 }
 const exArea = () => EX_AREAS[(exRun() || {}).area] || EX_AREAS.market;

@@ -629,7 +629,8 @@ body.in-town #bar { display: none; }
 .town-sheet .ct-top .ts-head { position: static; margin-top: 0; padding-top: 0; }
 .town-sheet .ct-top { padding-bottom: 4px; }
 .town-sheet.chalk .ts-head { background: #2f4a3c; }
-.ts-x { width: 36px; height: 36px; background: var(--paper); border: 3px solid var(--ink); font: inherit; cursor: pointer; }
+.ts-x { width: 44px; height: 44px; flex: none; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; } /* v0.87 사용자 요청: 닫기 버튼 크게 */
+.ts-x:active { transform: translateY(3px); box-shadow: none; }
 .ts-note { margin: 6px 0; color: var(--ink-soft); word-break: keep-all; }
 .ts-act { display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%; text-align: left; margin-top: 8px; padding: 6px 10px; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }
 .ts-act:active { transform: translateY(3px); box-shadow: none; }

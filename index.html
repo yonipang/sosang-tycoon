@@ -634,7 +634,8 @@ body.in-town #bar { display: none; }
 .town-sheet .ct-top .ts-head { position: static; margin-top: 0; padding-top: 0; }
 .town-sheet .ct-top { padding-bottom: 4px; }
 .town-sheet.chalk .ts-head { background: #2f4a3c; }
-.ts-x { width: 36px; height: 36px; background: var(--paper); border: 3px solid var(--ink); font: inherit; cursor: pointer; }
+.ts-x { width: 44px; height: 44px; flex: none; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; } /* v0.87 사용자 요청: 닫기 버튼 크게 */
+.ts-x:active { transform: translateY(3px); box-shadow: none; }
 .ts-note { margin: 6px 0; color: var(--ink-soft); word-break: keep-all; }
 .ts-act { display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%; text-align: left; margin-top: 8px; padding: 6px 10px; background: var(--paper-2); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); font: inherit; color: var(--ink); cursor: pointer; }
 .ts-act:active { transform: translateY(3px); box-shadow: none; }
@@ -1778,7 +1779,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.86';
+const GAME_VERSION = '0.87';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -3100,7 +3101,7 @@ const EX_CLOCK = '05:30'; // 새벽 첫차
 const EX_AREAS = {
   market: { name: '재래시장', when: '새벽', clock: '05:30', bus: '새벽 첫차로 재래시장 가기', sub: '상인 · 어르신 · 갓 나온 재료', intro: '새벽 시장이 막 문을 엽니다.' },
   apt: { name: '아파트 단지', when: '아침', clock: '07:30', bus: '아침 버스로 아파트 단지 가기', sub: '학생 · 직장인 · 집이 많은 동네', intro: '출근하고 등교하는 사람들로 단지가 북적입니다.' },
-  office: { name: '오피스 거리', when: '출근길', clock: '08:30', bus: '출근 버스로 오피스 거리 가기', sub: '직장인 · 점심 장사 · 비싼 임대료', intro: '출근하는 직장인들이 빌딩 안으로 바쁘게 들어갑니다.' }, // v0.84 사용자 요청 (기획서엔 3장 — 지금은 2장부터 열어 둬요)
+  office: { ch: 3, name: '오피스 거리', when: '출근길', clock: '08:30', bus: '출근 버스로 오피스 거리 가기', sub: '직장인 · 점심 장사 · 비싼 임대료', intro: '출근하는 직장인들이 빌딩 안으로 바쁘게 들어갑니다.' }, // v0.84 사용자 요청 · ch: 3장부터 열려요 (v0.87 사용자 결정)
 };
 const EX_AREA_IDS = Object.keys(EX_AREAS);
 
@@ -5038,7 +5039,7 @@ const evOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 // 떠나기: 버스 정류장 (골목 준비 시간과 따로, 하루 한 번)
 defineCmd('exStart', ({ area } = {}) => {
   if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
-  if (!EX_AREAS[area]) area = 'market';
+  if (!EX_AREAS[area] || (EX_AREAS[area].ch || 2) > G.story.ch) area = 'market'; // 장마다 열리는 동네 (오피스 거리 3장)
   const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : area === 'office' ? 1553 : 0));
   const map = area === 'apt' ? genApt(r) : area === 'office' ? genOffice(r) : genMarket(r);
   X = { area, map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r, area), memos: [], did: 0, walked: 0 };
@@ -8475,7 +8476,7 @@ const exPx = tx => tx * TILE + TILE / 2, exPy = ty => ty * TILE + TILE - 3;
 // 동네 고르기 (v0.82 아파트 단지): 하루 한 곳
 function busHTML() {
   if (exploredToday()) return `${exHead('버스 정류장')}<p class="ts-note">오늘은 이미 동네에 다녀왔습니다. 내일 또 가 보세요.</p>`;
-  const rows = EX_AREA_IDS.map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
+  const rows = EX_AREA_IDS.filter(id => (EX_AREAS[id].ch || 2) <= G.story.ch).map(id => { const A = EX_AREAS[id]; return `<button type="button" class="ts-act" data-ts="exGo" data-area="${id}"><b>${A.bus}</b><small>${A.sub}</small></button>`; }).join('');
   return `${exHead('버스 정류장')}<p class="ts-note">하루 한 곳, 준비 시간은 쓰지 않습니다. 걸으면 체력이 줄고 가방은 ${EX_BAG}칸입니다.</p>${rows}`;
 }
 const exArea = () => EX_AREAS[(exRun() || {}).area] || EX_AREAS.market;

@@ -221,7 +221,7 @@ const evOf = id => EX_EVENTS_POOL.find(e => e.id === id);
 // 떠나기: 버스 정류장 (골목 준비 시간과 따로, 하루 한 번)
 defineCmd('exStart', ({ area } = {}) => {
   if (!exploreReady()) { emit('toast', exploredToday() ? '오늘은 이미 다녀왔습니다. 내일 또 가 보세요' : '아직 갈 수 없습니다', 'info'); return false; }
-  if (!EX_AREAS[area]) area = 'market';
+  if (!EX_AREAS[area] || (EX_AREAS[area].ch || 2) > G.story.ch) area = 'market'; // 장마다 열리는 동네 (오피스 거리 3장)
   const r = makeRand((G.baseSeed || 1) + G.day * 7919 + 4243 + (area === 'apt' ? 977 : area === 'office' ? 1553 : 0));
   const map = area === 'apt' ? genApt(r) : area === 'office' ? genOffice(r) : genMarket(r);
   X = { area, map, sp: EX_STAMINA, bag: [], spots: placeEvents(map, r, area), memos: [], did: 0, walked: 0 };

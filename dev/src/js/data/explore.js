@@ -14,7 +14,7 @@ export const EX_CLOCK = '05:30'; // 새벽 첫차
 export const EX_AREAS = {
   market: { name: '재래시장', when: '새벽', clock: '05:30', bus: '새벽 첫차로 재래시장 가기', sub: '상인 · 어르신 · 갓 나온 재료', intro: '새벽 시장이 막 문을 엽니다.' },
   apt: { name: '아파트 단지', when: '아침', clock: '07:30', bus: '아침 버스로 아파트 단지 가기', sub: '학생 · 직장인 · 집이 많은 동네', intro: '출근하고 등교하는 사람들로 단지가 북적입니다.' },
-  office: { name: '오피스 거리', when: '출근길', clock: '08:30', bus: '출근 버스로 오피스 거리 가기', sub: '직장인 · 점심 장사 · 비싼 임대료', intro: '출근하는 직장인들이 빌딩 안으로 바쁘게 들어갑니다.' }, // v0.84 사용자 요청 (기획서엔 3장 — 지금은 2장부터 열어 둬요)
+  office: { ch: 3, name: '오피스 거리', when: '출근길', clock: '08:30', bus: '출근 버스로 오피스 거리 가기', sub: '직장인 · 점심 장사 · 비싼 임대료', intro: '출근하는 직장인들이 빌딩 안으로 바쁘게 들어갑니다.' }, // v0.84 사용자 요청 · ch: 3장부터 열려요 (v0.87 사용자 결정)
 };
 export const EX_AREA_IDS = Object.keys(EX_AREAS);
 
