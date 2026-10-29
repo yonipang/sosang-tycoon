@@ -1254,7 +1254,7 @@ body.in-ex #questTrack { display: none !important; }
     <div id="stockMini" aria-label="남은 재료"></div>
     <div class="ctl">
       <button id="bSpeed" type="button" class="sq" aria-label="빠르기">1×</button>
-      <button id="bPause" type="button" class="sq" aria-label="쉬기">❚❚</button>
+      <button id="bPause" type="button" class="sq" aria-label="쉬기" data-guide="pause">❚❚</button>
     </div>
   </footer>
   <div id="toasts" aria-live="polite"></div>
@@ -1778,7 +1778,7 @@ const REVIEW_TEMPLATES = {
 };
 // ── js/data/version.js ──
 // 게임 버전: 올릴 때마다 하나씩 올려요 (프로젝트 문서 「plans/00-소상공인키우기-버전기록.md」와 같게)
-const GAME_VERSION = '0.85';
+const GAME_VERSION = '0.86';
 // ── js/data/credits.js ──
 // 엔딩 크레딧에 올라가는 이름들. 그림(LimeZu)·음악(CC BY 4.0) 크레딧은 라이선스 조건이라 빼지 않아요.
 const CREDITS = [
@@ -2313,6 +2313,7 @@ const SCENES = {
       ['tip', '계산까지 마쳐야 돈이 들어옵니다. 계산 줄에서 오래 기다린 손님은 기분이 나빠져 별점을 낮게 줍니다.', null, ['register', 'face_angry']],
       ['oh', '그래, 그게 장사 한 바퀴다. 주문 받고, 만들고, 갖다주고, 계산하고.'],
       ['oh', '오늘은 이렇게 다섯 명만 끝까지 받아 봐.'],
+      ['oh', '그리고 오늘 장사를 접을 땐 여기 쉬기(❚❚)에서 「오늘 영업 일찍 마감하기」. 안 누르면 밤 9시에 알아서 닫는다.', 'pause'], // v0.86 사용자 요청: 어디서 오늘 여기까지 하는지
     ],
     start: ['p_serve'],
   },
@@ -2342,7 +2343,10 @@ const SCENES = {
   // 품절 길잡이 (v0.84 사용자 요청): 2일차부터, 재료가 떨어져 손님을 처음 그냥 보냈을 때 한 번 (sim/tutorial.js tutSoldOut)
   tut_d1done: {
     when: 'now',
-    lines: [['oh', '다 팔았다! 첫날치고 잘했다. 재료가 없으니 오늘은 일찍 닫자.']],
+    lines: [
+      ['oh', '다 팔았다! 첫날치고 잘했다. 재료가 없으니 오늘은 일찍 닫자.'],
+      ['oh', '아까 말한 대로 쉬기(❚❚)에서 「오늘 영업 일찍 마감하기」를 눌러.', 'pause'], // v0.86 사용자 요청: 어디서 접는지 알려 줘요
+    ],
   },
   tut_soldout: {
     when: 'now',
@@ -6151,7 +6155,7 @@ function tickDay(dt) {
   // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
   if (!r.closing && !r.soldOutHint && !r.rush.length && todayMenus().every(m => stockOf(m) <= 0) && !r.tickets.length && !r.hands.length) {
     r.soldOutHint = true;
-    if (day1Fixed()) { G.story.queue.push('tut_d1done'); emit('story'); closeNow(); } // 첫날 다 팔면 오 사장님이 일찍 닫아요 (v0.84)
+    if (day1Fixed()) { G.story.queue.push('tut_d1done'); emit('story'); } // 첫날 다 팔면 오 사장님이 쉬기(❚❚) → 일찍 마감하기를 알려 줘요 (v0.86 — 전엔 저절로 닫았어요)
     else if (soldOutTaught()) emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
   }
   if (r.closing && (shopCustomers().length === 0 || r.min >= Math.max(CLOSE_CAP_MIN, r.closeMin + 60))) endDay();
@@ -10333,7 +10337,7 @@ function renderPause() {
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
       <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
-      ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
+      ${G.run && !G.run.closing ? `<button class="btn${G.run.soldOutHint ? ' primary' : ''}" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button><button class="btn small" data-act="devMarket">시세 소식 (다음 날)</button></div>` : ''}
     </div>`, 'scr-pause');
 }

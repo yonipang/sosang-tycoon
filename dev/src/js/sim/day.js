@@ -223,7 +223,7 @@ export function tickDay(dt) {
   // 재료가 다 떨어지면 일찍 마감할 수 있다고 알려 줘요 (한 번만)
   if (!r.closing && !r.soldOutHint && !r.rush.length && todayMenus().every(m => stockOf(m) <= 0) && !r.tickets.length && !r.hands.length) {
     r.soldOutHint = true;
-    if (day1Fixed()) { G.story.queue.push('tut_d1done'); emit('story'); closeNow(); } // 첫날 다 팔면 오 사장님이 일찍 닫아요 (v0.84)
+    if (day1Fixed()) { G.story.queue.push('tut_d1done'); emit('story'); } // 첫날 다 팔면 오 사장님이 쉬기(❚❚) → 일찍 마감하기를 알려 줘요 (v0.86 — 전엔 저절로 닫았어요)
     else if (soldOutTaught()) emit('toast', '재료가 모두 떨어졌습니다. 쉬기(❚❚)에서 일찍 마감해 보세요', 'hint');
   }
   if (r.closing && (shopCustomers().length === 0 || r.min >= Math.max(CLOSE_CAP_MIN, r.closeMin + 60))) endDay();

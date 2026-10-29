@@ -599,7 +599,7 @@ export function renderPause() {
       <h2>잠깐 쉬는 중</h2>
       <button class="btn primary big" data-act="resume">계속하기</button>
       <button class="btn ghost small" data-act="settings" data-from="pause">설정</button>
-      ${G.run && !G.run.closing ? `<button class="btn" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
+      ${G.run && !G.run.closing ? `<button class="btn${G.run.soldOutHint ? ' primary' : ''}" data-act="closeEarly">오늘 영업 일찍 마감하기</button><p class="pause-note">새 손님은 받지 않고, 안에 있는 손님만 마저 받습니다</p>` : ''}
       ${devOn && G.run && !G.run.closing ? `<div class="dev-inc"><small>개발자 · 돌발 이벤트 바로</small>${Object.keys(INCIDENTS).map(id => `<button class="btn small" data-act="devInc" data-i="${id}">${INCIDENTS[id].name}</button>`).join('')}<button class="btn small" data-act="devCash">+100만 원</button><button class="btn small" data-act="devMarket">시세 소식 (다음 날)</button></div>` : ''}
     </div>`, 'scr-pause');
 }
