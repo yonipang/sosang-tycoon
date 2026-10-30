@@ -22,7 +22,7 @@ export function notebookHTML(sel) {
   const rows = NOTE_TYPES.map(t => {
     const got = nbGot(t), b = nbPeek(t), fav = got.includes('fav') && nbText(t, 'fav'), hr = got.includes('hour') && nbPeak(b);
     const sub = [fav && fav.v, hr != null && hr !== false && hourName(hr)].filter(Boolean).join(' · ') || (got.length ? '조금 알게 됐습니다' : '아직 잘 모릅니다');
-    return `<button type="button" class="nb-row${got.length ? '' : ' dim'}" data-ts="nbType" data-t="${t}">${nbNew(t) ? '<i class="nb-new">새로</i>' : ''}${typeBadgeHTML(t, got.length ? '' : 'off')}<span class="nb-nm"><b>${CUSTOMER_TYPES[t].name}</b><small>${sub}</small>${segs(got.length)}</span><span class="nb-cnt">${got.length}/${NOTE_KEYS.length}</span></button>`;
+    return `<button type="button" class="nb-row${got.length ? '' : ' dim'}" data-ts="nbType" data-t="${t}">${nbNew(t) ? '<i class="nb-new">NEW</i>' : ''}${typeBadgeHTML(t, got.length ? '' : 'off')}<span class="nb-nm"><b>${CUSTOMER_TYPES[t].name}</b><small>${sub}</small>${segs(got.length)}</span><span class="nb-cnt">${got.length}/${NOTE_KEYS.length}</span></button>`;
   }).join('');
   const memos = exMemos();
   return `<p class="nb-note">장사하면서 알아낸 것이 저절로 적힙니다</p>${rows}${memos.length ? `<button type="button" class="nb-memo" data-ts="nbType" data-t="memo"><span>동네 메모 · 탐방에서 본 것</span><span>${memos.length}줄 ▸</span></button>` : ''}`;
