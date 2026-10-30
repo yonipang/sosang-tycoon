@@ -1,5 +1,5 @@
-# 직접 그린 재료 그림(dev/art_src/ings/*.png, 16×16) → Aseprite 파일 하나 (프레임 하나에 재료 하나, 프레임마다 태그 = 재료 이름)
-# 사용법: python3 dev/ase_pack.py  → dev/art_src/ings/ingredients.aseprite (게임은 PNG를 써요 — art_pack.py)
+# 게임의 재료 그림 전부 → Aseprite 파일 하나 (프레임 하나에 재료 하나, 프레임마다 태그 = 재료 이름)
+# 사용법: python3 dev/ase_pack.py  → dev/art_src/ings/ingredients.aseprite (게임은 PNG를 써요 — 고친 그림은 art_src/ings/<재료>.png로 넣고 art_pack.py)
 import struct, zlib, sys
 from PIL import Image
 
@@ -63,14 +63,31 @@ def read_back(path, out_prefix):
         off += fsize
     return nf, (W, H), names
 
-# 재료 파일 이름 → 태그 이름 (새 재료 그림을 넣으면 여기에도 더해요)
-NAMES = {'scallion': '파', 'ddeok': '떡', 'fishcake': '오뎅'}
+# 게임의 재료 그림 전부(아틀라스의 ing_…) → 프레임 하나에 재료 하나 · 태그 = 게임 속 재료 이름 (data/menu.js INGREDIENTS 순서)
+#  직접 그린 그림(art_src/ings/*.png)은 art_pack.py가 아틀라스에 이미 넣어 둬요 — art_pack.py 다음에 돌려요
+def atlas_ings(root):
+    import re, json, base64, io, tempfile, os
+    a = open(os.path.join(root, 'src', 'js', 'art', 'atlas.js'), encoding='utf-8').read()
+    spr = json.loads(re.search(r'export const SPR = (\{.*?\});', a, re.S).group(1))
+    atlas = Image.open(io.BytesIO(base64.b64decode(re.search(r"ATLAS_URL = ['\"]data:image/png;base64,([^'\"]+)", a).group(1)))).convert('RGBA')
+    m = open(os.path.join(root, 'src', 'js', 'data', 'menu.js'), encoding='utf-8').read()
+    block = m[m.index('export const INGREDIENTS = {'):]
+    block = block[:block.index('\n};')]
+    order = re.findall(r"^\s+(\w+): \{ name: '([^']+)'", block, re.M)
+    tmp = tempfile.mkdtemp()
+    items = []
+    for k, name in order:
+        r = spr.get('ing_' + k)
+        if not r: continue
+        f = os.path.join(tmp, k + '.png')
+        atlas.crop((r[0], r[1], r[0] + r[2], r[1] + r[3])).save(f)
+        items.append((f, name))
+    return items
 
 if __name__ == '__main__':
-    import os, glob, tempfile
-    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'art_src', 'ings')
-    files = sorted(glob.glob(os.path.join(src, '*.png')), key=lambda f: list(NAMES).index(os.path.splitext(os.path.basename(f))[0]) if os.path.splitext(os.path.basename(f))[0] in NAMES else 99)
-    items = [(f, NAMES.get(os.path.splitext(os.path.basename(f))[0], os.path.splitext(os.path.basename(f))[0])) for f in files]
-    out = os.path.join(src, 'ingredients.aseprite')
+    import os, tempfile
+    root = os.path.dirname(os.path.abspath(__file__))
+    items = atlas_ings(root)
+    out = os.path.join(root, 'art_src', 'ings', 'ingredients.aseprite')
     write(out, items)
     print(out, read_back(out, os.path.join(tempfile.gettempdir(), 'ase_check_')))
