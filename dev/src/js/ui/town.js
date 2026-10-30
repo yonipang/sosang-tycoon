@@ -262,7 +262,7 @@ function updateInside(dt) {
     else { const k = Math.min(step, Math.abs(dy)); me.y += Math.sign(dy) * k; step -= k; me.dir = dy > 0 ? 3 : 1; }
   }
   const marks = spotsNow().filter(S => S.act !== 'exit').map(S => { const t = spotTiles(S).tiles; const xs = t.map(a => a[0]), ys = t.map(a => a[1]); return { x: (Math.min(...xs) + Math.max(...xs) + 1) / 2, y: Math.min(...ys) + (S.act === 'recipe' ? 0.3 : 0) }; });
-  drawShopTo($('townCv'), { me, time: T.time, dawn: G.town.part === 'dawn', marks });
+  drawShopTo($('townCv'), { me, time: T.time, dawn: G.town.part === 'dawn', marks, focus: T.act && T.act.focus });
 }
 function tapInside(e) {
   const r = $('townCv').getBoundingClientRect(), V = shopViewSize();
@@ -412,7 +412,7 @@ export function updateTown(dt) {
   const dawn = G.town.part === 'dawn';
   const actors = [me, ...(T.walkers || [])];
   for (const id in TOWN_NPC) { const n = TOWN_NPC[id]; actors.push({ char: id === 'choi' && guildOpen() ? CAST.moon.char : CAST[id].char, x: tileX(n.at[0]), y: tileY(n.at[1]), dir: 3 }); } // 2장: 세탁소 자리엔 문 회장님
-  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}), ...(rivalHoard() ? { tw_vacant: 'tw_hoard', sign_vacant: 'sign_hoard' } : rivalBuilt() ? { tw_vacant: 'tw_factory', sign_vacant: 'sign_factory' } : {}) }, only: onlyNow() });
+  drawTown($('townCv'), { cam: T.cam, vw: T.vw, vh: T.vh, actors, time: T.time, night: !dawn, dawn, marks: townMarks(), swap: { ...(furnOpen() ? { sign_flower: 'sign_furn' } : {}), ...(guildOpen() ? { sign_laundry: 'sign_hw' } : {}), ...(rivalHoard() ? { tw_vacant: 'tw_hoard', sign_vacant: 'sign_hoard' } : rivalBuilt() ? { tw_vacant: 'tw_factory', sign_vacant: 'sign_factory' } : {}) }, only: onlyNow(), focus: T.act && T.act.focus });
 }
 
 // ── 골목 꾸밈 · 물건 · 걷는 손님 (v0.48) ──
@@ -507,14 +507,14 @@ const adj = (ax, ay, bx, by) => Math.abs(ax - bx) + Math.abs(ay - by) <= 1;
 function townActTarget() {
   const [tx, ty] = meTile();
   const t = talkTarget();
-  if (t) return { label: '대화', run: () => { T.talkT = t; talkPress(); } };
+  if (t) return { label: '대화', focus: { person: [t.x, t.y] }, run: () => { T.talkT = t; talkPress(); } };
   const place = Object.keys(PLACES).find(id => PLACES[id].door[0] === tx && PLACES[id].door[1] === ty);
-  if (place) return { label: place === 'shop' || placeActs(place).length > 1 ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
+  if (place) return { label: place === 'shop' || placeActs(place).length > 1 ? '들어가기' : PLACES[place].who ? '대화' : '들어가기', focus: { bld: [tx * TILE + 8, ty * TILE], rect: PLACES[place].rect }, run: () => { T.me.path = []; facePlace(place); if (place === 'shop') enterShop(); else openPlace(place); } };
   const prop = MAP_PROPS.find(q => q.use && propOn(q) && (q.block || []).some(([a, b]) => adj(a, b, tx, ty)));
-  if (prop) return { label: USE_LABEL[prop.use] || '살펴보기', run: () => { T.me.path = []; openUse(prop); } };
+  if (prop) return { label: USE_LABEL[prop.use] || '살펴보기', focus: { prop }, run: () => { T.me.path = []; openUse(prop); } };
   const look = LOOKS.find(L => inRect(tx * TILE + 8, ty * TILE - 4, L.rect));
-  if (look) return { label: '살펴보기', run: () => { T.me.dir = 1; showLook(look); } };
-  if (vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) return { label: '살펴보기', run: () => { T.me.dir = 1; showVacant(); } };
+  if (look) return { label: '살펴보기', focus: { rect: look.rect }, run: () => { T.me.dir = 1; showLook(look); } };
+  if (vacantB && ty * TILE === vacantB[2] && tx * TILE >= vacantB[1] && tx * TILE < vacantB[1] + SPR.tw_vacant[2]) return { label: '살펴보기', focus: { bld: [tx * TILE + 8, ty * TILE] }, run: () => { T.me.dir = 1; showVacant(); } };
   return null;
 }
 // 가게 안: 서 있는 칸(또는 바로 옆)의 물건 — 여러 개면 바라보는 쪽
@@ -530,7 +530,9 @@ function insideActTarget() {
   }
   if (!best) return null;
   const act = best.act;
-  return { label: act === 'setup' ? (prepMax() ? '조리대' : '오픈 준비') : IN_LABEL[act] || '살펴보기', run: () => { me.path = []; me.moving = false; doShop(act); } };
+  const { tiles } = spotTiles(best), xs = tiles.map(q => q[0]), ys = tiles.map(q => q[1]);
+  const focus = { rect: [Math.min(...xs) * TILE, Math.min(...ys) * TILE, (Math.max(...xs) - Math.min(...xs) + 1) * TILE, (Math.max(...ys) - Math.min(...ys) + 1) * TILE] }; // 흰 테두리 (v0.91)
+  return { label: act === 'setup' ? (prepMax() ? '조리대' : '오픈 준비') : IN_LABEL[act] || '살펴보기', focus, run: () => { me.path = []; me.moving = false; doShop(act); } };
 }
 function updateActBtn() {
   const b = $('townAct'); if (!b) return;
@@ -800,9 +802,11 @@ export function initTown() {
   });
   initExplore();
   // 누르기·끌기 (조이스틱)
-  const cv = $('townCv'), joyEl = $('townJoy');
+  // v0.91 사용자 요청: 캔버스 밖(아래 빈 곳)을 눌러도 조이스틱 — 받는 곳은 마을 화면 전체, 버튼·창·위 막대는 빼요
+  const cv = $('town'), joyEl = $('townJoy');
   cv.addEventListener('pointerdown', e => {
     if (!T || talking() || T.fading) return;
+    if (e.target.closest('button, #townSheet, #townBar, #townNav, a, input')) return;
     e.preventDefault();
     const sh = $('townSheet');
     if (!sh.hidden) { // 창이 떠 있으면 바깥을 누를 때 걷지 않아요: 이웃 대화는 넘기고, 다른 창은 닫아요
@@ -831,7 +835,7 @@ export function initTown() {
     const j = T && T.joy;
     if (!j || j.id !== e.pointerId) return;
     T.joy = null; joyEl.hidden = true; T.bumped = null;
-    if (!j.on && e.type === 'pointerup') tapTown(e); // 짧게 눌렀으면 그곳까지 걸어가요
+    if (!j.on && e.type === 'pointerup') { const r = $('townCv').getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tapTown(e); } // 짧게 눌렀으면 그곳까지 걸어가요 (지도 위를 눌렀을 때만)
   };
   cv.addEventListener('pointerup', joyEnd);
   cv.addEventListener('pointercancel', joyEnd);

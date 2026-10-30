@@ -12,16 +12,53 @@ function twSpr(name, x, y) {
   twc.drawImage(twAtlas, r[0], r[1], r[2], r[3], Math.round(x), Math.round(y), r[2], r[3]);
 }
 // 사람: x 가운데 · y 발끝. 줄 1 숨쉬기 · 2 걷기 (방향 0 오른쪽 · 1 위 · 2 왼쪽 · 3 아래)
-function twPerson(a, t) {
-  const r = SPR['char' + a.char]; if (!r) return;
-  if (a.sit) { // 벤치에 앉기: 앉은 줄(3) — 오른쪽 보기 0~5 · 왼쪽 보기 6~11
-    const f = (a.dir === 2 ? 6 : 0) + Math.floor(t * 4) % 6;
-    twc.drawImage(twAtlas, r[0] + f * 16, r[1] + 3 * 32, 16, 32, Math.round(a.x - 8), Math.round(a.y - 36), 16, 32);
-    return;
-  }
+// 그 순간의 그림 칸 [아틀라스 x, y, 그릴 x, y] (테두리도 같은 칸으로)
+function twFrame(a, t) {
+  const r = SPR['char' + a.char]; if (!r) return null;
+  if (a.sit) { const f = (a.dir === 2 ? 6 : 0) + Math.floor(t * 4) % 6; return [r[0] + f * 16, r[1] + 3 * 32, Math.round(a.x - 8), Math.round(a.y - 36)]; } // 벤치에 앉기: 앉은 줄(3) — 오른쪽 보기 0~5 · 왼쪽 보기 6~11
   const row = a.moving ? 2 : 1, f = a.dir * 6 + Math.floor(t * (a.moving ? 10 : 6)) % 6;
-  twc.fillStyle = 'rgba(0,0,0,.22)'; twc.fillRect(Math.round(a.x - 5), Math.round(a.y - 1), 10, 2); // 발밑 그림자
-  twc.drawImage(twAtlas, r[0] + f * 16, r[1] + row * 32, 16, 32, Math.round(a.x - 8), Math.round(a.y - 32), 16, 32);
+  return [r[0] + f * 16, r[1] + row * 32, Math.round(a.x - 8), Math.round(a.y - 32)];
+}
+function twPerson(a, t) {
+  const F = twFrame(a, t); if (!F) return;
+  if (!a.sit) { twc.fillStyle = 'rgba(0,0,0,.22)'; twc.fillRect(Math.round(a.x - 5), Math.round(a.y - 1), 10, 2); } // 발밑 그림자
+  twc.drawImage(twAtlas, F[0], F[1], 16, 32, F[2], F[3], 16, 32);
+}
+// 상호작용 버튼이 가리키는 것에 흰 테두리 (v0.91 사용자 요청): 그림 모양 그대로 1픽셀 바깥 줄 — 밤빛 위에 그려 또렷하게
+let olc = null;
+export function outlineSprite(ctx, img, sx, sy, w, h, dx, dy, a) {
+  olc = olc || document.createElement('canvas');
+  if (olc.width < w + 2 || olc.height < h + 2) { olc.width = w + 2; olc.height = h + 2; }
+  const o = olc.getContext('2d');
+  o.clearRect(0, 0, olc.width, olc.height);
+  for (const [ox, oy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) o.drawImage(img, sx, sy, w, h, ox, oy, w, h);
+  o.globalCompositeOperation = 'source-in'; o.fillStyle = '#fff'; o.fillRect(0, 0, w + 2, h + 2);
+  o.globalCompositeOperation = 'destination-out'; o.drawImage(img, sx, sy, w, h, 1, 1, w, h);
+  o.globalCompositeOperation = 'source-over';
+  const ga = ctx.globalAlpha; ctx.globalAlpha = a;
+  ctx.drawImage(olc, 0, 0, w + 2, h + 2, dx - 1, dy - 1, w + 2, h + 2);
+  ctx.globalAlpha = ga;
+}
+export function outlineRect(ctx, x, y, w, h, a) {
+  const ga = ctx.globalAlpha; ctx.globalAlpha = a;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x, y - 1, w, 1); ctx.fillRect(x, y + h, w, 1); ctx.fillRect(x - 1, y, 1, h); ctx.fillRect(x + w, y, 1, h);
+  ctx.globalAlpha = ga;
+}
+function twFocus(F, S, t) {
+  const a = 0.75 + 0.25 * Math.sin(t * 6);
+  if (F.person) {
+    const A = S.actors.find(q => Math.abs(q.x - F.person[0]) < 1.5 && Math.abs(q.y - F.person[1]) < 1.5);
+    const fr = A && twFrame(A, t + A.char);
+    if (fr) outlineSprite(twc, twAtlas, fr[0], fr[1], 16, 32, fr[2], fr[3], a);
+  } else if (F.bld) {
+    const [px, py] = F.bld;
+    const B = BUILDINGS.find(([n, x, bot]) => { const m = (S.swap && S.swap[n]) || n; return px >= x && px < x + SPR[m][2] && Math.abs(bot - py) <= 16; });
+    if (B) { const m = (S.swap && S.swap[B[0]]) || B[0], r = SPR[m]; outlineSprite(twc, twAtlas, r[0], r[1], r[2], r[3], B[1], B[2] - r[3], a); }
+    else if (F.rect) outlineRect(twc, F.rect[0], F.rect[1], F.rect[2], F.rect[3], a); // 건물이 아닌 곳 (게시판)
+  } else if (F.prop) {
+    const r = SPR[F.prop.spr]; if (r) outlineSprite(twc, twAtlas, r[0], r[1], r[2], r[3], F.prop.x, F.prop.y - r[3], a);
+  } else if (F.rect) outlineRect(twc, F.rect[0], F.rect[1], F.rect[2], F.rect[3], a);
 }
 
 // 바닥: 보이는 칸만
@@ -69,7 +106,7 @@ const twSignKey = SIGNS.map(([, x, y]) => {
   return b ? b[2] : y;
 });
 
-// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving,sit}], time, night, dawn, marks:[{x,y}], swap:{ 간판: 바꿀 그림 }, only:{ 꾸밈 이름: 보이나 } }
+// S: { cam:{x,y}, vw, vh, actors:[{char,x,y,dir,moving,sit}], time, night, dawn, marks:[{x,y}], swap:{ 간판: 바꿀 그림 }, only:{ 꾸밈 이름: 보이나 }, focus: 흰 테두리 { person:[x,y] | bld:[x,y] | prop | rect } }
 export function drawTown(canvas, S) {
   if (!twAtlas) { twAtlas = new Image(); twAtlas.src = ATLAS_URL; }
   if (!twAtlas.complete) return;
@@ -100,6 +137,7 @@ export function drawTown(canvas, S) {
     if (S.night) for (const p of MAP_PROPS) if (p.spr === 'lamp') twRadial(p.x + 7, p.y - 2, 26, 0.16 * fl); // 가로등 불빛 웅덩이
     twc.globalCompositeOperation = 'source-over';
   }
+  if (S.focus) twFocus(S.focus, S, t);
   for (const m of S.marks || []) twMark(m.x, m.y, t);
   twc.setTransform(1, 0, 0, 1, 0, 0);
 }

@@ -44,12 +44,12 @@ function typeHTML(t) {
     }
     return `<div class="nb-entry"><span class="k">${N.name}</span><span class="v">${k === 'fav' ? icon(x.menu, 'nb-dish') : ''}${x.v}</span>${extra}<span class="why">${x.why}</span></div>`;
   }).join('');
-  return `<button type="button" class="nb-back" data-ts="nbType" data-t="">◂ 손님층</button>
+  return `<button type="button" class="nb-back" data-ts="nbType" data-t="">◂ 뒤로</button>
     <div class="nb-hero">${typeBadgeHTML(t, 'big')}<b>${T.name}</b></div>${cells}`;
 }
 
 function memoHTML() {
   const memos = exMemos();
-  return `<button type="button" class="nb-back" data-ts="nbType" data-t="">◂ 손님층</button>
+  return `<button type="button" class="nb-back" data-ts="nbType" data-t="">◂ 뒤로</button>
     <p class="nb-note">동네 탐방에서 본 것</p>${memos.map(m => `<p class="ex-memo">${m}</p>`).join('')}`;
 }

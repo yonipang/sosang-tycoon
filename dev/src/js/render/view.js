@@ -5,6 +5,7 @@ import { freshLeft, freshQ } from '../sim/kitchen.js';
 import { W, H, TILE, DOOR, FRONT_Y, FURNITURE, STATIONS, SEATS, TABLES, TABLE_LIFT, DECOR, REGISTER, FURN_SPOTS } from '../data/layout.js';
 import { takeoutWaiting } from '../sim/incidents.js';
 import { SPR, ATLAS_URL } from '../art/atlas.js';
+import { outlineRect } from './town.js';
 import { isSeated } from '../sim/customers.js';
 import { handsCount, ticketsCount, stationMenus } from '../sim/player.js';
 import { menuOpen, questActive } from '../sim/story.js';
@@ -404,6 +405,7 @@ export function drawShopTo(canvas, S) {
   items.sort((a, b) => a.y - b.y).forEach(o => o.d());
   // 밤엔 가게 불을 켠 느낌으로 살짝만 어둡게
   if (!S.rows) { ctx.fillStyle = S.dawn ? 'rgba(60,80,145,.12)' : 'rgba(30,36,90,.16)'; ctx.fillRect(0, 0, VW, VH); }
+  if (S.focus && S.focus.rect) outlineRect(ctx, S.focus.rect[0], S.focus.rect[1], S.focus.rect[2], S.focus.rect[3], 0.75 + 0.25 * Math.sin(S.time * 6)); // 상호작용 버튼이 가리키는 물건: 흰 테두리 (v0.91)
   const bob = Math.round(Math.sin(S.time * 4) * 1.5);
   for (const m of S.marks || []) { // 누를 수 있는 물건: 노란 점
     ctx.fillStyle = 'rgba(59,42,32,.6)'; ctx.fillRect(Math.round(m.x * TILE) - 2, Math.round(m.y * TILE) - 2 + bob, 5, 5);
