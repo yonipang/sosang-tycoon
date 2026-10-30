@@ -103,7 +103,13 @@ def atlas_dishes(root, small=False):  # small: 작은 그림(_s — 손에 든 �
             f = os.path.join(tmp, k + '.png')
             atlas.crop((r[0], r[1], r[0] + r[2], r[1] + r[3])).save(f)
             items.append((f, name))
+    # 메뉴 연구로 열릴 새 메뉴 (아직 게임에 없음 — 기획서 4장 무렵): art_src/dishes/new/<id>.png · <id>_s.png 초안
+    for k, name in NEW_MENUS:
+        f = os.path.join(root, 'art_src', 'dishes', 'new', k + ('_s' if small else '') + '.png')
+        if os.path.exists(f): items.append((f, name + ' (메뉴 연구)'))
     return items
+
+NEW_MENUS = [('udon', '우동'), ('katsu', '돈까스'), ('rabokki', '라볶이'), ('ramen', '라면'), ('sundae', '순대'), ('odeng', '어묵탕')]
 
 if __name__ == '__main__':
     import os, tempfile
