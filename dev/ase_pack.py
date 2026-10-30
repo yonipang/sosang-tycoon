@@ -1,5 +1,5 @@
-# 게임의 재료 그림 전부 → Aseprite 파일 하나 (프레임 하나에 재료 하나, 프레임마다 태그 = 재료 이름)
-# 사용법: python3 dev/ase_pack.py  → dev/art_src/ings/ingredients.aseprite (게임은 PNG를 써요 — 고친 그림은 art_src/ings/<재료>.png로 넣고 art_pack.py)
+# 게임의 재료 · 음식 그림 전부 → Aseprite 파일 (프레임 하나에 그림 하나, 프레임마다 태그 = 게임 속 이름)
+# 사용법: python3 dev/ase_pack.py  → dev/art_src/ings/ingredients.aseprite · dev/art_src/dishes/dishes.aseprite (게임은 PNG를 써요 — 고친 그림은 art_src/ings/<재료>.png로 넣고 art_pack.py)
 import struct, zlib, sys
 from PIL import Image
 
@@ -29,7 +29,8 @@ def write(path, items, layer='재료', dur=200):
                 tags += struct.pack('<HHBH', ti, ti, 0, 0) + b'\0' * 6 + bytes([0, 0, 0]) + b'\0' + s_str(name)
             chunks.append(chunk(0x2018, tags))
         px = zlib.compress(im.tobytes())
-        cel = struct.pack('<HhhBHh', 0, 0, 0, 255, 2, 0) + b'\0' * 5 + struct.pack('<HH', im.width, im.height) + px
+        cx, cy = (W - im.width) // 2, (H - im.height) // 2  # 작은 그림은 프레임 가운데에
+        cel = struct.pack('<HhhBHh', 0, cx, cy, 255, 2, 0) + b'\0' * 5 + struct.pack('<HH', im.width, im.height) + px
         chunks.append(chunk(0x2005, cel))
         body = b''.join(chunks)
         n = len(chunks)
@@ -84,10 +85,31 @@ def atlas_ings(root):
         items.append((f, name))
     return items
 
+# 음식(메뉴) 그림 전부 → 기본 메뉴 3 + 메뉴 변형 15 (data/menu.js MENUS · VARIANTS 순서, 태그 = 메뉴 이름)
+def atlas_dishes(root, small=False):  # small: 작은 그림(_s — 손에 든 그릇 · 막대 아이콘)
+    import re, json, base64, io, tempfile, os
+    a = open(os.path.join(root, 'src', 'js', 'art', 'atlas.js'), encoding='utf-8').read()
+    spr = json.loads(re.search(r'export const SPR = (\{.*?\});', a, re.S).group(1))
+    atlas = Image.open(io.BytesIO(base64.b64decode(re.search(r"ATLAS_URL = ['\"]data:image/png;base64,([^'\"]+)", a).group(1)))).convert('RGBA')
+    m = open(os.path.join(root, 'src', 'js', 'data', 'menu.js'), encoding='utf-8').read()
+    order = re.findall(r"^\s+(tteok|kimbap|twigim): \{ name: '([^']+)'", m, re.M)
+    var = re.findall(r"^\s+\['(\w+)', '([^']+)', \d+", m, re.M)
+    tmp = tempfile.mkdtemp()
+    items = []
+    for b, bname in order:
+        for k, name in [(b, bname)] + [v for v in var if v[0].startswith(b + '_')]:
+            r = spr.get(k + ('_s' if small else ''))
+            if not r: continue
+            f = os.path.join(tmp, k + '.png')
+            atlas.crop((r[0], r[1], r[0] + r[2], r[1] + r[3])).save(f)
+            items.append((f, name))
+    return items
+
 if __name__ == '__main__':
     import os, tempfile
     root = os.path.dirname(os.path.abspath(__file__))
-    items = atlas_ings(root)
-    out = os.path.join(root, 'art_src', 'ings', 'ingredients.aseprite')
-    write(out, items)
-    print(out, read_back(out, os.path.join(tempfile.gettempdir(), 'ase_check_')))
+    for name, items, layer in (('ingredients', atlas_ings(root), '재료'), ('dishes', atlas_dishes(root), '음식'), ('dishes_small', atlas_dishes(root, True), '작은 음식')):
+        out = os.path.join(root, 'art_src', 'ings' if name == 'ingredients' else 'dishes', name + '.aseprite')
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        write(out, items, layer)
+        print(out, read_back(out, os.path.join(tempfile.gettempdir(), f'ase_{name}_')))
