@@ -895,6 +895,9 @@ def collect():
     s['plant'] = crop(INT, '1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png', 215, 457, 18, 31)  # 개업 축하 화분 (이야기 장식)
     for k, v in own_ings().items():
         s['ing_' + k] = v
+    # 사용자가 직접 그린 재료 그림 (v0.95 — dev/art_src/ings/<재료>.png, 16×16): 있으면 위 그림 대신 써요
+    for f in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'art_src', 'ings', '*.png'))):
+        s['ing_' + os.path.splitext(os.path.basename(f))[0]] = Image.open(f).convert('RGBA')
     s.update(furn_sprites())
     s.update(furn2_sprites())
     s.update(kitchen_sprites())  # 미소 가구 주방 (v0.71)
