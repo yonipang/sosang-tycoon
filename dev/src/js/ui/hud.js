@@ -11,6 +11,7 @@ import { icon } from './icons.js';
 import { menuOpen } from '../sim/story.js';
 import { stockOf, shortIng, todayMenus } from '../sim/pantry.js';
 import { INGREDIENTS } from '../data/menu.js';
+import { townMode } from '../sim/town.js';
 
 const last = {};
 function setText(id, v) { if (last[id] !== v) { last[id] = v; $(id).textContent = v; } }
@@ -19,7 +20,7 @@ function setHTML(id, v) { if (last['h' + id] !== v) { last['h' + id] = v; $(id).
 export const dayLabel = d => `${d}일차 · ${WEEKDAYS[(d - 1) % 7]}요일`;
 
 export function updateHud() {
-  setText('hDay', dayLabel(G.day || 1));
+  setText('hDay', dayLabel(Math.max(1, (G.day || 1) - (G.phase === 'prep' && townMode() ? 1 : 0)))); // 하루는 가게를 열 때 넘어가요 (v0.93 사용자 요청): 장사 뒤 밤·새벽은 그날 그대로
   setText('hCash', wonShort(G.cash || 0));
   const alba = !!G.story && G.story.ch === 0; // 프롤로그: 아직 알바라 가게 돈은 오 사장님 것
   if (last.alba !== alba) { last.alba = alba; $('hCash').parentElement.hidden = alba; }

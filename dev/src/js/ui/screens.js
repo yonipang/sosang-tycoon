@@ -143,7 +143,7 @@ function renderLedger(last, after, dawn) {
   const bills = ''; // 고정비는 v0.77부터 매일 영수증에서 (일요일 밤 예고 없음)
   showScreen(`
     <div class="prep book">
-      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · ${dayLabel(G.day)}</div>
+      <div class="phase-tag night">${dawn ? '새벽' : '밤'} · ${G.shop} · 다음 영업 ${dayLabel(G.day)}</div>
       <h2>가게 열기</h2>
       <p class="yday">${last ? `어제 매출 <b>${wonShort(last.revenue)}</b> · 손님 ${last.served}명` : ''}</p>
       ${qline}
